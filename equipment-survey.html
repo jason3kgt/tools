@@ -43,12 +43,12 @@ textarea{resize:vertical;min-height:70px}
 .stage-inp{padding:7px 6px;border:1.5px solid var(--bd);border-radius:8px;font-family:inherit;font-size:13px;text-align:center;background:var(--of);color:var(--tx);width:100%}
 .stage-inp:focus{outline:none;border-color:var(--st);background:#fff}
 .yno{display:flex;gap:6px;flex-wrap:wrap}
-.yb{flex:1;min-width:50px;padding:8px 4px;border-radius:8px;font-size:12px;font-weight:600;border:1.5px solid var(--bd);background:var(--of);color:var(--mu);font-family:inherit;cursor:pointer;text-align:center}
+.yb{touch-action:manipulation;flex:1;min-width:50px;padding:8px 4px;border-radius:8px;font-size:12px;font-weight:600;border:1.5px solid var(--bd);background:var(--of);color:var(--mu);font-family:inherit;cursor:pointer;text-align:center}
 .yb.yes{background:#E8F5EC;border-color:var(--gn);color:var(--gn)}
 .yb.no{background:#FDEDEC;border-color:var(--rd);color:var(--rd)}
 .yb.na{background:#EEF1F7;border-color:var(--mu);color:var(--mu)}
 .cond-btns{display:flex;gap:6px}
-.cb2{padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;border:1.5px solid var(--bd);background:var(--of);color:var(--mu);font-family:inherit;cursor:pointer}
+.cb2{touch-action:manipulation;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;border:1.5px solid var(--bd);background:var(--of);color:var(--mu);font-family:inherit;cursor:pointer}
 .cb2.good{background:#E8F5EC;border-color:var(--gn);color:var(--gn)}
 .cb2.fair{background:#FFF3E0;border-color:var(--am);color:var(--am)}
 .cb2.poor{background:#FDEDEC;border-color:var(--rd);color:var(--rd)}
@@ -89,15 +89,15 @@ textarea{resize:vertical;min-height:70px}
   <div class="cb">
     <div class="fg"><label>Gas or Electric?</label>
       <div class="yno">
-        <button class="yb"  ontouchend="tog(this,'j-fuel','Gas')" onclick="tog(this,'j-fuel','Gas')">Gas</button>
-        <button class="yb"  ontouchend="tog(this,'j-fuel','Electric')" onclick="tog(this,'j-fuel','Electric')">Electric</button>
-        <button class="yb"  ontouchend="tog(this,'j-fuel','Both')" onclick="tog(this,'j-fuel','Both')">Both</button>
+        <button class="yb" onclick="tog(this,'j-fuel','Gas')">Gas</button>
+        <button class="yb" onclick="tog(this,'j-fuel','Electric')">Electric</button>
+        <button class="yb" onclick="tog(this,'j-fuel','Both')">Both</button>
       </div><input type="hidden" id="j-fuel">
     </div>
     <div class="fg"><label>Fencing around units?</label>
       <div class="yno">
-        <button class="yb"  ontouchend="togYN(this,'j-fence','Yes')" onclick="togYN(this,'j-fence','Yes')">Yes</button>
-        <button class="yb"  ontouchend="togYN(this,'j-fence','No')" onclick="togYN(this,'j-fence','No')">No</button>
+        <button class="yb" onclick="togYN(this,'j-fence','Yes')">Yes</button>
+        <button class="yb" onclick="togYN(this,'j-fence','No')">No</button>
       </div><input type="hidden" id="j-fence">
     </div>
     <div class="fg"><label>Site Notes</label><textarea id="j-notes" placeholder="Overall site observations, access issues, anything relevant before work begins..."></textarea></div>
@@ -110,7 +110,7 @@ textarea{resize:vertical;min-height:70px}
   <div class="ch"><span class="cn">U</span><h2>Equipment Units</h2></div>
   <div class="cb">
     <div id="uql"><div class="empty">Tap below to add a unit</div></div>
-    <button class="addb"  ontouchend="addUnit()" onclick="addUnit()">+ Add Unit</button>
+    <button class="addb" onclick="addUnit()">+ Add Unit</button>
   </div>
 </div>
 <button class="dlb"  ontouchend="dlPDF()" onclick="dlPDF()">&#8681; Download Survey PDF</button>
@@ -154,22 +154,20 @@ var LG='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKwAAACgCAIAAAAekRD0AAABTG
 
 var units=[],uid=1;
 
-var _goLock = false;
 function go(n){
-  if(_goLock) return;
-  _goLock = true;
-  setTimeout(function(){ _goLock = false; }, 400);
-  qsa('.pg').forEach(function(p,i){p.classList.toggle('on',i===n);});
-  qsa('.tab').forEach(function(t,i){t.classList.toggle('on',i===n);});
+  qsa('.pg').forEach(function(p,i){ p.classList.toggle('on',i===n); });
+  qsa('.tab').forEach(function(t,i){ t.classList.toggle('on',i===n); });
   window.scrollTo(0,0);
 }
 function gv(id){return(document.getElementById(id)||{}).value||'';}
 
 function tog(btn,hid,val){
-  var p=btn.parentElement,cur=document.getElementById(hid).value;
+  var p=btn.parentElement;
+  var hidEl=document.getElementById(hid);
+  var cur=hidEl?hidEl.value:'';
   qsa('.yb',p).forEach(function(b){ b.classList.remove('yes','no','na'); });
-  if(cur===val){document.getElementById(hid).value='';}
-  else{btn.classList.add('yes');document.getElementById(hid).value=val;}
+  if(cur===val){ if(hidEl)hidEl.value=''; }
+  else{ btn.classList.add('yes'); if(hidEl)hidEl.value=val; }
 }
 function togYN(btn,hid,val){
   var p=btn.parentElement,cur=document.getElementById(hid).value;
@@ -186,10 +184,10 @@ function togCond(btn,id,val){
 
 function yn(hid,lblYes,lblNo,lblNA){
   lblYes=lblYes||'Yes';lblNo=lblNo||'No';
-  var na=lblNA?'<button class="yb"  ontouchend="togYN(this,\''+hid+'\',\'N/A\')" onclick="togYN(this,\''+hid+'\',\'N/A\')">N/A</button>':'';
+  var na=lblNA?'<button class="yb" onclick="togYN(this,\''+hid+'\',\'N/A\')">N/A</button>':'';
   return '<div class="yno">'
-    +'<button class="yb"  ontouchend="togYN(this,\''+hid+'\',\'Yes\')" onclick="togYN(this,\''+hid+'\',\'Yes\')">'+lblYes+'</button>'
-    +'<button class="yb"  ontouchend="togYN(this,\''+hid+'\',\'No\')" onclick="togYN(this,\''+hid+'\',\'No\')">'+lblNo+'</button>'
+    +'<button class="yb" onclick="togYN(this,\''+hid+'\',\'Yes\')">'+lblYes+'</button>'
+    +'<button class="yb" onclick="togYN(this,\''+hid+'\',\'No\')">'+lblNo+'</button>'
     +na
     +'</div><input type="hidden" id="'+hid+'">';
 }
@@ -198,7 +196,7 @@ function uH(u,i){
   var id=u.id;
   return '<div class="uc" id="uc-'+id+'">'
   // Unit header
-  +'<div class="uh"><div class="un">'+(i+1)+'</div><div class="ut" id="utag-'+id+'">'+(u.tag||'Unit '+(i+1))+'</div><button class="xb"  ontouchend="rmUnit('+id+')" onclick="rmUnit('+id+')">&#x2715;</button></div>'
+  +'<div class="uh"><div class="un">'+(i+1)+'</div><div class="ut" id="utag-'+id+'">'+(u.tag||'Unit '+(i+1))+'</div><button class="xb" onclick="rmUnit('+id+')">&#x2715;</button></div>'
   +'<div class="ub">'
 
   // ── UNIT INFO ──
@@ -206,7 +204,7 @@ function uH(u,i){
   +'<div class="r3">'
     +'<div class="fg"><label>Unit Tag</label><input type="text" id="u-tag-'+id+'" placeholder="e.g. RTU-1" oninput="udf('+id+',\'tag\',this.value)"></div>'
     +'<div class="fg"><label>Type of Unit</label><input type="text" id="u-type-'+id+'" placeholder="RTU/Split/AHU"></div>'
-    +'<div class="fg"><label>Overall Condition</label><div class="cond-btns"><button class="cb2"  ontouchend="togCond(this,'+id+',\'Good\')" onclick="togCond(this,'+id+',\'Good\')">Good</button><button class="cb2"  ontouchend="togCond(this,'+id+',\'Fair\')" onclick="togCond(this,'+id+',\'Fair\')">Fair</button><button class="cb2"  ontouchend="togCond(this,'+id+',\'Poor\')" onclick="togCond(this,'+id+',\'Poor\')">Poor</button></div><input type="hidden" id="u-cond-'+id+'"></div>'
+    +'<div class="fg"><label>Overall Condition</label><div class="cond-btns"><button class="cb2" onclick="togCond(this,'+id+',\'Good\')">Good</button><button class="cb2" onclick="togCond(this,'+id+',\'Fair\')">Fair</button><button class="cb2" onclick="togCond(this,'+id+',\'Poor\')">Poor</button></div><input type="hidden" id="u-cond-'+id+'"></div>'
   +'</div>'
   +'<div class="r2">'
     +'<div class="fg"><label>Unit Model #</label><input type="text" id="u-mod1-'+id+'" placeholder="Model"></div>'
@@ -240,10 +238,10 @@ function uH(u,i){
   +'<div class="sh">Unit Status — Controls &amp; Power</div>'
   +'<div class="fg"><label>Controls intact? Local or Remote?</label>'
     +'<div class="yno">'
-      +'<button class="yb"  ontouchend="tog(this,\'u-ctrl-\'+id+\'\',\'Local\')" onclick="tog(this,\'u-ctrl-\'+id+\'\',\'Local\')">Local</button>'
-      +'<button class="yb"  ontouchend="tog(this,\'u-ctrl-\'+id+\'\',\'Remote\')" onclick="tog(this,\'u-ctrl-\'+id+\'\',\'Remote\')">Remote</button>'
-      +'<button class="yb"  ontouchend="tog(this,\'u-ctrl-\'+id+\'\',\'Both\')" onclick="tog(this,\'u-ctrl-\'+id+\'\',\'Both\')">Both</button>'
-      +'<button class="yb"  ontouchend="tog(this,\'u-ctrl-\'+id+\'\',\'Not Intact\')" onclick="tog(this,\'u-ctrl-\'+id+\'\',\'Not Intact\')">Not Intact</button>'
+      +'<button class="yb" onclick="tog(this,\'u-ctrl-\'+id+\'\',\'Local\')">Local</button>'
+      +'<button class="yb" onclick="tog(this,\'u-ctrl-\'+id+\'\',\'Remote\')">Remote</button>'
+      +'<button class="yb" onclick="tog(this,\'u-ctrl-\'+id+\'\',\'Both\')">Both</button>'
+      +'<button class="yb" onclick="tog(this,\'u-ctrl-\'+id+\'\',\'Not Intact\')">Not Intact</button>'
     +'</div><input type="hidden" id="u-ctrl-'+id+'">'
   +'</div>'
   +'<div class="fg"><label>Unit has power?</label>'+yn('u-pwr-'+id,'Yes','No','N/A')+'</div>'
@@ -582,7 +580,7 @@ if('serviceWorker' in navigator){
           if(newSW.state === 'installed' && navigator.serviceWorker.controller){
             var n = document.createElement('div');
             n.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1B3A6B;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,.3)';
-            n.innerHTML = '&#128260; Update available — <button  ontouchend="location.reload()" onclick="location.reload()" style="background:#E8531A;color:#fff;border:none;border-radius:8px;padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Reload</button>';
+            n.innerHTML = '&#128260; Update available — <button  ontouchend="location.reload()" onclick="location.reload()" style="background:#E8531A;color:#fff;border:none;border-radius:8px;padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer;touch-action:manipulation;cursor:pointer;font-family:inherit">Reload</button>';
             document.body.appendChild(n);
           }
         });
