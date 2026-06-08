@@ -297,18 +297,20 @@ function mf(label, id, unit, w){
 function toggleMfNA(id){
   var hid = document.getElementById('mfyn_'+id);
   var inp = document.getElementById('mf_'+id);
-  var btn = document.getElementById('mfna_'+id);
+  var btn = document.getElementById('mfna_'+id); // may be null for tc() table inputs
   var row = document.getElementById('mfrow_'+id);
-  if(!hid||!inp||!btn) return;
+  if(!hid||!inp) return;
   if(hid.value==='NA'){
     hid.value='';
     inp.disabled=false; inp.style.opacity='1'; inp.style.textDecoration=''; inp.style.color='';
-    btn.className='mf-na-btn';
+    inp.style.background=''; inp.placeholder='';
+    if(btn) btn.className='mf-na-btn';
     if(row){ row.classList.remove('mf-na-active'); row.style.borderLeft=''; }
   } else {
     hid.value='NA';
     inp.disabled=true; inp.style.opacity='.5'; inp.style.textDecoration='line-through'; inp.style.color='#B45309';
-    btn.className='mf-na-btn active';
+    inp.style.background='#FFF3E0';
+    if(btn) btn.className='mf-na-btn active';
     if(row){ row.classList.add('mf-na-active'); row.style.borderLeft='3px solid #F59E0B'; }
   }
   updateProgress();
@@ -1660,9 +1662,22 @@ if(document.readyState==='loading'){
 if('serviceWorker' in navigator){
   window.addEventListener('load', function(){
     navigator.serviceWorker.register('sw.js').then(function(reg){
-      console.log('SW registered');
-    }).catch(function(err){
-      console.log('SW failed: ', err);
+      reg.update();
+      reg.addEventListener('updatefound', function(){
+        var newSW = reg.installing;
+        newSW.addEventListener('statechange', function(){
+          if(newSW.state === 'installed' && navigator.serviceWorker.controller){
+            var n = document.createElement('div');
+            n.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1B3A6B;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,.3)';
+            n.innerHTML = '&#128260; Update available <button onclick="location.reload()" style="background:#E8531A;color:#fff;border:none;border-radius:8px;padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">Reload</button>';
+            document.body.appendChild(n);
+          }
+        });
+      });
+    });
+    var refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function(){
+      if(!refreshing){ refreshing = true; window.location.reload(); }
     });
   });
 }

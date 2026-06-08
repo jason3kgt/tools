@@ -37,6 +37,11 @@
 </div>
 <div class="wrap">
 
+    <div id="update_banner" style="display:none;background:#1B3A6B;color:#fff;padding:14px 16px;margin-bottom:16px;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:10px">
+    <span style="font-size:13px;font-weight:600">&#128260; New version available</span>
+    <button style="background:#E8531A;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Update Now</button>
+  </div>
+
   <div class="install-banner">
     <strong>&#128241; Add to Home Screen for offline use</strong>
     Tap the Share button in Safari, then "Add to Home Screen" — the tools will work without internet on jobsites.
@@ -48,6 +53,15 @@
     <h2>Equipment Startup Checklist</h2>
     <p>RTU, Split/VRF/VRV, Chiller, Boiler, AHU, Exhaust Fan. Y/N/NA checks, measurements, photos, tech sign-off, PDF download.</p>
     <span class="badge">6 Equipment Types</span>
+  </a>
+
+
+  <a class="card" href="equipment-survey.html">
+    <span class="arrow">›</span>
+    <div class="card-icon">&#128221;</div>
+    <h2>Equipment Survey</h2>
+    <p>Pre-job site survey. Job info, site questions, per-unit equipment details, pre-existing conditions, customer acknowledgment and signature.</p>
+    <span class="badge">Pre-Job Form</span>
   </a>
 
   <a class="card" href="field-assessment.html">
@@ -65,8 +79,46 @@
 <script>
 if('serviceWorker' in navigator){
   window.addEventListener('load', function(){
-    navigator.serviceWorker.register('sw.js');
+    navigator.serviceWorker.register('sw.js').then(function(reg){
+
+      // Check for updates every time app is opened
+      reg.update();
+
+      // When a new service worker is waiting, show update banner
+      reg.addEventListener('updatefound', function(){
+        var newSW = reg.installing;
+        newSW.addEventListener('statechange', function(){
+          if(newSW.state === 'installed' && navigator.serviceWorker.controller){
+            showUpdateBanner(newSW);
+          }
+        });
+      });
+
+      // Also check if there's already a waiting SW
+      if(reg.waiting){
+        showUpdateBanner(reg.waiting);
+      }
+    });
+
+    // Reload once the new SW takes control
+    var refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function(){
+      if(!refreshing){
+        refreshing = true;
+        window.location.reload();
+      }
+    });
   });
+}
+
+function showUpdateBanner(sw){
+  var banner = document.getElementById('update_banner');
+  if(banner){
+    banner.style.display = 'block';
+    banner.querySelector('button').addEventListener('click', function(){
+      sw.postMessage('skipWaiting');
+    });
+  }
 }
 </script>
 </body>

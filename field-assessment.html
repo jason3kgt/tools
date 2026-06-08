@@ -1019,13 +1019,32 @@ document.getElementById('stch').value='Jason E.';
 document.getElementById('sv').value='Q2 2026';
 
 </script>
+
 <script>
 if('serviceWorker' in navigator){
   window.addEventListener('load', function(){
     navigator.serviceWorker.register('sw.js').then(function(reg){
-      console.log('SW registered');
-    }).catch(function(err){
-      console.log('SW failed: ', err);
+      reg.update();
+      reg.addEventListener('updatefound', function(){
+        var newSW = reg.installing;
+        newSW.addEventListener('statechange', function(){
+          if(newSW.state === 'installed' && navigator.serviceWorker.controller){
+            var n = document.createElement('div');
+            n.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1B3A6B;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,.3)';
+            var btn = document.createElement('button');
+            btn.textContent = 'Reload';
+            btn.style.cssText = 'background:#E8531A;color:#fff;border:none;border-radius:8px;padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;margin-left:12px';
+            btn.onclick = function(){ location.reload(); };
+            n.appendChild(document.createTextNode('Update available '));
+            n.appendChild(btn);
+            document.body.appendChild(n);
+          }
+        });
+      });
+    });
+    var refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function(){
+      if(!refreshing){ refreshing = true; window.location.reload(); }
     });
   });
 }
