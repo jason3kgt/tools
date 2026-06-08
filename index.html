@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NTD Mechanical Tools</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="NTD Tools">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="theme-color" content="#1B3A6B">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:Arial,sans-serif;background:#F0F4FA;min-height:100vh}
+    .hdr{background:#1B3A6B;padding:20px 16px 16px;text-align:center}
+    .hdr img{height:48px;margin-bottom:8px}
+    .hdr h1{color:#fff;font-size:20px;font-weight:700}
+    .hdr p{color:rgba(255,255,255,.7);font-size:13px;margin-top:2px}
+    .wrap{padding:20px 16px}
+    .card{background:#fff;border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.08);border:1px solid #E2E8F0;text-decoration:none;display:block;color:inherit}
+    .card:active{opacity:.85}
+    .card-icon{font-size:36px;margin-bottom:10px}
+    .card h2{font-size:18px;color:#1B3A6B;font-weight:700;margin-bottom:6px}
+    .card p{font-size:13px;color:#64748B;line-height:1.5}
+    .card .arrow{float:right;color:#1B3A6B;font-size:22px;margin-top:-2px}
+    .badge{display:inline-block;background:#E8F5EC;color:#166534;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin-top:8px}
+    .install-banner{background:#FFF3E0;border:1.5px solid #F59E0B;border-radius:12px;padding:14px 16px;margin-bottom:16px;font-size:13px;color:#92400E;line-height:1.6}
+    .install-banner strong{display:block;margin-bottom:4px;color:#78350F;font-size:14px}
+    .footer{text-align:center;padding:20px;color:#94A3B8;font-size:11px}
+  </style>
+</head>
+<body>
+<div class="hdr">
+  <h1>NTD Mechanical</h1>
+  <p>Field Tools</p>
+</div>
+<div class="wrap">
+
+  <div class="install-banner">
+    <strong>&#128241; Add to Home Screen for offline use</strong>
+    Tap the Share button in Safari, then "Add to Home Screen" — the tools will work without internet on jobsites.
+  </div>
+
+  <a class="card" href="startup-checklist.html">
+    <span class="arrow">›</span>
+    <div class="card-icon">&#9989;</div>
+    <h2>Equipment Startup Checklist</h2>
+    <p>RTU, Split/VRF/VRV, Chiller, Boiler, AHU, Exhaust Fan. Y/N/NA checks, measurements, photos, tech sign-off, PDF download.</p>
+    <span class="badge">6 Equipment Types</span>
+  </a>
+
+  <a class="card" href="field-assessment.html">
+    <span class="arrow">›</span>
+    <div class="card-icon">&#128203;</div>
+    <h2>Field Assessment App</h2>
+    <p>Condition scoring, replace vs repair forecast, capital expenditure projection. Generates executive summary PDF.</p>
+    <span class="badge">PM Sales Tool</span>
+  </a>
+
+</div>
+<div class="footer">
+  NTD Mechanical &mdash; TACLA65973C &mdash; Garland, TX
+</div>
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js');
+  });
+}
+</script>
+</body>
+</html>
