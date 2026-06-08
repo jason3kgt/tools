@@ -37,7 +37,7 @@
 </div>
 <div class="wrap">
 
-    <div id="update_banner" style="display:none;background:#1B3A6B;color:#fff;padding:14px 16px;margin-bottom:16px;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:10px">
+    <div id="update_banner" style="display:none;background:#1B3A6B;color:#fff;padding:14px 16px;margin-bottom:16px;border-radius:12px;align-items:center;justify-content:space-between;gap:10px">
     <span style="font-size:13px;font-weight:600">&#128260; New version available</span>
     <button style="background:#E8531A;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Update Now</button>
   </div>
@@ -113,10 +113,14 @@ if('serviceWorker' in navigator){
 
 function showUpdateBanner(sw){
   var banner = document.getElementById('update_banner');
-  if(banner){
-    banner.style.display = 'block';
-    banner.querySelector('button').addEventListener('click', function(){
+  if(!banner) return;
+  banner.style.display = 'flex';
+  var btn = banner.querySelector('button');
+  if(btn){
+    btn.addEventListener('click', function(){
       sw.postMessage('skipWaiting');
+      // Fallback: if controllerchange doesn't fire within 2s, force reload
+      setTimeout(function(){ window.location.reload(); }, 2000);
     });
   }
 }
