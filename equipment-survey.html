@@ -62,6 +62,9 @@ textarea{resize:vertical;min-height:70px}
 .dlb{display:block;width:100%;padding:13px;border-radius:10px;font-size:14px;font-weight:600;background:var(--or);color:#fff;border:none;margin-top:8px;font-family:inherit;cursor:pointer;text-align:center}
 .addb{display:block;width:100%;padding:11px;border-radius:10px;font-size:13px;font-weight:600;border:1.5px solid var(--nv);background:#fff;color:var(--nv);margin-top:8px;font-family:inherit;cursor:pointer;text-align:center}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+
+.back-btn{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--nv,#1B3A6B);font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;padding:8px 0 4px;touch-action:manipulation}
+.back-btn:before{content:"‹";font-size:20px;line-height:1}
 </style>
 </head>
 <body>
@@ -101,6 +104,7 @@ textarea{resize:vertical;min-height:70px}
 </div>
 </div>
 <div class="pg" id="pg1">
+<button class="back-btn" ontouchend="go(0)" onclick="go(0)">Back to Job Info</button>
 <div class="card">
   <div class="ch"><span class="cn">U</span><h2>Equipment Units</h2></div>
   <div class="cb">
@@ -113,6 +117,7 @@ textarea{resize:vertical;min-height:70px}
 <input type="file" id="lf" accept=".json" style="display:none" onchange="loadJ(this)">
 </div>
 <div class="pg" id="pg2">
+<button class="back-btn" ontouchend="go(1)" onclick="go(1)">Back to Equipment</button>
 <div class="card">
   <div class="ch"><span class="cn">!</span><h2>Pre-Job Inspection Summary</h2></div>
   <div class="cb">
@@ -148,7 +153,15 @@ var LG='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKwAAACgCAIAAAAekRD0AAABTG
 
 var units=[],uid=1;
 
-function go(n){qsa('.pg').forEach(function(p,i){p.classList.toggle('on',i===n);});qsa('.tab').forEach(function(t,i){t.classList.toggle('on',i===n);});window.scrollTo(0,0);}
+var _goLock = false;
+function go(n){
+  if(_goLock) return;
+  _goLock = true;
+  setTimeout(function(){ _goLock = false; }, 400);
+  qsa('.pg').forEach(function(p,i){p.classList.toggle('on',i===n);});
+  qsa('.tab').forEach(function(t,i){t.classList.toggle('on',i===n);});
+  window.scrollTo(0,0);
+}
 function gv(id){return(document.getElementById(id)||{}).value||'';}
 
 function tog(btn,hid,val){
