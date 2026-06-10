@@ -13,7 +13,96 @@
 <meta name="apple-mobile-web-app-title" content="NTD Survey">
 <meta name="theme-color" content="#1B3A6B">
 <title>NTD Mechanical — Equipment Survey Form</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js">
+// ── NAMEPLATE OCR ──────────────────────────────────────────
+function scanNameplate(unitId) {
+  var inp = document.getElementById('np-input-' + unitId);
+  if (inp) inp.click();
+}
+
+function processNameplate(input, unitId) {
+  var file = input.files[0];
+  if (!file) return;
+  var apiKey = (document.getElementById('api-key') || {}).value || '';
+  if (!apiKey || apiKey.trim() === '') {
+    alert('Please enter your Anthropic API key at the top of the form first.');
+    input.value = '';
+    return;
+  }
+
+  // Show loading state on button
+  var btn = input.previousElementSibling;
+  var origText = btn ? btn.innerHTML : '';
+  if (btn) { btn.innerHTML = '&#8987; Reading nameplate...'; btn.disabled = true; }
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var b64 = e.target.result.split(',')[1];
+    var mediaType = file.type || 'image/jpeg';
+
+    fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey.trim(),
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-5',
+        max_tokens: 400,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: { type: 'base64', media_type: mediaType, data: b64 }
+            },
+            {
+              type: 'text',
+              text: 'This is an HVAC equipment nameplate. Extract the following and respond ONLY with valid JSON, no other text:\n{"model":"","serial":"","tonnage":"","refrigerant":"","voltage":"","btu":"","kw":"","heat_type":""}\nFor tonnage use format like "5T". For voltage use format like "208/3" or "115/1". Leave blank if not visible. Do not guess.'
+            }
+          ]
+        }]
+      })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var text = '';
+      if (data.content && data.content[0] && data.content[0].text) {
+        text = data.content[0].text.trim();
+      }
+      try {
+        // Strip any markdown fences if present
+        text = text.replace(/^```json\s*/,'').replace(/```\s*$/,'').trim();
+        var d = JSON.parse(text);
+        var set = function(id, val) {
+          var el = document.getElementById(id);
+          if (el && val) { el.value = val; }
+        };
+        set('u-mod1-' + unitId,  d.model      || '');
+        set('u-ser1-' + unitId,  d.serial     || '');
+        set('u-ton-'  + unitId,  d.tonnage    || '');
+        set('u-ref-'  + unitId,  d.refrigerant|| '');
+        set('u-volt-' + unitId,  d.voltage    || '');
+        set('u-btu-'  + unitId,  d.btu        || '');
+        set('u-kw-'   + unitId,  d.kw         || '');
+        set('u-heat-' + unitId,  d.heat_type  || '');
+        if (btn) { btn.innerHTML = '&#10003; Nameplate read — review fields'; btn.style.background = '#2e7d32'; }
+      } catch(err) {
+        if (btn) { btn.innerHTML = origText; btn.disabled = false; btn.style.background = ''; }
+        alert('Could not read nameplate. Please fill in fields manually.\n\nResponse: ' + text.substring(0,200));
+      }
+    })
+    .catch(function(err) {
+      if (btn) { btn.innerHTML = origText; btn.disabled = false; }
+      alert('Network error. Check your API key and internet connection.');
+    });
+  };
+  reader.readAsDataURL(file);
+  input.value = '';
+}
+
+</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{--nv:#1B3A6B;--st:#2E5F8A;--or:#E8531A;--gn:#1E7A3E;--am:#D4820A;--rd:#C0392B;--bd:#DDE2EA;--of:#F7F8FA;--tx:#1A1A2E;--mu:#6B7280}
@@ -76,7 +165,7 @@ textarea{resize:vertical;min-height:70px}
   <div class="ch"><span class="cn">1</span><h2>Job Information</h2></div>
   <div class="cb">
     <div class="r2">
-      <div class="fg"><label>Date</label><input type="text" id="j-date" placeholder="MM/DD/YYYY"></div>
+      <div class="fg" style="background:#fff8e1;border-radius:8px;padding:8px;border:1px solid #ffe082"><label style="color:#856404">&#128273; Anthropic API Key (for nameplate scan)</label><input type="text" id="api-key" placeholder="sk-ant-..." style="font-family:monospace;font-size:12px"><div style="font-size:11px;color:#856404;margin-top:4px">Required for nameplate OCR. Stored locally only.</div></div><div class="fg"><label>Date</label><input type="text" id="j-date" placeholder="MM/DD/YYYY"></div>
       <div class="fg"><label>Job / Work Order #</label><input type="text" id="j-wo" placeholder="WO#"></div>
     </div>
     <div class="fg"><label>Technician Name</label><input type="text" id="j-tech" placeholder="Full name"></div>
@@ -207,7 +296,7 @@ function uH(u,i){
     +'<div class="fg"><label>Overall Condition</label><div class="cond-btns"><button class="cb2" onclick="togCond(this,'+id+',\'Good\')">Good</button><button class="cb2" onclick="togCond(this,'+id+',\'Fair\')">Fair</button><button class="cb2" onclick="togCond(this,'+id+',\'Poor\')">Poor</button></div><input type="hidden" id="u-cond-'+id+'"></div>'
   +'</div>'
   +'<div class="r2">'
-    +'<div class="fg"><label>Unit Model #</label><input type="text" id="u-mod1-'+id+'" placeholder="Model"></div>'
+    +'<div style="margin:8px 0">'+'<button onclick="scanNameplate('+id+')" style="width:100%;padding:10px;border-radius:10px;font-size:13px;font-weight:600;background:#1B3A6B;color:#fff;border:none;cursor:pointer;touch-action:manipulation">'+'&#128247; Scan Nameplate — Auto-fill Fields'+'</button>'+'<input type="file" accept="image/*" capture="environment" id="np-input-'+id+'" style="display:none" onchange="processNameplate(this,'+id+')">'+'</div>'+'<div class="fg"><label>Unit Model #</label><input type="text" id="u-mod1-'+id+'" placeholder="Model"></div>'
     +'<div class="fg"><label>Unit Serial #</label><input type="text" id="u-ser1-'+id+'" placeholder="Serial"></div>'
   +'</div>'
   +'<div class="r2">'
