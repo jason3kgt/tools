@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>NTD PM Quoting</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:Arial,sans-serif;font-size:14px;background:#f0f2f5;color:#222;}
+.topbar{background:#1B3A6B;color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;}
+.topbar a{color:#fff;text-decoration:none;font-size:20px;}
+.topbar h1{font-size:16px;font-weight:700;flex:1;}
+.topbar .save-btn{background:#E8531A;color:#fff;border:none;padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;touch-action:manipulation;}
+.card{background:#fff;border-radius:12px;margin:12px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.08);}
+.card h2{font-size:13px;font-weight:700;color:#1B3A6B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;border-bottom:1px solid #e8eef5;padding-bottom:6px;}
+.fg{margin-bottom:10px;}
+.fg label{display:block;font-size:11px;font-weight:600;color:#666;margin-bottom:3px;text-transform:uppercase;}
+.fg input,.fg select,.fg textarea{width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:14px;background:#f8f9fa;color:#222;}
+.fg input:focus,.fg select:focus{outline:none;border-color:#1B3A6B;background:#fff;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+
+/* Plans */
+.plans-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.plan-btn{padding:10px 8px;border:2px solid #ddd;border-radius:10px;background:#f8f9fa;text-align:center;font-size:12px;font-weight:600;color:#555;cursor:pointer;touch-action:manipulation;transition:all .15s;}
+.plan-btn.on{border-color:#1B3A6B;background:#e8eef5;color:#1B3A6B;}
+
+/* Import button */
+.import-btn{width:100%;padding:12px;border-radius:10px;background:#1B3A6B;color:#fff;border:none;font-size:14px;font-weight:600;cursor:pointer;touch-action:manipulation;margin-bottom:10px;}
+.import-btn.secondary{background:#fff;color:#1B3A6B;border:2px solid #1B3A6B;}
+
+/* Equipment table */
+.eq-table{width:100%;border-collapse:collapse;font-size:12px;}
+.eq-table th{background:#1B3A6B;color:#fff;padding:7px 6px;text-align:center;font-size:11px;font-weight:600;}
+.eq-table th:nth-child(2){text-align:left;}
+.eq-table td{padding:6px 5px;border-bottom:1px solid #eee;vertical-align:middle;}
+.eq-table tr:nth-child(even) td{background:#f8f9fa;}
+.eq-table td input,.eq-table td select{width:100%;border:1px solid #ddd;border-radius:6px;padding:5px 6px;font-size:12px;background:#fff;}
+.eq-table td.num{text-align:right;font-weight:600;color:#1B3A6B;}
+.eq-table td.rate{text-align:right;color:#2e7d32;font-weight:600;}
+.del-btn{background:none;border:none;color:#cc3333;font-size:16px;cursor:pointer;padding:2px 6px;touch-action:manipulation;}
+.add-unit-btn{width:100%;padding:10px;border:2px dashed #1B3A6B;border-radius:10px;background:transparent;color:#1B3A6B;font-size:13px;font-weight:600;cursor:pointer;touch-action:manipulation;margin-top:8px;}
+
+/* Totals */
+.total-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #eee;}
+.total-row:last-child{border-bottom:none;}
+.total-row .label{font-size:13px;color:#555;}
+.total-row .val{font-size:15px;font-weight:700;color:#1B3A6B;}
+.total-row.grand .label{font-size:15px;font-weight:700;color:#1B3A6B;}
+.total-row.grand .val{font-size:20px;color:#E8531A;}
+
+/* Toast */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:999;display:none;}
+.toast.show{display:block;}
+
+/* PDF button */
+.pdf-btn{width:100%;padding:14px;border-radius:12px;background:#E8531A;color:#fff;border:none;font-size:15px;font-weight:700;cursor:pointer;touch-action:manipulation;margin-top:4px;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="index.html" onclick="goHome(event)">⌂</a>
+  <h1>PM Quoting Tool</h1>
+  <button class="save-btn" onclick="saveData()" style="touch-action:manipulation">Save</button>
+</div>
+
+<!-- JOB INFO -->
+<div class="card">
+  <h2>Job Information</h2>
+  <div class="fg"><label>Customer / Facility</label><input type="text" id="customer" placeholder="Customer name"></div>
+  <div class="fg"><label>Service Address</label><input type="text" id="address" placeholder="Address"></div>
+  <div class="row2">
+    <div class="fg"><label>Attention</label><input type="text" id="attention" placeholder="Contact name"></div>
+    <div class="fg"><label>Agreement #</label><input type="text" id="agr_num" placeholder="e.g. PM-2026-001"></div>
+  </div>
+  <div class="row2">
+    <div class="fg"><label>Date</label><input type="date" id="agr_date"></div>
+    <div class="fg"><label>Renewal Date</label><input type="date" id="renewal_date"></div>
+  </div>
+</div>
+
+<!-- FREQUENCY & PLAN -->
+<div class="card">
+  <h2>Service Frequency</h2>
+  <div class="row2">
+    <button class="plan-btn on" id="freq-q" onclick="setFreq('Quarterly')" style="touch-action:manipulation">Quarterly<br><small style="font-weight:400;font-size:11px">4x per year</small></button>
+    <button class="plan-btn" id="freq-m" onclick="setFreq('Monthly')" style="touch-action:manipulation">Monthly<br><small style="font-weight:400;font-size:11px">12x per year</small></button>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Selected Plan(s)</h2>
+  <div class="plans-grid" id="plans-grid"></div>
+</div>
+
+<!-- EQUIPMENT -->
+<div class="card">
+  <h2>Equipment List</h2>
+  <input type="file" id="json-file" accept=".json" style="display:none" onchange="loadJSON(this)">
+  <button class="import-btn" onclick="document.getElementById('json-file').click()" style="touch-action:manipulation">📱 Import from Field Assessment JSON</button>
+  <button class="import-btn secondary" onclick="addUnit()" style="touch-action:manipulation">+ Add Unit Manually</button>
+  <div style="overflow-x:auto;margin-top:8px;">
+    <table class="eq-table" id="eq-table">
+      <thead>
+        <tr>
+          <th style="width:30px">#</th>
+          <th style="text-align:left;min-width:80px">Tag</th>
+          <th style="min-width:160px">Unit Type</th>
+          <th style="min-width:45px">Qty</th>
+          <th style="min-width:55px">Filters</th>
+          <th style="min-width:45px">Belts</th>
+          <th style="min-width:70px">Rate/Visit</th>
+          <th style="min-width:80px">Annual</th>
+          <th style="width:30px"></th>
+        </tr>
+      </thead>
+      <tbody id="eq-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- TOTALS -->
+<div class="card">
+  <h2>Pricing Summary</h2>
+  <div class="total-row">
+    <span class="label">Total Annual PM</span>
+    <span class="val" id="tot-annual">$0.00</span>
+  </div>
+  <div class="total-row">
+    <span class="label">Quarterly Billing</span>
+    <span class="val" id="tot-qtr">$0.00</span>
+  </div>
+  <div class="total-row">
+    <span class="label">Monthly Billing</span>
+    <span class="val" id="tot-mo">$0.00</span>
+  </div>
+  <div class="total-row grand">
+    <span class="label">Units Quoted</span>
+    <span class="val" id="tot-units">0</span>
+  </div>
+</div>
+
+<!-- MATERIAL COSTS -->
+<div class="card">
+  <h2>Material Cost Rates (editable)</h2>
+  <div class="row3">
+    <div class="fg"><label>Filter $/unit</label><input type="number" id="cost-filter" value="18" onchange="calcAll()"></div>
+    <div class="fg"><label>Belt $/unit</label><input type="number" id="cost-belt" value="35" onchange="calcAll()"></div>
+    <div class="fg"><label>Coil Clean $/unit</label><input type="number" id="cost-coil" value="95" onchange="calcAll()"></div>
+  </div>
+</div>
+
+<!-- GENERATE -->
+<div class="card">
+  <button class="pdf-btn" onclick="generatePDF()" style="touch-action:manipulation">📄 Generate PM Proposal PDF</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── RATES TABLE ───────────────────────────────────────────────
+var RATES = {
+  'RTU - up to 5 ton':        {q:85,  m:55},
+  'RTU - 6 to 10 ton':        {q:110, m:70},
+  'RTU - 11 to 20 ton':       {q:145, m:95},
+  'RTU - 21+ ton':            {q:185, m:125},
+  'Split - light commercial': {q:75,  m:50},
+  'Split - commercial 3-5T':  {q:95,  m:65},
+  'AHU':                      {q:95,  m:65},
+  'VRF/VRV - per indoor':     {q:45,  m:30},
+  'FCU':                      {q:55,  m:38},
+  'DOAS':                     {q:135, m:90},
+  'MAU':                      {q:125, m:85},
+  'Unit/Cabinet Heater':      {q:45,  m:30},
+  'Exhaust Fan - standard':   {q:45,  m:30},
+  'Exhaust Fan - large':      {q:75,  m:50},
+  'Chiller - up to 100T':     {q:450, m:295},
+  'Chiller - 101 to 300T':    {q:650, m:425},
+  'Chiller - 301+ ton':       {q:950, m:625},
+  'Boiler - up to 1M BTU':    {q:185, m:125},
+  'Boiler - 1M+ BTU':         {q:285, m:185},
+  'Cooling Tower':            {q:285, m:185},
+};
+
+var UNIT_TYPES = Object.keys(RATES);
+
+var PLANS = [
+  {key:'tm',    label:'Time & Material'},
+  {key:'mat',   label:'Materials Included\n(filters, belts)'},
+  {key:'lab',   label:'Labor Included'},
+  {key:'coil',  label:'In-Depth Coil Cleaning'},
+  {key:'comp',  label:'Replacement Components (NTE)'},
+  {key:'full',  label:'Full Protection Plan'},
+];
+
+var selectedPlans = {tm:false, mat:false, lab:false, coil:false, comp:false, full:false};
+var freq = 'Quarterly';
+var units = [];
+
+// ── INIT ──────────────────────────────────────────────────────
+window.onload = function() {
+  document.getElementById('agr_date').value = new Date().toISOString().split('T')[0];
+  buildPlans();
+  loadData();
+  renderTable();
+  calcAll();
+};
+
+function goHome(e) {
+  e.preventDefault();
+  if (confirm('Go to home screen? Unsaved changes will be lost.')) {
+    window.location.href = 'index.html';
+  }
+}
+
+// ── PLANS ─────────────────────────────────────────────────────
+function buildPlans() {
+  var g = document.getElementById('plans-grid');
+  g.innerHTML = '';
+  PLANS.forEach(function(p) {
+    var b = document.createElement('button');
+    b.className = 'plan-btn' + (selectedPlans[p.key] ? ' on' : '');
+    b.innerHTML = p.label.replace('\n','<br>');
+    b.onclick = function() { togglePlan(p.key, b); };
+    b.style.touchAction = 'manipulation';
+    g.appendChild(b);
+  });
+}
+
+function togglePlan(key, btn) {
+  selectedPlans[key] = !selectedPlans[key];
+  btn.classList.toggle('on', selectedPlans[key]);
+  calcAll();
+}
+
+// ── FREQUENCY ─────────────────────────────────────────────────
+function setFreq(f) {
+  freq = f;
+  document.getElementById('freq-q').classList.toggle('on', f === 'Quarterly');
+  document.getElementById('freq-m').classList.toggle('on', f === 'Monthly');
+  calcAll();
+}
+
+// ── UNIT TYPE MAP ─────────────────────────────────────────────
+function mapType(faType, tonnage) {
+  var t = parseFloat(tonnage) || 0;
+  var fa = (faType || '').toLowerCase();
+  if (fa.indexOf('rtu') > -1 || fa.indexOf('rooftop') > -1) {
+    if (t <= 5)  return 'RTU - up to 5 ton';
+    if (t <= 10) return 'RTU - 6 to 10 ton';
+    if (t <= 20) return 'RTU - 11 to 20 ton';
+    return 'RTU - 21+ ton';
+  }
+  if (fa.indexOf('split') > -1 || fa.indexOf('mini') > -1) {
+    return t <= 2 ? 'Split - light commercial' : 'Split - commercial 3-5T';
+  }
+  if (fa.indexOf('ahu') > -1 || fa.indexOf('air handler') > -1) return 'AHU';
+  if (fa.indexOf('vrf') > -1 || fa.indexOf('vrv') > -1) return 'VRF/VRV - per indoor';
+  if (fa.indexOf('fcu') > -1 || fa.indexOf('fan coil') > -1) return 'FCU';
+  if (fa.indexOf('doas') > -1) return 'DOAS';
+  if (fa.indexOf('mau') > -1 || fa.indexOf('makeup') > -1) return 'MAU';
+  if (fa.indexOf('chiller') > -1) {
+    if (t <= 100) return 'Chiller - up to 100T';
+    if (t <= 300) return 'Chiller - 101 to 300T';
+    return 'Chiller - 301+ ton';
+  }
+  if (fa.indexOf('boiler') > -1) return 'Boiler - up to 1M BTU';
+  if (fa.indexOf('exhaust') > -1 || fa.indexOf('fan') > -1) return 'Exhaust Fan - standard';
+  if (fa.indexOf('unit heater') > -1 || fa.indexOf('cabinet') > -1) return 'Unit/Cabinet Heater';
+  if (fa.indexOf('cooling tower') > -1) return 'Cooling Tower';
+  return '';
+}
+
+// ── IMPORT JSON ───────────────────────────────────────────────
+function loadJSON(input) {
+  var file = input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var data = JSON.parse(e.target.result);
+      // Fill customer info if empty
+      if (!document.getElementById('customer').value && data.customer) {
+        document.getElementById('customer').value = data.customer;
+      }
+      if (!document.getElementById('address').value && data.address) {
+        document.getElementById('address').value = data.address;
+      }
+      if (!document.getElementById('attention').value && data.facility) {
+        document.getElementById('attention').value = data.facility;
+      }
+      // Import equipment
+      var eqs = data.eqs || data.units || [];
+      if (eqs.length === 0) {
+        toast('No equipment found in this JSON file.');
+        return;
+      }
+      eqs.forEach(function(eq) {
+        var fQty = (parseFloat(eq.f1q)||0) + (parseFloat(eq.f2q)||0);
+        var fSize = [eq.f1s, eq.f2s].filter(Boolean).join(' / ');
+        var bQty = parseFloat(eq.bq) || 0;
+        units.push({
+          tag:     eq.tag   || '',
+          type:    mapType(eq.type, eq.tonnage),
+          qty:     1,
+          fqty:    fQty || '',
+          fsize:   fSize || (eq.f1s || ''),
+          bqty:    bQty || '',
+          bsize:   eq.bs || '',
+          notes:   eq.area ? 'Area: ' + eq.area : '',
+        });
+      });
+      renderTable();
+      calcAll();
+      toast(eqs.length + ' unit(s) imported');
+    } catch(err) {
+      toast('Error reading JSON: ' + err.message);
+    }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// ── ADD UNIT MANUALLY ─────────────────────────────────────────
+function addUnit() {
+  units.push({tag:'', type:'', qty:1, fqty:'', fsize:'', bqty:'', bsize:'', notes:''});
+  renderTable();
+  calcAll();
+}
+
+function delUnit(i) {
+  units.splice(i, 1);
+  renderTable();
+  calcAll();
+}
+
+// ── TYPE SELECT HTML ──────────────────────────────────────────
+function typeSelect(val, idx) {
+  var s = '<select onchange="units['+idx+'].type=this.value;calcAll()" style="min-width:140px">';
+  s += '<option value="">-- Select --</option>';
+  UNIT_TYPES.forEach(function(t) {
+    s += '<option value="'+t+'"'+(val===t?' selected':'')+'>'+t+'</option>';
+  });
+  s += '</select>';
+  return s;
+}
+
+// ── RENDER TABLE ──────────────────────────────────────────────
+function renderTable() {
+  var tb = document.getElementById('eq-body');
+  tb.innerHTML = '';
+  units.forEach(function(u, i) {
+    var rate = getRate(u.type);
+    var matAddon = getMaterialAddon(u);
+    var ratePerVisit = (rate + matAddon) * (parseFloat(u.qty)||1);
+    var visitsPerYr = freq === 'Monthly' ? 12 : 4;
+    var annual = ratePerVisit * visitsPerYr;
+
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td style="text-align:center;color:#999">'+(i+1)+'</td>'+
+      '<td><input type="text" value="'+esc(u.tag)+'" placeholder="Tag" onchange="units['+i+'].tag=this.value"></td>'+
+      '<td>'+typeSelect(u.type, i)+'</td>'+
+      '<td><input type="number" value="'+(u.qty||1)+'" min="1" style="width:45px" onchange="units['+i+'].qty=this.value;calcAll()"></td>'+
+      '<td><input type="text" value="'+(u.fqty||'')+'" placeholder="Qty" style="width:40px" onchange="units['+i+'].fqty=this.value;calcAll()"><br>'+
+          '<input type="text" value="'+(u.fsize||'')+'" placeholder="Size" style="width:60px;margin-top:2px" onchange="units['+i+'].fsize=this.value"></td>'+
+      '<td><input type="text" value="'+(u.bqty||'')+'" placeholder="Qty" style="width:40px" onchange="units['+i+'].bqty=this.value;calcAll()"></td>'+
+      '<td class="rate">'+fmt(ratePerVisit)+'</td>'+
+      '<td class="num">'+fmt(annual)+'</td>'+
+      '<td><button class="del-btn" onclick="delUnit('+i+')" style="touch-action:manipulation">✕</button></td>';
+    tb.appendChild(tr);
+  });
+}
+
+function esc(s) { return (s||'').replace(/"/g,'&quot;'); }
+function fmt(n) { return '$'+(parseFloat(n)||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,','); }
+
+// ── RATE CALCULATION ──────────────────────────────────────────
+function getRate(type) {
+  if (!type || !RATES[type]) return 0;
+  return freq === 'Monthly' ? RATES[type].m : RATES[type].q;
+}
+
+function getMaterialAddon(u) {
+  if (!selectedPlans.mat) return 0;
+  var filterCost = parseFloat(document.getElementById('cost-filter').value)||18;
+  var beltCost   = parseFloat(document.getElementById('cost-belt').value)||35;
+  var fAddon = (parseFloat(u.fqty)||0) * filterCost;
+  var bAddon = (parseFloat(u.bqty)||0) * beltCost;
+  return fAddon + bAddon;
+}
+
+function calcAll() {
+  renderTable();
+  var visitsPerYr = freq === 'Monthly' ? 12 : 4;
+  var totalAnnual = 0;
+  var totalUnits = 0;
+  units.forEach(function(u) {
+    if (!u.type) return;
+    var rate = getRate(u.type);
+    var matAddon = getMaterialAddon(u);
+    var qty = parseFloat(u.qty)||1;
+    totalAnnual += (rate + matAddon) * qty * visitsPerYr;
+    totalUnits += qty;
+  });
+  document.getElementById('tot-annual').textContent = fmt(totalAnnual);
+  document.getElementById('tot-qtr').textContent    = fmt(totalAnnual/4);
+  document.getElementById('tot-mo').textContent     = fmt(totalAnnual/12);
+  document.getElementById('tot-units').textContent  = totalUnits;
+}
+
+// ── SAVE / LOAD ───────────────────────────────────────────────
+function saveData() {
+  var data = {
+    customer: document.getElementById('customer').value,
+    address:  document.getElementById('address').value,
+    attention:document.getElementById('attention').value,
+    agr_num:  document.getElementById('agr_num').value,
+    agr_date: document.getElementById('agr_date').value,
+    renewal_date: document.getElementById('renewal_date').value,
+    freq: freq,
+    plans: selectedPlans,
+    units: units,
+    cost_filter: document.getElementById('cost-filter').value,
+    cost_belt:   document.getElementById('cost-belt').value,
+    cost_coil:   document.getElementById('cost-coil').value,
+  };
+  try {
+    localStorage.setItem('ntd_pm_quote', JSON.stringify(data));
+    toast('Saved ✓');
+  } catch(e) {
+    // localStorage not available — save to file
+    var blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+    var url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    setTimeout(function(){URL.revokeObjectURL(url);}, 60000);
+    toast('Tap Share → Save to Files to save');
+  }
+}
+
+function loadData() {
+  try {
+    var raw = localStorage.getItem('ntd_pm_quote');
+    if (!raw) return;
+    var data = JSON.parse(raw);
+    document.getElementById('customer').value    = data.customer || '';
+    document.getElementById('address').value     = data.address  || '';
+    document.getElementById('attention').value   = data.attention|| '';
+    document.getElementById('agr_num').value     = data.agr_num  || '';
+    document.getElementById('agr_date').value    = data.agr_date || '';
+    document.getElementById('renewal_date').value= data.renewal_date || '';
+    if (data.cost_filter) document.getElementById('cost-filter').value = data.cost_filter;
+    if (data.cost_belt)   document.getElementById('cost-belt').value   = data.cost_belt;
+    if (data.cost_coil)   document.getElementById('cost-coil').value   = data.cost_coil;
+    if (data.freq) { freq = data.freq; setFreq(freq); }
+    if (data.plans) {
+      selectedPlans = data.plans;
+      buildPlans();
+    }
+    if (data.units) { units = data.units; }
+  } catch(e) {}
+}
+
+// ── GENERATE PDF ──────────────────────────────────────────────
+function generatePDF() {
+  if (typeof window.jspdf === 'undefined' && typeof jsPDF === 'undefined') {
+    toast('Loading PDF library...');
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    s.onload = function() { buildPDF(); };
+    document.head.appendChild(s);
+  } else {
+    buildPDF();
+  }
+}
+
+function buildPDF() {
+  var jspdf = window.jspdf || window;
+  var doc = new jspdf.jsPDF({orientation:'portrait', unit:'pt', format:'letter'});
+
+  var NV = [27,58,107];
+  var OR = [232,83,26];
+  var W = 612; var M = 40; var IW = W - M*2;
+
+  // Header
+  doc.setFillColor(NV[0],NV[1],NV[2]);
+  doc.rect(M, 30, IW, 28, 'F');
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(13);
+  doc.setTextColor(255,255,255);
+  doc.text('NTD MECHANICAL — PREVENTIVE MAINTENANCE PROPOSAL', M+8, 49);
+
+  // Sub header
+  doc.setFontSize(8);
+  doc.setFont('helvetica','normal');
+  doc.setTextColor(100,100,100);
+  doc.text('TACLA65973C  |  North Texas Ductworks LLC  |  2477 Merritt Dr, Garland TX 75041  |  469-323-0454  |  ntdmechanical.com', M, 72);
+
+  var y = 90;
+
+  // Customer info
+  doc.setFontSize(10);
+  doc.setFont('helvetica','bold');
+  doc.setTextColor(NV[0],NV[1],NV[2]);
+  doc.text('Submitted To:', M, y);
+  doc.setFont('helvetica','normal');
+  doc.setTextColor(0,0,0);
+  doc.text(document.getElementById('customer').value || '___________________________', M+75, y);
+  doc.setFont('helvetica','bold');
+  doc.setTextColor(NV[0],NV[1],NV[2]);
+  doc.text('Date:', W-M-90, y);
+  doc.setFont('helvetica','normal');
+  doc.setTextColor(0,0,0);
+  doc.text(document.getElementById('agr_date').value || '', W-M-55, y);
+  y += 16;
+
+  doc.setFont('helvetica','bold');
+  doc.setTextColor(NV[0],NV[1],NV[2]);
+  doc.text('Address:', M, y);
+  doc.setFont('helvetica','normal');
+  doc.setTextColor(0,0,0);
+  doc.text(document.getElementById('address').value || '___________________________', M+75, y);
+  y += 16;
+
+  doc.setFont('helvetica','bold');
+  doc.setTextColor(NV[0],NV[1],NV[2]);
+  doc.text('Attention:', M, y);
+  doc.setFont('helvetica','normal');
+  doc.setTextColor(0,0,0);
+  doc.text(document.getElementById('attention').value || '___________________________', M+75, y);
+
+  doc.setFont('helvetica','bold');
+  doc.setTextColor(NV[0],NV[1],NV[2]);
+  doc.text('Agreement #:', W-M-140, y);
+  doc.setFont('helvetica','normal');
+  doc.setTextColor(0,0,0);
+  doc.text(document.getElementById('agr_num').value || '', W-M-60, y);
+  y += 20;
+
+  // Selected plans
+  var selPlanNames = PLANS.filter(function(p){ return selectedPlans[p.key]; })
+                          .map(function(p){ return p.label.replace('\n',' '); });
+  if (selPlanNames.length > 0) {
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(9);
+    doc.setTextColor(NV[0],NV[1],NV[2]);
+    doc.text('Selected Plan(s):', M, y);
+    doc.setFont('helvetica','normal');
+    doc.setTextColor(0,0,0);
+    doc.text(selPlanNames.join('  |  '), M+78, y);
+    y += 14;
+  }
+
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(9);
+  doc.setTextColor(NV[0],NV[1],NV[2]);
+  doc.text('Service Frequency:', M, y);
+  doc.setFont('helvetica','normal');
+  doc.setTextColor(0,0,0);
+  doc.text(freq + ' (' + (freq==='Monthly'?'12':'4') + ' visits/year)', M+92, y);
+  y += 20;
+
+  // Equipment table header
+  doc.setFillColor(NV[0],NV[1],NV[2]);
+  doc.rect(M, y, IW, 16, 'F');
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(8.5);
+  doc.setTextColor(255,255,255);
+  var cols = [M+4, M+40, M+165, M+255, M+300, M+345, M+390, M+460];
+  var hdrs = ['#','Tag','Unit Type','Qty','Filters','Belts','Rate/Visit','Annual'];
+  hdrs.forEach(function(h,i){ doc.text(h, cols[i], y+11); });
+  y += 17;
+
+  var visitsPerYr = freq==='Monthly' ? 12 : 4;
+  var totalAnnual = 0;
+  units.forEach(function(u, idx) {
+    if (!u.type) return;
+    var rate = getRate(u.type);
+    var matAddon = getMaterialAddon(u);
+    var qty = parseFloat(u.qty)||1;
+    var rpv = (rate+matAddon)*qty;
+    var ann = rpv*visitsPerYr;
+    totalAnnual += ann;
+
+    if (idx%2===0) {
+      doc.setFillColor(240,245,252);
+      doc.rect(M, y, IW, 14, 'F');
+    }
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(8);
+    doc.setTextColor(0,0,0);
+    doc.text(String(idx+1), cols[0], y+10);
+    doc.text((u.tag||'').substring(0,12), cols[1], y+10);
+    doc.text((u.type||'').substring(0,24), cols[2], y+10);
+    doc.text(String(qty), cols[3], y+10);
+    doc.text((u.fqty?u.fqty+' ':''+(u.fsize||'')).substring(0,14), cols[4], y+10);
+    doc.text((u.bqty?String(u.bqty):''), cols[5], y+10);
+    doc.text(fmt(rpv), cols[6], y+10);
+    doc.setFont('helvetica','bold');
+    doc.text(fmt(ann), cols[7], y+10);
+    y += 14;
+
+    if (y > 680) {
+      doc.addPage();
+      y = 40;
+    }
+  });
+
+  y += 10;
+
+  // Totals box
+  doc.setFillColor(NV[0],NV[1],NV[2]);
+  doc.rect(M, y, IW, 14, 'F');
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(10);
+  doc.setTextColor(255,255,255);
+  doc.text('TOTAL ANNUAL PM PRICE:', M+8, y+10);
+  doc.text(fmt(totalAnnual), W-M-8, y+10, {align:'right'});
+  y += 15;
+
+  doc.setFillColor(232,247,232);
+  doc.rect(M, y, IW/2-2, 14, 'F');
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(9);
+  doc.setTextColor(0,0,0);
+  doc.text('Quarterly Billing: ' + fmt(totalAnnual/4), M+8, y+10);
+
+  doc.setFillColor(232,247,232);
+  doc.rect(M+IW/2+2, y, IW/2-2, 14, 'F');
+  doc.text('Monthly Billing: ' + fmt(totalAnnual/12), M+IW/2+10, y+10);
+  y += 30;
+
+  // Footer note
+  doc.setFontSize(7.5);
+  doc.setTextColor(120,120,120);
+  doc.setFont('helvetica','italic');
+  doc.text('This proposal is valid for 30 days. Pricing based on current rates and ' + freq.toLowerCase() + ' service frequency.', M, y);
+  doc.text('All materials for included plans are at current market cost. Regulated by TDLR. TACLA65973C.', M, y+10);
+
+  // Output
+  var fn = 'NTD_PM_Proposal_' + (document.getElementById('customer').value||'Customer').replace(/\s+/g,'_') + '.pdf';
+  var blob = doc.output('blob');
+  var url = URL.createObjectURL(blob);
+  window.open(url, '_blank');
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
+  toast('PDF ready — tap Share to save');
+}
+
+// ── TOAST ─────────────────────────────────────────────────────
+function toast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 2500);
+}
+</script>
+</body>
+</html>
