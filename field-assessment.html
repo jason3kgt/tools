@@ -708,7 +708,7 @@ function dlEquip(){
     doc.setTextColor(255,255,255);doc.text('Page '+(idx+1)+' of '+eqs.length,W-14,H-6,{align:'right'});
   });
   var fn='NTD_Equipment_'+(gv('sf')||'Report').replace(/\s+/g,'_')+'_'+(gv('sd')||'draft').replace(/\//g,'-')+'.pdf';
-  var a=document.createElement('a');a.href=doc.output('datauristring');a.download=fn;document.body.appendChild(a);a.click();document.body.removeChild(a);
+  var _iosUrl=doc.output('datauristring'); if(/iPad|iPhone|iPod/.test(navigator.userAgent)){window.open(_iosUrl,'_blank');}else{var _a=document.createElement('a');_a.href=_iosUrl;_a.download=fn;document.body.appendChild(_a);_a.click();document.body.removeChild(_a);}
 }
 
 function dlSummary(){
@@ -769,7 +769,7 @@ function dlSummary(){
   doc.setFillColor(27,58,107);doc.rect(0,H-20,W,20,'F');doc.setTextColor(180,196,220);doc.setFont('helvetica','normal');doc.setFontSize(7);
   doc.text('NTD Mechanical  |  TACLA65973C  |  ntdmechanical.com  |  214-785-2129',W/2,H-6,{align:'center'});
   var fn2='NTD_Executive_Summary_'+(gv('sf')||'Report').replace(/\s+/g,'_')+'_'+(gv('sd')||'draft').replace(/\//g,'-')+'.pdf';
-  var a2=document.createElement('a');a2.href=doc.output('datauristring');a2.download=fn2;document.body.appendChild(a2);a2.click();document.body.removeChild(a2);
+  var _iosUrl=doc.output('datauristring'); if(/iPad|iPhone|iPod/.test(navigator.userAgent)){window.open(_iosUrl,'_blank');}else{var _a=document.createElement('a');_a.href=_iosUrl;_a.download=fn2;document.body.appendChild(_a);_a.click();document.body.removeChild(_a);}
 }
 
 function dlForecast(){
@@ -910,7 +910,7 @@ function dlForecast(){
   doc.setTextColor(180,196,220);doc.setFont('helvetica','normal');doc.setFontSize(7);
   doc.text('NTD Mechanical  |  TACLA65973C  |  ntdmechanical.com  |  214-785-2129',W/2,H-6,{align:'center'});
   var fn3='NTD_Capital_Forecast_'+(gv('sf')||'Report').replace(/\s+/g,'_')+'_'+(gv('sd')||'draft').replace(/\//g,'-')+'.pdf';
-  var a3=document.createElement('a');a3.href=doc.output('datauristring');a3.download=fn3;document.body.appendChild(a3);a3.click();document.body.removeChild(a3);
+  var _iosUrl=doc.output('datauristring'); if(/iPad|iPhone|iPod/.test(navigator.userAgent)){window.open(_iosUrl,'_blank');}else{var _a=document.createElement('a');_a.href=_iosUrl;_a.download=fn3;document.body.appendChild(_a);_a.click();document.body.removeChild(_a);}
 }
 
 function doSave(){

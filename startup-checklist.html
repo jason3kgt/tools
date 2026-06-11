@@ -1358,8 +1358,8 @@ function dlPDF(){
   pgFooter();
 
   var fn='NTD_Startup_'+(EQ_TYPES[currentType]||'').replace(/[^a-zA-Z0-9]/g,'_')+'_'+(gv('unit_num')||gv('job_po')||'draft')+'.pdf';
-  var a=document.createElement('a'); a.href=doc.output('datauristring'); a.download=fn;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  var _url=doc.output('datauristring');
+  if(/iPad|iPhone|iPod/.test(navigator.userAgent)){window.open(_url,'_blank');}else{var _a=document.createElement('a');_a.href=_url;_a.download=fn;document.body.appendChild(_a);_a.click();document.body.removeChild(_a);}
 }
 
 // ── SAVE / LOAD ──
@@ -1376,7 +1376,7 @@ function doSave(){
   var uri='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(data));
   var a=document.createElement('a'); a.href=uri;
   a.download='NTD_Startup_'+(gv('unit_num')||gv('job_po')||'draft')+'.json';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  if(/iPad|iPhone|iPod/.test(navigator.userAgent)){window.open(a.href,'_blank');}else{document.body.appendChild(a);a.click();document.body.removeChild(a);}
 }
 
 function doLoad(){ document.getElementById('lf').click(); }
