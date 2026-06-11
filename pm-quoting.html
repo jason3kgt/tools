@@ -156,7 +156,7 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f0f2f5;color:#222;}
 <!-- GENERATE -->
 <div class="card">
   <button class="pdf-btn" onclick="generatePDF()" style="touch-action:manipulation">📄 Generate PM Proposal PDF</button>
-  <button class="pdf-btn" onclick="exportQuoteJSON()" style="touch-action:manipulation;background:#1B3A6B;margin-top:10px">💾 Export Quote for Excel Import</button>
+  <button class="pdf-btn" onclick="exportQuoteJSON()" style="touch-action:manipulation;background:#1B3A6B;margin-top:10px">📧 Email Quote for Excel Import</button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -704,11 +704,19 @@ function exportQuoteJSON() {
 
   var cust = (document.getElementById('customer').value || 'Quote').replace(/\s+/g,'_');
   var fn = 'NTD_PM_Quote_' + cust + '_' + new Date().toISOString().slice(0,10) + '.json';
-  var blob = new Blob([JSON.stringify(exportData, null, 2)], {type:'application/octet-stream'});
-  var url = URL.createObjectURL(blob);
-  window.open(url, '_blank');
-  setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
-  toast('Tap Share → Save to Files to save to OneDrive');
+  var jsonStr = JSON.stringify(exportData, null, 2);
+  var customer = document.getElementById('customer').value || 'Customer';
+  var subject = encodeURIComponent('NTD PM Quote - ' + customer);
+  var body = encodeURIComponent(
+    'PM Quote Export for ' + customer + '\n' +
+    'Annual Price: $' + parseFloat(exportData.annual_price).toFixed(2) + '\n' +
+    'Quarterly: $' + parseFloat(exportData.quarterly_price).toFixed(2) + '\n' +
+    'Frequency: ' + exportData.frequency + '\n\n' +
+    '--- PASTE INTO NOTEPAD AND SAVE AS .json ---\n\n' +
+    jsonStr
+  );
+  window.open('mailto:?subject=' + subject + '&body=' + body);
+  toast('Email opened — send to yourself, save attachment as .json');
 }
 
 // ── TOAST ─────────────────────────────────────────────────────
