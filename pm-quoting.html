@@ -156,6 +156,7 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f0f2f5;color:#222;}
 <!-- GENERATE -->
 <div class="card">
   <button class="pdf-btn" onclick="generatePDF()" style="touch-action:manipulation">📄 Generate PM Proposal PDF</button>
+  <button class="pdf-btn" onclick="exportQuoteJSON()" style="touch-action:manipulation;background:#1B3A6B;margin-top:10px">💾 Export Quote for Excel Import</button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -542,7 +543,7 @@ function buildPDF() {
 
   // Selected plans
   var selPlanNames = PLANS.filter(function(p){ return selectedPlans[p.key]; })
-                          .map(function(p){ return p.label.replace('\n',' '); });
+                          .map(function(p){ return p.label.replace(/\n/g,' '); });
   if (selPlanNames.length > 0) {
     doc.setFont('helvetica','bold');
     doc.setFontSize(9);
@@ -647,6 +648,67 @@ function buildPDF() {
   window.open(url, '_blank');
   setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
   toast('PDF ready — tap Share to save');
+}
+
+// ── EXPORT QUOTE JSON ────────────────────────────────────────
+function exportQuoteJSON() {
+  var visitsPerYr = freq === 'Monthly' ? 12 : 4;
+  var totalAnnual = 0;
+  units.forEach(function(u) {
+    if (!u.type) return;
+    var rate = getRate(u.type);
+    var matAddon = getMaterialAddon(u);
+    var qty = parseFloat(u.qty)||1;
+    totalAnnual += (rate + matAddon) * qty * visitsPerYr;
+  });
+
+  var selPlanNames = PLANS.filter(function(p){ return selectedPlans[p.key]; })
+                          .map(function(p){ return p.label.replace(/\n/g,' '); });
+
+  var exportData = {
+    _source: 'NTD_PM_Quote',
+    _version: 1,
+    customer_name:   document.getElementById('customer').value,
+    service_address: document.getElementById('address').value,
+    attention:       document.getElementById('attention').value,
+    agreement_number:document.getElementById('agr_num').value,
+    agreement_date:  document.getElementById('agr_date').value,
+    renewal_date:    document.getElementById('renewal_date').value,
+    frequency:       freq,
+    visits_per_year: visitsPerYr,
+    selected_plans:  selPlanNames,
+    annual_price:    totalAnnual.toFixed(2),
+    quarterly_price: (totalAnnual/4).toFixed(2),
+    cost_filter:     document.getElementById('cost-filter').value,
+    cost_belt:       document.getElementById('cost-belt').value,
+    cost_coil:       document.getElementById('cost-coil').value,
+    units: units.map(function(u) {
+      var rate = getRate(u.type);
+      var matAddon = getMaterialAddon(u);
+      var qty = parseFloat(u.qty)||1;
+      var rpv = (rate + matAddon) * qty;
+      return {
+        tag:          u.tag,
+        type:         u.type,
+        qty:          u.qty,
+        filter_qty:   u.fqty,
+        filter_size:  u.fsize,
+        belt_qty:     u.bqty,
+        belt_size:    u.bsize,
+        rate_per_visit: rpv.toFixed(2),
+        annual:       (rpv * visitsPerYr).toFixed(2),
+        notes:        u.notes,
+      };
+    })
+  };
+
+  var cust = (document.getElementById('customer').value || 'Quote').replace(/\s+/g,'_');
+  var fn = 'NTD_PM_Quote_' + cust + '_' + new Date().toISOString().slice(0,10) + '.json';
+  var blob = new Blob([JSON.stringify(exportData, null, 2)], {type:'application/json'});
+  var url = URL.createObjectURL(blob);
+  window.open(url, '_blank');
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
+  toast('Quote exported — tap Share → Save to Files');
 }
 
 // ── TOAST ─────────────────────────────────────────────────────
