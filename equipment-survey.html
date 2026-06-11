@@ -621,8 +621,7 @@ function dlPDF(){
   footer();
 
   var fn='NTD_Equipment_Survey_'+(gv('j-cust')||'Survey').replace(/\s+/g,'_')+'_'+(gv('j-date')||'draft').replace(/\//g,'-')+'.pdf';
-  var _url=doc.output('datauristring');
-  if(/iPad|iPhone|iPod/.test(navigator.userAgent)){window.open(_url,'_blank');}else{var _a=document.createElement('a');_a.href=_url;_a.download=fn;document.body.appendChild(_a);_a.click();document.body.removeChild(_a);}
+  doc.save(fn);
 }
 
 function doSave(){
@@ -631,7 +630,7 @@ function doSave(){
   var uri='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify({v:2,ts:Date.now(),site:site,uid:uid}));
   var a=document.createElement('a');a.href=uri;
   a.download='NTD_Survey_'+(gv('j-cust')||'survey').replace(/\s+/g,'_')+'_'+(gv('j-date')||'draft').replace(/\//g,'-')+'.json';
-  if(/iPad|iPhone|iPod/.test(navigator.userAgent)){window.open(a.href,'_blank');}else{document.body.appendChild(a);a.click();document.body.removeChild(a);}
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
 function doLoad(){document.getElementById('lf').click();}
 function loadJ(inp){
