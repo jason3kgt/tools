@@ -14,20 +14,7 @@
 <meta name="theme-color" content="#1B3A6B">
 <title>NTD Mechanical — Equipment Survey Form</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js">
-// ── NAMEPLATE OCR ──────────────────────────────────────────
-function scanNameplate(unitId) {
-  var inp = document.getElementById('np-input-' + unitId);
-  if (!inp) {
-    alert('Camera input not found for unit ' + unitId);
-    return;
-  }
-  inp._unitId = unitId;
-  inp.onchange = function() {
-    processNameplate(inp, inp._unitId);
-    inp.value = '';
-  };
-  inp.click();
-}
+
 
 function processNameplate(input, unitId) {
   var file = input.files[0];
@@ -174,7 +161,7 @@ textarea{resize:vertical;min-height:70px}
   <div class="ch"><span class="cn">1</span><h2>Job Information</h2></div>
   <div class="cb">
     <div class="r2">
-      <div class="fg" style="background:#fff8e1;border-radius:8px;padding:8px;border:1px solid #ffe082"><label style="color:#856404">&#128273; Anthropic API Key (for nameplate scan)</label><input type="text" id="api-key" placeholder="sk-ant-..." style="font-family:monospace;font-size:12px"><div style="font-size:11px;color:#856404;margin-top:4px">Required for nameplate OCR. Stored locally only.</div></div><div class="fg"><label>Date</label><input type="text" id="j-date" placeholder="MM/DD/YYYY"></div>
+      <div class="fg"><label>Date</label><input type="text" id="j-date" placeholder="MM/DD/YYYY"></div>
       <div class="fg"><label>Job / Work Order #</label><input type="text" id="j-wo" placeholder="WO#"></div>
     </div>
     <div class="fg"><label>Technician Name</label><input type="text" id="j-tech" placeholder="Full name"></div>
@@ -305,7 +292,7 @@ function uH(u,i){
     +'<div class="fg"><label>Overall Condition</label><div class="cond-btns"><button class="cb2" onclick="togCond(this,'+id+',\'Good\')">Good</button><button class="cb2" onclick="togCond(this,'+id+',\'Fair\')">Fair</button><button class="cb2" onclick="togCond(this,'+id+',\'Poor\')">Poor</button></div><input type="hidden" id="u-cond-'+id+'"></div>'
   +'</div>'
   +'<div class="r2">'
-    +'<div style="margin:8px 0">'+'<button onclick="scanNameplate('+id+')" style="width:100%;padding:10px;border-radius:10px;font-size:13px;font-weight:600;background:#1B3A6B;color:#fff;border:none;cursor:pointer;touch-action:manipulation">'+'&#128247; Scan Nameplate — Auto-fill Fields'+'</button>'+'<input type="file" accept="image/*" id="np-input-'+id+'" style="display:none" >'+'</div>'+'<div class="fg"><label>Unit Model #</label><input type="text" id="u-mod1-'+id+'" placeholder="Model"></div>'
+    +'<div class="fg"><label>Unit Model #</label><input type="text" id="u-mod1-'+id+'" placeholder="Model"></div>'
     +'<div class="fg"><label>Unit Serial #</label><input type="text" id="u-ser1-'+id+'" placeholder="Serial"></div>'
   +'</div>'
   +'<div class="r2">'
