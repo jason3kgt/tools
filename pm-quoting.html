@@ -704,11 +704,11 @@ function exportQuoteJSON() {
 
   var cust = (document.getElementById('customer').value || 'Quote').replace(/\s+/g,'_');
   var fn = 'NTD_PM_Quote_' + cust + '_' + new Date().toISOString().slice(0,10) + '.json';
-  var blob = new Blob([JSON.stringify(exportData, null, 2)], {type:'application/json'});
+  var blob = new Blob([JSON.stringify(exportData, null, 2)], {type:'application/octet-stream'});
   var url = URL.createObjectURL(blob);
   window.open(url, '_blank');
   setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
-  toast('Quote exported — tap Share → Save to Files');
+  toast('Tap Share → Save to Files to save to OneDrive');
 }
 
 // ── TOAST ─────────────────────────────────────────────────────
