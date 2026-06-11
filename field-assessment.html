@@ -708,7 +708,17 @@ function dlEquip(){
     doc.setTextColor(255,255,255);doc.text('Page '+(idx+1)+' of '+eqs.length,W-14,H-6,{align:'right'});
   });
   var fn='NTD_Equipment_'+(gv('sf')||'Report').replace(/\s+/g,'_')+'_'+(gv('sd')||'draft').replace(/\//g,'-')+'.pdf';
-  doc.save(fn);
+  var _blob=doc.output('blob');
+  var _burl=URL.createObjectURL(_blob);
+  var _win=window.open(_burl,'_blank');
+  if(!_win){
+    // Fallback if popup blocked
+    var _a=document.createElement('a');
+    _a.href=_burl;_a.download=fn;
+    document.body.appendChild(_a);_a.click();
+    document.body.removeChild(_a);
+  }
+  setTimeout(function(){URL.revokeObjectURL(_burl);},60000);
 }
 
 function dlSummary(){
@@ -769,7 +779,17 @@ function dlSummary(){
   doc.setFillColor(27,58,107);doc.rect(0,H-20,W,20,'F');doc.setTextColor(180,196,220);doc.setFont('helvetica','normal');doc.setFontSize(7);
   doc.text('NTD Mechanical  |  TACLA65973C  |  ntdmechanical.com  |  214-785-2129',W/2,H-6,{align:'center'});
   var fn2='NTD_Executive_Summary_'+(gv('sf')||'Report').replace(/\s+/g,'_')+'_'+(gv('sd')||'draft').replace(/\//g,'-')+'.pdf';
-  doc.save(fn2);
+  var _blob=doc.output('blob');
+  var _burl=URL.createObjectURL(_blob);
+  var _win=window.open(_burl,'_blank');
+  if(!_win){
+    // Fallback if popup blocked
+    var _a=document.createElement('a');
+    _a.href=_burl;_a.download=fn;
+    document.body.appendChild(_a);_a.click();
+    document.body.removeChild(_a);
+  }
+  setTimeout(function(){URL.revokeObjectURL(_burl);},60000);
 }
 
 function dlForecast(){
@@ -910,7 +930,17 @@ function dlForecast(){
   doc.setTextColor(180,196,220);doc.setFont('helvetica','normal');doc.setFontSize(7);
   doc.text('NTD Mechanical  |  TACLA65973C  |  ntdmechanical.com  |  214-785-2129',W/2,H-6,{align:'center'});
   var fn3='NTD_Capital_Forecast_'+(gv('sf')||'Report').replace(/\s+/g,'_')+'_'+(gv('sd')||'draft').replace(/\//g,'-')+'.pdf';
-  doc.save(fn3);
+  var _blob=doc.output('blob');
+  var _burl=URL.createObjectURL(_blob);
+  var _win=window.open(_burl,'_blank');
+  if(!_win){
+    // Fallback if popup blocked
+    var _a=document.createElement('a');
+    _a.href=_burl;_a.download=fn;
+    document.body.appendChild(_a);_a.click();
+    document.body.removeChild(_a);
+  }
+  setTimeout(function(){URL.revokeObjectURL(_burl);},60000);
 }
 
 function doSave(){

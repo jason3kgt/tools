@@ -1358,7 +1358,17 @@ function dlPDF(){
   pgFooter();
 
   var fn='NTD_Startup_'+(EQ_TYPES[currentType]||'').replace(/[^a-zA-Z0-9]/g,'_')+'_'+(gv('unit_num')||gv('job_po')||'draft')+'.pdf';
-  doc.save(fn);
+  var _blob=doc.output('blob');
+  var _burl=URL.createObjectURL(_blob);
+  var _win=window.open(_burl,'_blank');
+  if(!_win){
+    // Fallback if popup blocked
+    var _a=document.createElement('a');
+    _a.href=_burl;_a.download=fn;
+    document.body.appendChild(_a);_a.click();
+    document.body.removeChild(_a);
+  }
+  setTimeout(function(){URL.revokeObjectURL(_burl);},60000);
 }
 
 // ── SAVE / LOAD ──

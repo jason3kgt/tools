@@ -621,7 +621,17 @@ function dlPDF(){
   footer();
 
   var fn='NTD_Equipment_Survey_'+(gv('j-cust')||'Survey').replace(/\s+/g,'_')+'_'+(gv('j-date')||'draft').replace(/\//g,'-')+'.pdf';
-  doc.save(fn);
+  var _blob=doc.output('blob');
+  var _burl=URL.createObjectURL(_blob);
+  var _win=window.open(_burl,'_blank');
+  if(!_win){
+    // Fallback if popup blocked
+    var _a=document.createElement('a');
+    _a.href=_burl;_a.download=fn;
+    document.body.appendChild(_a);_a.click();
+    document.body.removeChild(_a);
+  }
+  setTimeout(function(){URL.revokeObjectURL(_burl);},60000);
 }
 
 function doSave(){
