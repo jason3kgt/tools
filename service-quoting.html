@@ -142,77 +142,77 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f0f2f5;color:#222;}
 <script>
 var PRESETS = {
   'RTU Parts': [
-    {name:'RTU - Belts',cost:28,type:'P'},
-    {name:'RTU - Sheaves / Pulleys',cost:145,type:'P'},
-    {name:'RTU - Filters Standard',cost:18,type:'P'},
-    {name:'RTU - Filters HEPA',cost:65,type:'P'},
-    {name:'RTU - Hail Guards',cost:85,type:'P'},
-    {name:'RTU - Economizer Actuator',cost:185,type:'P'},
-    {name:'RTU - Condenser Fan Motor',cost:275,type:'P'},
-    {name:'RTU - Condenser Fan Blade',cost:145,type:'P'},
-    {name:'RTU - Evaporator / Blower Motor',cost:320,type:'P'},
-    {name:'RTU - Inducer Motor',cost:285,type:'P'},
-    {name:'RTU - Capacitor (run / start)',cost:45,type:'P'},
-    {name:'RTU - Contactor',cost:65,type:'P'},
-    {name:'RTU - Control Board / PCB',cost:385,type:'P'},
-    {name:'RTU - Gas Valve',cost:195,type:'P'},
-    {name:'RTU - Ignitor / Ignition Module',cost:85,type:'P'},
-    {name:'RTU - TXV / EXV',cost:285,type:'P'},
-    {name:'RTU - Filter Drier',cost:45,type:'P'},
-    {name:'RTU - Refrigerant Charge (per lb)',cost:28,type:'P'},
-    {name:'RTU - Refrigerant Recovery',cost:55,type:'P'},
+    {name:'RTU - Belts',cost:28,type:'P',hrs:1},
+    {name:'RTU - Sheaves / Pulleys',cost:145,type:'P',hrs:1.5},
+    {name:'RTU - Filters Standard',cost:18,type:'P',hrs:0.5},
+    {name:'RTU - Filters HEPA',cost:65,type:'P',hrs:1},
+    {name:'RTU - Hail Guards',cost:85,type:'P',hrs:1},
+    {name:'RTU - Economizer Actuator',cost:185,type:'P',hrs:2},
+    {name:'RTU - Condenser Fan Motor',cost:275,type:'P',hrs:2},
+    {name:'RTU - Condenser Fan Blade',cost:145,type:'P',hrs:1.5},
+    {name:'RTU - Evaporator / Blower Motor',cost:320,type:'P',hrs:3},
+    {name:'RTU - Inducer Motor',cost:285,type:'P',hrs:2},
+    {name:'RTU - Capacitor (run / start)',cost:45,type:'P',hrs:0.75},
+    {name:'RTU - Contactor',cost:65,type:'P',hrs:0.75},
+    {name:'RTU - Control Board / PCB',cost:385,type:'P',hrs:2},
+    {name:'RTU - Gas Valve',cost:195,type:'P',hrs:2.5},
+    {name:'RTU - Ignitor / Ignition Module',cost:85,type:'P',hrs:1.5},
+    {name:'RTU - TXV / EXV',cost:285,type:'P',hrs:3},
+    {name:'RTU - Filter Drier',cost:45,type:'P',hrs:1.5},
+    {name:'RTU - Refrigerant Charge (per lb)',cost:28,type:'P',hrs:0.25},
+    {name:'RTU - Refrigerant Recovery',cost:55,type:'P',hrs:1.5},
   ],
   'Split / VRF': [
-    {name:'Split - Line Set Copper (per ft)',cost:12,type:'P'},
-    {name:'Split - Line Set Insulation (per ft)',cost:3,type:'P'},
-    {name:'Split - Refrigerant Charge (per lb)',cost:28,type:'P'},
-    {name:'Split - Refrigerant Recovery',cost:55,type:'P'},
-    {name:'Split - TXV / EXV',cost:235,type:'P'},
-    {name:'Split - Filter Drier',cost:38,type:'P'},
-    {name:'Split - Capacitor (run / start)',cost:45,type:'P'},
-    {name:'Split - Contactor',cost:65,type:'P'},
-    {name:'Split - Condenser Fan Motor',cost:245,type:'P'},
-    {name:'Split - Evaporator Motor',cost:285,type:'P'},
-    {name:'Split - Control Board',cost:325,type:'P'},
-    {name:'VRF - Communication Cable (per ft)',cost:2,type:'P'},
+    {name:'Split - Line Set Copper (per ft)',cost:12,type:'P',hrs:0.1},
+    {name:'Split - Line Set Insulation (per ft)',cost:3,type:'P',hrs:0.05},
+    {name:'Split - Refrigerant Charge (per lb)',cost:28,type:'P',hrs:0.25},
+    {name:'Split - Refrigerant Recovery',cost:55,type:'P',hrs:1.5},
+    {name:'Split - TXV / EXV',cost:235,type:'P',hrs:2.5},
+    {name:'Split - Filter Drier',cost:38,type:'P',hrs:1.5},
+    {name:'Split - Capacitor (run / start)',cost:45,type:'P',hrs:0.75},
+    {name:'Split - Contactor',cost:65,type:'P',hrs:0.75},
+    {name:'Split - Condenser Fan Motor',cost:245,type:'P',hrs:2},
+    {name:'Split - Evaporator Motor',cost:285,type:'P',hrs:3},
+    {name:'Split - Control Board',cost:325,type:'P',hrs:2},
+    {name:'VRF - Communication Cable (per ft)',cost:2,type:'P',hrs:0.1},
   ],
   'AHU': [
-    {name:'AHU - Belts',cost:28,type:'P'},
-    {name:'AHU - Sheaves / Pulleys',cost:145,type:'P'},
-    {name:'AHU - Filters Standard',cost:18,type:'P'},
-    {name:'AHU - Filters HEPA',cost:65,type:'P'},
-    {name:'AHU - CHW Valve 2-way',cost:485,type:'P'},
-    {name:'AHU - CHW Valve 3-way',cost:685,type:'P'},
-    {name:'AHU - HW Valve 2-way',cost:485,type:'P'},
-    {name:'AHU - Valve Actuator',cost:285,type:'P'},
-    {name:'AHU - Blower Motor',cost:385,type:'P'},
-    {name:'AHU - Blower Wheel',cost:245,type:'P'},
-    {name:'AHU - Drain Pan',cost:285,type:'P'},
-    {name:'AHU - Condensate Pump',cost:185,type:'P'},
+    {name:'AHU - Belts',cost:28,type:'P',hrs:1},
+    {name:'AHU - Sheaves / Pulleys',cost:145,type:'P',hrs:2.5},
+    {name:'AHU - Filters Standard',cost:18,type:'P',hrs:0.5},
+    {name:'AHU - Filters HEPA',cost:65,type:'P',hrs:1},
+    {name:'AHU - CHW Valve 2-way',cost:485,type:'P',hrs:3},
+    {name:'AHU - CHW Valve 3-way',cost:685,type:'P',hrs:3},
+    {name:'AHU - HW Valve 2-way',cost:485,type:'P',hrs:3},
+    {name:'AHU - Valve Actuator',cost:285,type:'P',hrs:1.5},
+    {name:'AHU - Blower Motor',cost:385,type:'P',hrs:4},
+    {name:'AHU - Blower Wheel',cost:245,type:'P',hrs:3},
+    {name:'AHU - Drain Pan',cost:285,type:'P',hrs:2},
+    {name:'AHU - Condensate Pump',cost:185,type:'P',hrs:1.5},
   ],
   'Chiller / Boiler': [
-    {name:'Chiller - Refrigerant (per lb)',cost:45,type:'P'},
-    {name:'Chiller - Refrigerant Recovery',cost:125,type:'P'},
-    {name:'Chiller - Compressor Oil',cost:85,type:'P'},
-    {name:'Chiller - Strainer / Basket',cost:285,type:'P'},
-    {name:'Chiller - Water Flow Switch',cost:185,type:'P'},
-    {name:'Chiller - Expansion Tank',cost:485,type:'P'},
-    {name:'Boiler - Ignitor',cost:95,type:'P'},
-    {name:'Boiler - Gas Valve',cost:285,type:'P'},
-    {name:'Boiler - Circulator Pump',cost:485,type:'P'},
-    {name:'Boiler - Expansion Tank',cost:385,type:'P'},
-    {name:'Boiler - Pressure Relief Valve',cost:85,type:'P'},
-    {name:'Boiler - Aquastat / Control',cost:285,type:'P'},
+    {name:'Chiller - Refrigerant (per lb)',cost:45,type:'P',hrs:0.25},
+    {name:'Chiller - Refrigerant Recovery',cost:125,type:'P',hrs:2},
+    {name:'Chiller - Compressor Oil',cost:85,type:'P',hrs:1},
+    {name:'Chiller - Strainer / Basket',cost:285,type:'P',hrs:2},
+    {name:'Chiller - Water Flow Switch',cost:185,type:'P',hrs:2},
+    {name:'Chiller - Expansion Tank',cost:485,type:'P',hrs:3},
+    {name:'Boiler - Ignitor',cost:95,type:'P',hrs:1.5},
+    {name:'Boiler - Gas Valve',cost:285,type:'P',hrs:3},
+    {name:'Boiler - Circulator Pump',cost:485,type:'P',hrs:3},
+    {name:'Boiler - Expansion Tank',cost:385,type:'P',hrs:3},
+    {name:'Boiler - Pressure Relief Valve',cost:85,type:'P',hrs:2},
+    {name:'Boiler - Aquastat / Control',cost:285,type:'P',hrs:1.5},
   ],
   'Controls': [
-    {name:'Thermostat / Controller',cost:285,type:'P'},
-    {name:'BAS / DDC Sensor',cost:185,type:'P'},
-    {name:'Disconnect Switch',cost:145,type:'P'},
-    {name:'Electrical Wire (per ft)',cost:4,type:'P'},
-    {name:'Breaker / Fuse',cost:45,type:'P'},
-    {name:'Control Transformer',cost:85,type:'P'},
-    {name:'Low Voltage Wiring (per ft)',cost:2,type:'P'},
-    {name:'Duct Smoke Detector',cost:145,type:'P'},
+    {name:'Thermostat / Controller',cost:285,type:'P',hrs:1.5},
+    {name:'BAS / DDC Sensor',cost:185,type:'P',hrs:2},
+    {name:'Disconnect Switch',cost:145,type:'P',hrs:1.5},
+    {name:'Electrical Wire (per ft)',cost:4,type:'P',hrs:0.05},
+    {name:'Breaker / Fuse',cost:45,type:'P',hrs:0.75},
+    {name:'Control Transformer',cost:85,type:'P',hrs:1},
+    {name:'Low Voltage Wiring (per ft)',cost:2,type:'P',hrs:0.05},
+    {name:'Duct Smoke Detector',cost:145,type:'P',hrs:1.5},
   ],
   'Labor': [
     {name:'Labor - Standard (per hr)',cost:125,type:'L'},
@@ -286,7 +286,8 @@ function buildPresetItems(){
     var m=p.type==='L'?0:p.type==='E'?0.45:0.55;
     var sell=p.type==='L'?p.cost:Math.ceil(p.cost/(1-m));
     var d=document.createElement('div'); d.className='preset-item';
-    d.innerHTML='<div class="pname">'+p.name+'</div><div class="pprice">Cost $'+p.cost+' &rarr; Sell $'+sell+'</div>';
+    var hrsText = p.hrs ? ' | '+p.hrs+'hr labor' : '';
+    d.innerHTML='<div class="pname">'+p.name+'</div><div class="pprice">Cost $'+p.cost+' &rarr; Sell $'+sell+hrsText+'</div>';
     d.onclick=function(){addPreset(p);};
     c.appendChild(d);
   });
@@ -296,6 +297,16 @@ function addPreset(p){
   var m=p.type==='L'?0:p.type==='E'?0.45:0.55;
   var sell=p.type==='L'?p.cost:Math.ceil(p.cost/(1-m));
   items.push({name:p.name,type:p.type,cost:p.cost,sell:sell,qty:1});
+  // Auto-add labor if preset has hrs defined
+  if(p.hrs && p.hrs > 0 && p.type !== 'L'){
+    var laborRate = 125;
+    var laborHrs = p.hrs;
+    var laborCost = laborRate * laborHrs;
+    items.push({
+      name:'Labor - '+p.name+' ('+laborHrs+' hr'+(laborHrs!==1?'s':'')+')',
+      type:'L',cost:laborCost,sell:laborCost,qty:1
+    });
+  }
   renderItems(); calcTotals(); toast(p.name+' added');
 }
 
