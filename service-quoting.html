@@ -215,13 +215,13 @@ var PRESETS = {
     {name:'Duct Smoke Detector',cost:145,type:'P',hrs:1.5},
   ],
   'Labor': [
-    {name:'Labor - Standard (per hr)',cost:125,type:'L'},
-    {name:'Labor - 2 hrs',cost:250,type:'L'},
-    {name:'Labor - 4 hrs',cost:500,type:'L'},
-    {name:'Labor - 6 hrs',cost:750,type:'L'},
-    {name:'Labor - Full Day (8 hrs)',cost:1000,type:'L'},
-    {name:'Labor - Crane / Lift (per hr)',cost:185,type:'L'},
-    {name:'Labor - After Hours Premium',cost:185,type:'L'},
+    {name:'Labor - Standard (per hr)',cost:125,type:'L',hrs:0},
+    {name:'Labor - 2 hrs',cost:250,type:'L',hrs:0},
+    {name:'Labor - 4 hrs',cost:500,type:'L',hrs:0},
+    {name:'Labor - 6 hrs',cost:750,type:'L',hrs:0},
+    {name:'Labor - Full Day (8 hrs)',cost:1000,type:'L',hrs:0},
+    {name:'Labor - Crane / Lift (per hr)',cost:185,type:'L',hrs:0},
+    {name:'Labor - After Hours Premium',cost:185,type:'L',hrs:0},
   ]
 };
 
@@ -293,17 +293,24 @@ function buildPresetItems(){
   });
 }
 
+var _lastPreset = 0;
 function addPreset(p){
-  var m=p.type==='L'?0:p.type==='E'?0.45:0.55;
+  // Debounce - ignore if same preset tapped within 800ms
+  var now = Date.now();
+  if(now - _lastPreset < 800) return;
+  _lastPreset = now;
+
+  var pm=parseFloat(document.getElementById('parts-margin').value)||0.55;
+  var em=parseFloat(document.getElementById('equip-margin').value)||0.45;
+  var m=p.type==='L'?0:p.type==='E'?em:pm;
   var sell=p.type==='L'?p.cost:Math.ceil(p.cost/(1-m));
   items.push({name:p.name,type:p.type,cost:p.cost,sell:sell,qty:1});
-  // Auto-add labor if preset has hrs defined
+  // Auto-add labor if preset has hrs defined (not for labor presets themselves)
   if(p.hrs && p.hrs > 0 && p.type !== 'L'){
     var laborRate = 125;
-    var laborHrs = p.hrs;
-    var laborCost = laborRate * laborHrs;
+    var laborCost = Math.round(laborRate * p.hrs * 100) / 100;
     items.push({
-      name:'Labor - '+p.name+' ('+laborHrs+' hr'+(laborHrs!==1?'s':'')+')',
+      name:'Labor - '+p.name+' ('+p.hrs+' hr'+(p.hrs!==1?'s':'')+')',
       type:'L',cost:laborCost,sell:laborCost,qty:1
     });
   }
