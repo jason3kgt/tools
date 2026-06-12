@@ -462,10 +462,7 @@ function buildPDF(){
   doc.rect(M,30,IW,28,'F');
   doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(255,255,255);
   doc.text('NTD MECHANICAL \u2014 SERVICE PROPOSAL',M+8,49);
-  doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(100,100,100);
-  doc.text('TACLA65973C  |  North Texas Ductworks LLC  |  2477 Merritt Dr, Garland TX 75041  |  469-323-0454  |  ntdmechanical.com',M,72);
-
-  var y=90;
+  var y=78;
   var customer=document.getElementById('customer').value||'___________________________';
   var address=document.getElementById('address').value||'';
   var attention=document.getElementById('attention').value||'';
@@ -574,9 +571,12 @@ function buildPDF(){
   doc.text('Respectfully,',M,y);y+=12;
   doc.setFont('helvetica','bold');doc.text('NORTH TEXAS DUCTWORKS LLC',M,y);y+=12;
   doc.text('dba NTD MECHANICAL',M,y);y+=20;
+  // Jason's signature block
+  doc.setFont('helvetica','italic');doc.setFontSize(14);doc.setTextColor(0,0,0);
+  doc.text('Jason Ezell',M,y);y+=14;
   doc.setFont('helvetica','normal');doc.setFontSize(9);
-  doc.text('_________________________________',M,y);doc.text('_________________________________',M+220,y);y+=12;
-  doc.text('Name | Title',M,y);doc.text('Cell | Email',M+220,y);y+=20;
+  doc.text('Outside Service Sales',M,y);y+=12;
+  doc.text('(945) 346-7443 Cell | jezell@ntdmechanical.com',M,y);y+=20;
   doc.setFontSize(7);doc.setTextColor(120,120,120);
   doc.text('Regulated by the Texas Department of Licensing and Regulation  |  PO Box 12157, Austin TX 78711  |  (800) 803-9202  |  http://www.tdlr.texas.gov',M,y);
 
