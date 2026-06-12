@@ -539,10 +539,30 @@ function buildPDF(){
 
   doc.setFillColor(NV[0],NV[1],NV[2]);doc.rect(M,y,IW,14,'F');
   doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(255,255,255);
-  doc.text('#',M+4,y+10);doc.text('Description',M+20,y+10);
-  doc.text('Type',M+310,y+10);doc.text('Cost',M+360,y+10);doc.text('Sell',M+430,y+10);y+=15;
+  doc.text('#',M+4,y+10);
+  doc.text('Description',M+20,y+10);
+  doc.text('Price',W-M-6,y+10,{align:'right'});
+  y+=15;
 
-  
+  // Render line items — skip labor, skip if lump sum (JT2)
+  if(selectedJT !== 2){
+    var lineNum=1;
+    items.forEach(function(item){
+      if(item.type==='L') return;
+      if(y>680){doc.addPage();y=40;}
+      if(lineNum%2===0){doc.setFillColor(242,246,252);doc.rect(M,y,IW,13,'F');}
+      doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(0,0,0);
+      doc.text(String(lineNum),M+4,y+9);
+      var name=item.name||'Custom item';
+      if(name.length>60) name=name.substring(0,58)+'...';
+      var qty=parseFloat(item.qty)||1;
+      doc.text(name+(qty>1?' (x'+qty+')':''),M+20,y+9);
+      doc.setFont('helvetica','bold');
+      doc.text(fmt((parseFloat(item.sell)||0)*qty),W-M-6,y+9,{align:'right'});
+      y+=13; lineNum++;
+    });
+    y+=8;
+  }
 
   ['- Furnish all labor, materials, equipment, and supervision necessary to complete the described scope of work.',
    '- All work performed by licensed TACLA technicians per applicable Texas mechanical codes.',
