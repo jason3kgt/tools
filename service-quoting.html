@@ -105,6 +105,7 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f0f2f5;color:#222;}
       </select>
     </div>
   </div>
+  <button onclick="recalcAllSell()" style="width:100%;padding:8px;margin-top:6px;border-radius:8px;background:#1B3A6B;color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer;touch-action:manipulation">&#8635; Recalculate Sell Prices</button>
 </div>
 
 <div class="card">
@@ -350,6 +351,17 @@ function renderItems(){
       '<button class="del-btn" onclick="delItem('+i+')" style="touch-action:manipulation">&#10005;</button>';
     b.appendChild(row);
   });
+}
+
+function recalcAllSell(){
+  var pm=parseFloat(document.getElementById('parts-margin').value)||0.55;
+  var em=parseFloat(document.getElementById('equip-margin').value)||0.45;
+  items.forEach(function(item){
+    if(item.type==='L') return; // labor stays as-is
+    var m=item.type==='E'?em:pm;
+    item.sell=Math.ceil(item.cost/(1-m));
+  });
+  renderItems(); calcTotals(); toast('Sell prices updated');
 }
 
 function autoSell(i){
