@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NTD Tools">
+<title>NTD Service Quoting</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:Arial,sans-serif;font-size:14px;background:#f0f2f5;color:#222;}
+.topbar{background:#1B3A6B;color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;}
+.topbar a{color:#fff;text-decoration:none;font-size:20px;}
+.topbar h1{font-size:16px;font-weight:700;flex:1;}
+.topbar .save-btn{background:#E8531A;color:#fff;border:none;padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;touch-action:manipulation;}
+.card{background:#fff;border-radius:12px;margin:12px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.08);}
+.card h2{font-size:13px;font-weight:700;color:#1B3A6B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;border-bottom:1px solid #e8eef5;padding-bottom:6px;}
+.fg{margin-bottom:10px;}
+.fg label{display:block;font-size:11px;font-weight:600;color:#666;margin-bottom:3px;text-transform:uppercase;}
+.fg input,.fg select,.fg textarea{width:100%;padding:9px 11px;border:1px solid #ddd;border-radius:8px;font-size:14px;background:#f8f9fa;color:#222;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:#1B3A6B;background:#fff;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.jt-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px;}
+.jt-btn{padding:8px 6px;border:2px solid #ddd;border-radius:10px;background:#f8f9fa;text-align:center;font-size:11px;font-weight:600;color:#555;cursor:pointer;touch-action:manipulation;line-height:1.3;}
+.jt-btn.on{border-color:#1B3A6B;background:#e8eef5;color:#1B3A6B;}
+.item-row{display:grid;grid-template-columns:1fr 70px 80px 80px 30px;gap:6px;align-items:center;padding:8px 0;border-bottom:1px solid #f0f0f0;}
+.item-row:last-child{border-bottom:none;}
+.item-row input,.item-row select{padding:7px 8px;border:1px solid #ddd;border-radius:7px;font-size:13px;background:#f8f9fa;width:100%;}
+.item-hdr{display:grid;grid-template-columns:1fr 70px 80px 80px 30px;gap:6px;padding:4px 0 6px;font-size:10px;font-weight:700;color:#888;text-transform:uppercase;}
+.del-btn{background:none;border:none;color:#cc3333;font-size:18px;cursor:pointer;touch-action:manipulation;padding:0 4px;}
+.preset-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch;}
+.preset-scroll::-webkit-scrollbar{height:4px;}
+.preset-scroll::-webkit-scrollbar-thumb{background:#ccc;border-radius:4px;}
+.cat-btn{flex-shrink:0;padding:6px 12px;border:1.5px solid #1B3A6B;border-radius:20px;background:#fff;color:#1B3A6B;font-size:12px;font-weight:600;cursor:pointer;touch-action:manipulation;white-space:nowrap;}
+.cat-btn.on{background:#1B3A6B;color:#fff;}
+.preset-items{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;max-height:220px;overflow-y:auto;}
+.preset-item{padding:8px 10px;border:1px solid #e0e8f0;border-radius:8px;background:#f8fbff;cursor:pointer;touch-action:manipulation;}
+.preset-item:active{background:#e0eeff;}
+.preset-item .pname{font-size:12px;font-weight:600;color:#1B3A6B;line-height:1.3;}
+.preset-item .pprice{font-size:11px;color:#E8531A;margin-top:2px;}
+.tot-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:14px;}
+.tot-row:last-child{border-bottom:none;}
+.tot-row.grand{font-weight:700;font-size:16px;color:#1B3A6B;}
+.tot-row.grand .val{color:#E8531A;font-size:18px;}
+.tot-row .val{font-weight:600;}
+.add-btn{width:100%;padding:10px;border:2px dashed #1B3A6B;border-radius:10px;background:transparent;color:#1B3A6B;font-size:13px;font-weight:600;cursor:pointer;touch-action:manipulation;margin-top:8px;}
+.pdf-btn{width:100%;padding:14px;border-radius:12px;background:#E8531A;color:#fff;border:none;font-size:15px;font-weight:700;cursor:pointer;touch-action:manipulation;margin-top:4px;}
+.clear-btn{width:100%;padding:10px;border-radius:10px;background:#fff;color:#cc3333;border:2px solid #cc3333;font-size:13px;font-weight:600;cursor:pointer;touch-action:manipulation;margin-top:8px;}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;z-index:999;display:none;}
+.toast.show{display:block;}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="index.html" onclick="goHome(event)">&#8962;</a>
+  <h1>Service Quoting Tool</h1>
+  <button class="save-btn" onclick="saveData()" style="touch-action:manipulation">Save</button>
+</div>
+
+<div class="card">
+  <h2>Job Information</h2>
+  <div class="fg"><label>Customer / Facility</label><input type="text" id="customer" placeholder="Customer name"></div>
+  <div class="row2">
+    <div class="fg"><label>Address</label><input type="text" id="address" placeholder="Service address"></div>
+    <div class="fg"><label>Attention</label><input type="text" id="attention" placeholder="Contact name"></div>
+  </div>
+  <div class="row2">
+    <div class="fg"><label>Reference / PO #</label><input type="text" id="jobref" placeholder="e.g. S26001"></div>
+    <div class="fg"><label>Date</label><input type="date" id="jobdate"></div>
+  </div>
+  <div class="fg"><label>Scope / Description</label><textarea id="scope" rows="2" placeholder="Brief description of work..."></textarea></div>
+</div>
+
+<div class="card">
+  <h2>Job Type (Tax)</h2>
+  <div class="jt-grid" id="jt-grid"></div>
+  <div style="font-size:11px;color:#888;margin-top:4px" id="jt-desc"></div>
+</div>
+
+<div class="card">
+  <h2>Pricing Settings</h2>
+  <div class="row3">
+    <div class="fg"><label>Parts Margin</label>
+      <select id="parts-margin" onchange="calcTotals()">
+        <option value="0.50">50%</option>
+        <option value="0.55" selected>55%</option>
+        <option value="0.60">60%</option>
+        <option value="0.65">65%</option>
+      </select>
+    </div>
+    <div class="fg"><label>Equip Margin</label>
+      <select id="equip-margin" onchange="calcTotals()">
+        <option value="0.40">40%</option>
+        <option value="0.45" selected>45%</option>
+        <option value="0.50">50%</option>
+      </select>
+    </div>
+    <div class="fg"><label>Tax Rate</label>
+      <select id="tax-rate" onchange="calcTotals()">
+        <option value="0.0825" selected>8.25%</option>
+        <option value="0.08">8.0%</option>
+        <option value="0.0">0%</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Add from Preset List</h2>
+  <div class="preset-scroll" id="cat-scroll"></div>
+  <div class="preset-items" id="preset-items"></div>
+  <button class="add-btn" onclick="addCustom()" style="touch-action:manipulation">+ Add Custom Line Item</button>
+</div>
+
+<div class="card">
+  <h2>Quote Line Items</h2>
+  <div class="item-hdr">
+    <span>Description</span><span>Type</span><span>Cost</span><span>Sell</span><span></span>
+  </div>
+  <div id="items-body"></div>
+</div>
+
+<div class="card">
+  <h2>Quote Summary</h2>
+  <div class="tot-row"><span>Parts / Materials</span><span class="val" id="tot-parts">$0.00</span></div>
+  <div class="tot-row"><span>Equipment</span><span class="val" id="tot-equip">$0.00</span></div>
+  <div class="tot-row"><span>Labor</span><span class="val" id="tot-labor">$0.00</span></div>
+  <div class="tot-row"><span>Base Bid</span><span class="val" id="tot-base">$0.00</span></div>
+  <div class="tot-row"><span id="tax-label">Sales Tax (8.25%)</span><span class="val" id="tot-tax">$0.00</span></div>
+  <div class="tot-row grand"><span>Total</span><span class="val" id="tot-grand">$0.00</span></div>
+</div>
+
+<div class="card">
+  <button class="pdf-btn" onclick="generatePDF()" style="touch-action:manipulation">&#128196; Generate Service Proposal PDF</button>
+  <button class="clear-btn" onclick="clearQuote()" style="touch-action:manipulation">&#128465; Clear Quote</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var PRESETS = {
+  'RTU Parts': [
+    {name:'RTU - Belts',cost:28,type:'P'},
+    {name:'RTU - Sheaves / Pulleys',cost:145,type:'P'},
+    {name:'RTU - Filters Standard',cost:18,type:'P'},
+    {name:'RTU - Filters HEPA',cost:65,type:'P'},
+    {name:'RTU - Hail Guards',cost:85,type:'P'},
+    {name:'RTU - Economizer Actuator',cost:185,type:'P'},
+    {name:'RTU - Condenser Fan Motor',cost:275,type:'P'},
+    {name:'RTU - Condenser Fan Blade',cost:145,type:'P'},
+    {name:'RTU - Evaporator / Blower Motor',cost:320,type:'P'},
+    {name:'RTU - Inducer Motor',cost:285,type:'P'},
+    {name:'RTU - Capacitor (run / start)',cost:45,type:'P'},
+    {name:'RTU - Contactor',cost:65,type:'P'},
+    {name:'RTU - Control Board / PCB',cost:385,type:'P'},
+    {name:'RTU - Gas Valve',cost:195,type:'P'},
+    {name:'RTU - Ignitor / Ignition Module',cost:85,type:'P'},
+    {name:'RTU - TXV / EXV',cost:285,type:'P'},
+    {name:'RTU - Filter Drier',cost:45,type:'P'},
+    {name:'RTU - Refrigerant Charge (per lb)',cost:28,type:'P'},
+    {name:'RTU - Refrigerant Recovery',cost:55,type:'P'},
+    {name:'RTU - Roof Curb',cost:485,type:'P'},
+    {name:'RTU - Curb Adapter',cost:285,type:'P'},
+  ],
+  'Split / VRF': [
+    {name:'Split - Line Set Copper (per ft)',cost:12,type:'P'},
+    {name:'Split - Line Set Insulation (per ft)',cost:3,type:'P'},
+    {name:'Split - Refrigerant Charge (per lb)',cost:28,type:'P'},
+    {name:'Split - Refrigerant Recovery',cost:55,type:'P'},
+    {name:'Split - TXV / EXV',cost:235,type:'P'},
+    {name:'Split - Filter Drier',cost:38,type:'P'},
+    {name:'Split - Capacitor (run / start)',cost:45,type:'P'},
+    {name:'Split - Contactor',cost:65,type:'P'},
+    {name:'Split - Condenser Fan Motor',cost:245,type:'P'},
+    {name:'Split - Evaporator Motor',cost:285,type:'P'},
+    {name:'Split - Control Board',cost:325,type:'P'},
+    {name:'VRF - Communication Cable (per ft)',cost:2,type:'P'},
+  ],
+  'AHU': [
+    {name:'AHU - Belts',cost:28,type:'P'},
+    {name:'AHU - Sheaves / Pulleys',cost:145,type:'P'},
+    {name:'AHU - Filters Standard',cost:18,type:'P'},
+    {name:'AHU - Filters HEPA',cost:65,type:'P'},
+    {name:'AHU - CHW Valve 2-way',cost:485,type:'P'},
+    {name:'AHU - CHW Valve 3-way',cost:685,type:'P'},
+    {name:'AHU - HW Valve 2-way',cost:485,type:'P'},
+    {name:'AHU - Valve Actuator',cost:285,type:'P'},
+    {name:'AHU - Blower Motor',cost:385,type:'P'},
+    {name:'AHU - Blower Wheel',cost:245,type:'P'},
+    {name:'AHU - Drain Pan',cost:285,type:'P'},
+    {name:'AHU - Condensate Pump',cost:185,type:'P'},
+  ],
+  'Chiller / Boiler': [
+    {name:'Chiller - Refrigerant (per lb)',cost:45,type:'P'},
+    {name:'Chiller - Refrigerant Recovery',cost:125,type:'P'},
+    {name:'Chiller - Compressor Oil',cost:85,type:'P'},
+    {name:'Chiller - Strainer / Basket',cost:285,type:'P'},
+    {name:'Chiller - Water Flow Switch',cost:185,type:'P'},
+    {name:'Chiller - Expansion Tank',cost:485,type:'P'},
+    {name:'Boiler - Ignitor',cost:95,type:'P'},
+    {name:'Boiler - Gas Valve',cost:285,type:'P'},
+    {name:'Boiler - Circulator Pump',cost:485,type:'P'},
+    {name:'Boiler - Expansion Tank',cost:385,type:'P'},
+    {name:'Boiler - Pressure Relief Valve',cost:85,type:'P'},
+    {name:'Boiler - Aquastat / Control',cost:285,type:'P'},
+  ],
+  'Controls': [
+    {name:'Thermostat / Controller',cost:285,type:'P'},
+    {name:'BAS / DDC Sensor',cost:185,type:'P'},
+    {name:'Disconnect Switch',cost:145,type:'P'},
+    {name:'Electrical Wire (per ft)',cost:4,type:'P'},
+    {name:'Breaker / Fuse',cost:45,type:'P'},
+    {name:'Control Transformer',cost:85,type:'P'},
+    {name:'Low Voltage Wiring (per ft)',cost:2,type:'P'},
+    {name:'Duct Smoke Detector',cost:145,type:'P'},
+  ],
+  'Labor': [
+    {name:'Labor - Standard (per hr)',cost:125,type:'L'},
+    {name:'Labor - 2 hrs',cost:250,type:'L'},
+    {name:'Labor - 4 hrs',cost:500,type:'L'},
+    {name:'Labor - 6 hrs',cost:750,type:'L'},
+    {name:'Labor - Full Day (8 hrs)',cost:1000,type:'L'},
+    {name:'Labor - Crane / Lift (per hr)',cost:185,type:'L'},
+    {name:'Labor - After Hours Premium',cost:185,type:'L'},
+  ]
+};
+
+var JOB_TYPES = [
+  {id:1,label:'Commercial Repair / Replacement',short:'Commercial<br>Repair',
+   desc:'8.25% on full invoice (labor + materials)',
+   taxFn:function(p,e,l){return p+e+l;}},
+  {id:2,label:'New Installation - Lump Sum',short:'New Install<br>Lump Sum',
+   desc:'No tax collected - you paid tax at purchase',
+   taxFn:function(){return 0;}},
+  {id:3,label:'New Installation - Itemized',short:'New Install<br>Itemized',
+   desc:'8.25% on materials only - no tax on labor',
+   taxFn:function(p,e,l){return p+e;}},
+  {id:4,label:'Mixed: Repair + New (Lump Sum)',short:'Mixed<br>Lump Sum',
+   desc:'8.25% on repair labor + all materials',
+   taxFn:function(p,e,l){return p+l;}},
+  {id:5,label:'Mixed: Repair + New (Itemized)',short:'Mixed<br>Itemized',
+   desc:'8.25% on full invoice',
+   taxFn:function(p,e,l){return p+e+l;}},
+];
+
+var selectedJT=1, selectedCat='RTU Parts', items=[];
+
+window.onload=function(){
+  document.getElementById('jobdate').value=new Date().toISOString().split('T')[0];
+  buildJTGrid(); buildCatTabs(); buildPresetItems();
+  loadData(); renderItems(); calcTotals();
+};
+
+function goHome(e){
+  e.preventDefault();
+  if(confirm('Go to home screen? Unsaved changes will be lost.')) window.location.href='index.html';
+}
+
+function buildJTGrid(){
+  var g=document.getElementById('jt-grid'); g.innerHTML='';
+  JOB_TYPES.forEach(function(jt){
+    var b=document.createElement('button');
+    b.className='jt-btn'+(jt.id===selectedJT?' on':'');
+    b.innerHTML=jt.short; b.style.touchAction='manipulation';
+    b.onclick=function(){selectedJT=jt.id;buildJTGrid();calcTotals();};
+    g.appendChild(b);
+  });
+  var jt=JOB_TYPES.find(function(j){return j.id===selectedJT;});
+  document.getElementById('jt-desc').textContent=jt?jt.desc:'';
+}
+
+function buildCatTabs(){
+  var s=document.getElementById('cat-scroll'); s.innerHTML='';
+  Object.keys(PRESETS).forEach(function(cat){
+    var b=document.createElement('button');
+    b.className='cat-btn'+(cat===selectedCat?' on':'');
+    b.textContent=cat; b.style.touchAction='manipulation';
+    b.onclick=function(){selectedCat=cat;buildCatTabs();buildPresetItems();};
+    s.appendChild(b);
+  });
+}
+
+function buildPresetItems(){
+  var c=document.getElementById('preset-items'); c.innerHTML='';
+  (PRESETS[selectedCat]||[]).forEach(function(p){
+    var m=p.type==='L'?0:p.type==='E'?0.45:0.55;
+    var sell=p.type==='L'?p.cost:Math.ceil(p.cost/(1-m));
+    var d=document.createElement('div'); d.className='preset-item';
+    d.innerHTML='<div class="pname">'+p.name+'</div><div class="pprice">Cost $'+p.cost+' &rarr; Sell $'+sell+'</div>';
+    d.onclick=function(){addPreset(p);};
+    c.appendChild(d);
+  });
+}
+
+function addPreset(p){
+  var m=p.type==='L'?0:p.type==='E'?0.45:0.55;
+  var sell=p.type==='L'?p.cost:Math.ceil(p.cost/(1-m));
+  items.push({name:p.name,type:p.type,cost:p.cost,sell:sell});
+  renderItems(); calcTotals(); toast(p.name+' added');
+}
+
+function addCustom(){
+  items.push({name:'',type:'P',cost:0,sell:0});
+  renderItems(); calcTotals();
+  var inputs=document.querySelectorAll('.item-name');
+  if(inputs.length) inputs[inputs.length-1].focus();
+}
+
+function delItem(i){items.splice(i,1);renderItems();calcTotals();}
+
+function renderItems(){
+  var b=document.getElementById('items-body');
+  b.innerHTML='';
+  if(!items.length){
+    b.innerHTML='<div style="color:#999;font-size:13px;padding:12px 0;text-align:center">No items yet — use presets or add custom</div>';
+    return;
+  }
+  items.forEach(function(item,i){
+    var row=document.createElement('div'); row.className='item-row';
+    row.innerHTML=
+      '<input class="item-name" type="text" value="'+esc(item.name)+'" placeholder="Description" onchange="items['+i+'].name=this.value">'+
+      '<select onchange="items['+i+'].type=this.value;autoSell('+i+');renderItems();calcTotals()">'+
+        '<option value="P"'+(item.type==='P'?' selected':'')+'>Parts</option>'+
+        '<option value="E"'+(item.type==='E'?' selected':'')+'>Equip</option>'+
+        '<option value="L"'+(item.type==='L'?' selected':'')+'>Labor</option>'+
+      '</select>'+
+      '<input type="number" value="'+item.cost+'" placeholder="Cost" onchange="items['+i+'].cost=parseFloat(this.value)||0;autoSell('+i+');renderItems();calcTotals()">'+
+      '<input type="number" value="'+item.sell+'" placeholder="Sell" onchange="items['+i+'].sell=parseFloat(this.value)||0;calcTotals()">'+
+      '<button class="del-btn" onclick="delItem('+i+')" style="touch-action:manipulation">&#10005;</button>';
+    b.appendChild(row);
+  });
+}
+
+function autoSell(i){
+  var item=items[i];
+  var pm=parseFloat(document.getElementById('parts-margin').value)||0.55;
+  var em=parseFloat(document.getElementById('equip-margin').value)||0.45;
+  var m=item.type==='L'?0:item.type==='E'?em:pm;
+  item.sell=item.type==='L'?item.cost:Math.ceil(item.cost/(1-m));
+}
+
+function esc(s){return (s||'').replace(/"/g,'&quot;');}
+function fmt(n){return '$'+(parseFloat(n)||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');}
+
+function calcTotals(){
+  var parts=0,equip=0,labor=0;
+  items.forEach(function(item){
+    var sell=parseFloat(item.sell)||0;
+    if(item.type==='E') equip+=sell;
+    else if(item.type==='L') labor+=sell;
+    else parts+=sell;
+  });
+  var base=parts+equip+labor;
+  var taxRate=parseFloat(document.getElementById('tax-rate').value)||0.0825;
+  var jt=JOB_TYPES.find(function(j){return j.id===selectedJT;});
+  var taxBase=jt?jt.taxFn(parts,equip,labor):base;
+  var tax=taxBase*taxRate;
+  var grand=base+tax;
+  document.getElementById('tot-parts').textContent=fmt(parts);
+  document.getElementById('tot-equip').textContent=fmt(equip);
+  document.getElementById('tot-labor').textContent=fmt(labor);
+  document.getElementById('tot-base').textContent=fmt(base);
+  document.getElementById('tot-tax').textContent=fmt(tax);
+  document.getElementById('tot-grand').textContent=fmt(grand);
+  document.getElementById('tax-label').textContent=tax>0?'Sales Tax ('+(taxRate*100).toFixed(2)+'%)':'No Tax Collected';
+}
+
+function saveData(){
+  var data={
+    customer:document.getElementById('customer').value,
+    address:document.getElementById('address').value,
+    attention:document.getElementById('attention').value,
+    jobref:document.getElementById('jobref').value,
+    jobdate:document.getElementById('jobdate').value,
+    scope:document.getElementById('scope').value,
+    jobtype:selectedJT,items:items,
+    parts_margin:document.getElementById('parts-margin').value,
+    equip_margin:document.getElementById('equip-margin').value,
+    tax_rate:document.getElementById('tax-rate').value,
+  };
+  try{localStorage.setItem('ntd_service_quote',JSON.stringify(data));toast('Saved');}
+  catch(e){toast('Could not save');}
+}
+
+function loadData(){
+  try{
+    var raw=localStorage.getItem('ntd_service_quote');
+    if(!raw) return;
+    var d=JSON.parse(raw);
+    document.getElementById('customer').value=d.customer||'';
+    document.getElementById('address').value=d.address||'';
+    document.getElementById('attention').value=d.attention||'';
+    document.getElementById('jobref').value=d.jobref||'';
+    document.getElementById('jobdate').value=d.jobdate||'';
+    document.getElementById('scope').value=d.scope||'';
+    if(d.jobtype) selectedJT=d.jobtype;
+    if(d.items) items=d.items;
+    if(d.parts_margin) document.getElementById('parts-margin').value=d.parts_margin;
+    if(d.equip_margin) document.getElementById('equip-margin').value=d.equip_margin;
+    if(d.tax_rate) document.getElementById('tax-rate').value=d.tax_rate;
+    buildJTGrid();
+  }catch(e){}
+}
+
+function clearQuote(){
+  if(!confirm('Clear all line items and start over?')) return;
+  items=[];
+  ['customer','address','attention','jobref','scope'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('jobdate').value=new Date().toISOString().split('T')[0];
+  selectedJT=1;buildJTGrid();renderItems();calcTotals();toast('Quote cleared');
+}
+
+function generatePDF(){
+  if(!items.length){toast('Add at least one line item first');return;}
+  if(typeof window.jspdf==='undefined'&&typeof jsPDF==='undefined'){
+    toast('Loading PDF library...');
+    var s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    s.onload=function(){buildPDF();}; document.head.appendChild(s);
+  } else {buildPDF();}
+}
+
+function buildPDF(){
+  var jspdf=window.jspdf||window;
+  var doc=new jspdf.jsPDF({orientation:'portrait',unit:'pt',format:'letter'});
+  var NV=[27,58,107],OR=[232,83,26],W=612,M=40,IW=W-M*2;
+
+  doc.setFillColor(NV[0],NV[1],NV[2]);
+  doc.rect(M,30,IW,28,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(255,255,255);
+  doc.text('NTD MECHANICAL \u2014 SERVICE PROPOSAL',M+8,49);
+  doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(100,100,100);
+  doc.text('TACLA65973C  |  North Texas Ductworks LLC  |  2477 Merritt Dr, Garland TX 75041  |  469-323-0454  |  ntdmechanical.com',M,72);
+
+  var y=90;
+  var customer=document.getElementById('customer').value||'___________________________';
+  var address=document.getElementById('address').value||'';
+  var attention=document.getElementById('attention').value||'';
+  var jobref=document.getElementById('jobref').value||'';
+  var jobdate=document.getElementById('jobdate').value||'';
+  var scope=document.getElementById('scope').value||'';
+
+  doc.setFontSize(10);doc.setFont('helvetica','bold');doc.setTextColor(NV[0],NV[1],NV[2]);
+  doc.text('Reference:',M,y);
+  doc.setTextColor(OR[0],OR[1],OR[2]);
+  doc.text(jobref||'_______________',M+62,y);
+  doc.setTextColor(NV[0],NV[1],NV[2]);
+  doc.text('Date:',W-M-90,y);
+  doc.setFont('helvetica','normal');doc.setTextColor(0,0,0);
+  doc.text(jobdate,W-M-55,y);y+=16;
+
+  doc.setFont('helvetica','bold');doc.setTextColor(NV[0],NV[1],NV[2]);doc.text('Submitted To:',M,y);
+  doc.setFont('helvetica','normal');doc.setTextColor(0,0,0);doc.text(customer,M+78,y);y+=16;
+  if(address){doc.setFont('helvetica','bold');doc.setTextColor(NV[0],NV[1],NV[2]);doc.text('Address:',M,y);doc.setFont('helvetica','normal');doc.setTextColor(0,0,0);doc.text(address,M+78,y);y+=16;}
+  if(attention){doc.setFont('helvetica','bold');doc.setTextColor(NV[0],NV[1],NV[2]);doc.text('Attention:',M,y);doc.setFont('helvetica','normal');doc.setTextColor(0,0,0);doc.text(attention,M+78,y);y+=16;}
+  y+=6;
+
+  doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(0,0,0);
+  var intro='NTD Mechanical is pleased to provide our PRICING PROPOSAL for HVAC Services'+(jobref?' for the '+jobref+' project':'')+'. Please review the associated quotation values:';
+  var introLines=doc.splitTextToSize(intro,IW);
+  doc.text(introLines,M,y);y+=introLines.length*12+8;
+
+  var parts=0,equip=0,labor=0;
+  items.forEach(function(item){var sell=parseFloat(item.sell)||0;if(item.type==='E')equip+=sell;else if(item.type==='L')labor+=sell;else parts+=sell;});
+  var base=parts+equip+labor;
+  var taxRate=parseFloat(document.getElementById('tax-rate').value)||0.0825;
+  var jt=JOB_TYPES.find(function(j){return j.id===selectedJT;});
+  var taxBase=jt?jt.taxFn(parts,equip,labor):base;
+  var tax=taxBase*taxRate;
+  var grand=base+tax;
+
+  var tblW=IW*0.55,tblX=M+(IW-tblW)/2;
+  if(tax>0){
+    doc.setFillColor(245,245,245);doc.rect(tblX,y,tblW,18,'F');
+    doc.setDrawColor(180,180,180);doc.rect(tblX,y,tblW,18,'S');
+    doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(0,0,0);
+    doc.text('Base Bid \u2013 HVAC',tblX+6,y+12);doc.text(fmt(base),tblX+tblW-6,y+12,{align:'right'});y+=19;
+    doc.setFillColor(250,250,250);doc.rect(tblX,y,tblW,16,'F');doc.rect(tblX,y,tblW,16,'S');
+    doc.setFontSize(8.5);doc.setTextColor(100,100,100);
+    doc.text((taxRate*100).toFixed(2)+'% Sales Tax',tblX+6,y+11);doc.text(fmt(tax),tblX+tblW-6,y+11,{align:'right'});y+=17;
+    doc.setFillColor(NV[0],NV[1],NV[2]);doc.rect(tblX,y,tblW,18,'F');doc.rect(tblX,y,tblW,18,'S');
+    doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(255,255,255);
+    doc.text('Total',tblX+6,y+12);doc.text(fmt(grand),tblX+tblW-6,y+12,{align:'right'});y+=19;
+  } else {
+    doc.setFillColor(NV[0],NV[1],NV[2]);doc.rect(tblX,y,tblW,18,'F');
+    doc.setDrawColor(180,180,180);doc.rect(tblX,y,tblW,18,'S');
+    doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(255,255,255);
+    doc.text('Base Bid \u2013 HVAC',tblX+6,y+12);doc.text(fmt(grand),tblX+tblW-6,y+12,{align:'right'});y+=19;
+  }
+  y+=8;
+
+  doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(0,0,0);
+  var tariff='** TARIFFS ARE EXCLUDED. Costs incurred due to tariffs will be added to the billing during the month in which they are incurred. NTD cannot be held responsible for delays in equipment and materials due to tariffs.';
+  var tLines=doc.splitTextToSize(tariff,IW);doc.text(tLines,M,y);y+=tLines.length*11+10;
+
+  doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(0,0,0);
+  doc.text('SCOPE:',M,y);y+=14;
+  if(scope){doc.setFont('helvetica','normal');doc.setFontSize(9);var sLines=doc.splitTextToSize('- '+scope,IW);doc.text(sLines,M,y);y+=sLines.length*11+4;}
+  doc.setFont('helvetica','normal');doc.setFontSize(9);
+  doc.text('- Equipment & Parts \u2013 as specified or required:',M,y);y+=10;
+
+  doc.setFillColor(NV[0],NV[1],NV[2]);doc.rect(M,y,IW,14,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(255,255,255);
+  doc.text('#',M+4,y+10);doc.text('Description',M+20,y+10);
+  doc.text('Type',M+310,y+10);doc.text('Cost',M+360,y+10);doc.text('Sell',M+430,y+10);y+=15;
+
+  items.forEach(function(item,idx){
+    if(y>680){doc.addPage();y=40;}
+    if(idx%2===0){doc.setFillColor(242,246,252);doc.rect(M,y,IW,13,'F');}
+    doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(0,0,0);
+    doc.text(String(idx+1),M+4,y+9);
+    var name=item.name||'Custom item';if(name.length>50)name=name.substring(0,48)+'...';
+    doc.text(name,M+20,y+9);
+    doc.text(item.type==='L'?'Labor':item.type==='E'?'Equipment':'Parts',M+310,y+9);
+    doc.text(fmt(item.cost),M+360,y+9);
+    doc.setFont('helvetica','bold');doc.text(fmt(item.sell),M+430,y+9);y+=13;
+  });
+  y+=10;
+
+  ['- Furnish all labor, materials, equipment, and supervision necessary to complete the described scope of work.',
+   '- All work performed by licensed TACLA technicians per applicable Texas mechanical codes.',
+   '- Startup and commissioning of replaced or repaired equipment included where applicable.',
+   '- Site left clean and free of debris upon completion.'].forEach(function(b){
+    if(y>700){doc.addPage();y=40;}
+    doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(0,0,0);
+    var bl=doc.splitTextToSize(b,IW);doc.text(bl,M,y);y+=bl.length*11+2;
+  });
+  y+=8;
+
+  if(y>620){doc.addPage();y=40;}
+  doc.setFontSize(8);doc.setTextColor(180,0,0);
+  var l1='Unless noted otherwise, NTD Mechanical proposals are per plans and specifications. NTD has not accounted for anything not clearly illustrated or specified in the bid documents. NTD has not made inferable assumptions or allowances to ensure that all elements associated with the scope of work comply with all governing codes and regulations, safety, and energy requirements of the project. NTD Mechanical assumes NO liability for results of value engineering approved by the client.';
+  var l1l=doc.splitTextToSize(l1,IW);doc.text(l1l,M,y);y+=l1l.length*11+8;
+  var l2='Our Proposal/Budget is contingent upon NTD acceptance of terms and conditions, price, scheduling, and scope of work in the subcontract agreement. The quoted price and any lead times CANNOT be held at this time due to the escalation of construction materials and equipment costs. NTD does not accept the risk of 1) pricing increases prior to contract award, and/or 2) pricing increases prior to acceptance of order from NTD supplier/manufacturer, and/or 3) delays in the delivery of equipment and material. All pricing and lead times are subject to daily changes in escalation of construction materials and equipment procurement due to availability.';
+  var l2l=doc.splitTextToSize(l2,IW);doc.text(l2l,M,y);y+=l2l.length*11+8;
+
+  doc.setTextColor(0,0,0);doc.setFontSize(9);
+  doc.text('Should you have any questions, or require additional information, please do not hesitate to call.',M,y);y+=14;
+  doc.text('Respectfully,',M,y);y+=12;
+  doc.setFont('helvetica','bold');doc.text('NORTH TEXAS DUCTWORKS LLC',M,y);y+=12;
+  doc.text('dba NTD MECHANICAL',M,y);y+=20;
+  doc.setFont('helvetica','normal');doc.setFontSize(9);
+  doc.text('_________________________________',M,y);doc.text('_________________________________',M+220,y);y+=12;
+  doc.text('Name | Title',M,y);doc.text('Cell | Email',M+220,y);y+=20;
+  doc.setFontSize(7);doc.setTextColor(120,120,120);
+  doc.text('Regulated by the Texas Department of Licensing and Regulation  |  PO Box 12157, Austin TX 78711  |  (800) 803-9202  |  http://www.tdlr.texas.gov',M,y);
+
+  var cust=(document.getElementById('customer').value||'Quote').replace(/\s+/g,'_');
+  var fn='NTD_Proposal_'+cust+'_'+(document.getElementById('jobref').value||'draft')+'.pdf';
+  var blob=doc.output('blob');
+  var url=URL.createObjectURL(blob);
+  window.open(url,'_blank');
+  setTimeout(function(){URL.revokeObjectURL(url);},60000);
+  toast('PDF ready - tap Share to save');
+}
+
+function toast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');},2500);
+}
+</script>
+</body>
+</html>
