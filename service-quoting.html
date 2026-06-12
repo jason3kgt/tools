@@ -126,7 +126,7 @@ body{font-family:Arial,sans-serif;font-size:14px;background:#f0f2f5;color:#222;}
   <h2>Quote Summary</h2>
   <div class="tot-row"><span>Parts / Materials</span><span class="val" id="tot-parts">$0.00</span></div>
   <div class="tot-row"><span>Equipment</span><span class="val" id="tot-equip">$0.00</span></div>
-  <div class="tot-row"><span>Labor</span><span class="val" id="tot-labor">$0.00</span></div>
+  <div class="tot-row"><span>Labor (auto-calculated)</span><span class="val" id="tot-labor">$0.00</span></div>
   <div class="tot-row"><span>Base Bid</span><span class="val" id="tot-base">$0.00</span></div>
   <div class="tot-row"><span id="tax-label">Sales Tax (8.25%)</span><span class="val" id="tot-tax">$0.00</span></div>
   <div class="tot-row grand"><span>Total</span><span class="val" id="tot-grand">$0.00</span></div>
@@ -322,11 +322,13 @@ function delItem(i){items.splice(i,1);renderItems();calcTotals();}
 function renderItems(){
   var b=document.getElementById('items-body');
   b.innerHTML='';
-  if(!items.length){
+  var visibleItems = items.filter(function(item){ return item.type !== 'L'; });
+  if(!visibleItems.length){
     b.innerHTML='<div style="color:#999;font-size:13px;padding:12px 0;text-align:center">No items yet — use presets or add custom</div>';
     return;
   }
   items.forEach(function(item,i){
+    if(item.type === 'L') return;  // hide labor rows from view
     var row=document.createElement('div'); row.className='item-row';
     row.innerHTML=
       '<input class="item-name" type="text" value="'+esc(item.name)+'" placeholder="Description" onchange="items['+i+'].name=this.value">'+
