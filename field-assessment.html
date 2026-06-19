@@ -110,6 +110,12 @@ textarea{resize:vertical;min-height:70px}
 .dlb{display:block;width:100%;padding:11px;border-radius:10px;font-size:13px;font-weight:600;background:var(--or);color:#fff;border:none;margin-top:8px;font-family:inherit;cursor:pointer}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
 .tab{background:none;border:none;font-family:inherit;outline:none;-webkit-appearance:none;}
+.photo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px}
+.photo-thumb{position:relative;aspect-ratio:4/3;overflow:hidden;border-radius:8px;background:#eee}
+.photo-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-del{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:12px;line-height:22px;text-align:center;cursor:pointer;padding:0}
+.photo-caption{width:100%;border:1px solid var(--bd);border-top:none;border-radius:0 0 8px 8px;font-size:11px;padding:4px 6px;font-family:inherit;background:var(--of);color:var(--tx)}
+.photo-add-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:9px;border:1.5px dashed var(--st);border-radius:9px;background:var(--of);color:var(--st);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:6px}
 </style>
 </head>
 <body>
@@ -357,16 +363,73 @@ function eqH(eq,i){
   +'<button class="ab" onclick="tacc('+eq.id+',\'notes\')">Notes / Findings <span id="ar-'+eq.id+'-notes"></span></button>'
   +'<div class="ac" id="ac-'+eq.id+'-notes"><div style="padding-top:8px"><div class="fg"><label>Findings / Recommendations</label>'
   +'<textarea placeholder="e.g. Condenser fan motor contactor is pitted and needs replacement..." rows="3" oninput="udf('+eq.id+',\'notes\',this.value)">'+(eq.notes||'')+'</textarea></div></div></div>'
+  +'<button class="ab" onclick="tacc('+eq.id+',\'photos\')">Photos <span style="font-size:10px;color:var(--or);font-weight:700" id="phct-'+eq.id+'">'+(eq.photos&&eq.photos.length?'('+eq.photos.length+')':'')+'</span> <span id="ar-'+eq.id+'-photos"></span></button>'
+  +'<div class="ac" id="ac-'+eq.id+'-photos"><div style="padding:8px 0">'
+  +'<div class="photo-grid" id="pg-'+eq.id+'"></div>'
+  +'<button class="photo-add-btn" onclick="trigPh('+eq.id+')">&#128247; Add Photo</button>'
+  +'<input type="file" accept="image/*" capture="environment" style="display:none" id="phi-'+eq.id+'" onchange="addPhoto('+eq.id+',this)">'
+  +'</div></div>'
   +'</div>';
 }
 
-function addEq(){eqs.push({id:eid++,tag:'',type:'',manuf:'',model:'',serial:'',age:'',area:'',tstat:'',f1q:'',f1s:'',f2q:'',f2s:'',bq:'',bs:'',amb:'',s1s:'',s1d:'',s2s:'',s2d:'',notes:'',ov:'',pc:0,fc2:0,sc2:0,detail:{}});renderEqs();}
+function addEq(){eqs.push({id:eid++,tag:'',type:'',manuf:'',model:'',serial:'',age:'',area:'',tstat:'',f1q:'',f1s:'',f2q:'',f2s:'',bq:'',bs:'',amb:'',s1s:'',s1d:'',s2s:'',s2d:'',notes:'',ov:'',pc:0,fc2:0,sc2:0,detail:{},photos:[]});renderEqs();}
 function rmEq(id){eqs=eqs.filter(function(e){return e.id!==id;});renderEqs();ua();}
 function renderEqs(){
   var el=document.getElementById('eql');
   if(!eqs.length){el.innerHTML='<div class="empty">Tap below to add a unit</div>';ua();return;}
   var _eqh=[];for(var _ei=0;_ei<eqs.length;_ei++){_eqh.push(eqH(eqs[_ei],_ei));}el.innerHTML=_eqh.join('');
-  Array.prototype.forEach.call(eqs,function(e){updBdg(e.id);});
+  Array.prototype.forEach.call(eqs,function(e){updBdg(e.id);renderPhotoGrid(e.id);});
+}
+
+function trigPh(uid){var inp=document.getElementById('phi-'+uid);if(inp)inp.click();}
+function addPhoto(uid,inp){
+  var file=inp.files[0];if(!file)return;
+  var eq=eqs.find(function(e){return e.id===uid;});if(!eq)return;
+  if(!eq.photos)eq.photos=[];
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    eq.photos.push({data:ev.target.result,caption:''});
+    renderPhotoGrid(uid);
+    var ct=document.getElementById('phct-'+uid);
+    if(ct)ct.textContent='('+eq.photos.length+')';
+  };
+  reader.readAsDataURL(file);
+  inp.value='';
+}
+function removePhoto(uid,idx){
+  var eq=eqs.find(function(e){return e.id===uid;});if(!eq||!eq.photos)return;
+  eq.photos.splice(idx,1);
+  renderPhotoGrid(uid);
+  var ct=document.getElementById('phct-'+uid);
+  if(ct)ct.textContent=eq.photos.length?'('+eq.photos.length+')':'';
+}
+function updateCaption(uid,idx,val){
+  var eq=eqs.find(function(e){return e.id===uid;});
+  if(eq&&eq.photos&&eq.photos[idx])eq.photos[idx].caption=val;
+}
+function renderPhotoGrid(uid){
+  var eq=eqs.find(function(e){return e.id===uid;});
+  var grid=document.getElementById('pg-'+uid);
+  if(!grid||!eq)return;
+  var photos=eq.photos||[];
+  if(!photos.length){grid.innerHTML='';return;}
+  grid.innerHTML=photos.map(function(p,i){
+    return '<div style="display:flex;flex-direction:column;border-radius:10px;overflow:hidden;border:1.5px solid var(--bd)">'
+      +'<div class="photo-thumb">'
+      +'<img src="'+p.data+'" alt="Photo '+(i+1)+'">'
+      +'<button class="photo-del" id="pdel-'+uid+'-'+i+'">&#x2715;</button>'
+      +'</div>'
+      +'<input class="photo-caption" id="pcap-'+uid+'-'+i+'" placeholder="Caption (optional)" value="'+(p.caption||'').replace(/"/g,'&quot;')+'">'
+      +'</div>';
+  }).join('');
+  photos.forEach(function(_,i){
+    (function(idx){
+      var del=document.getElementById('pdel-'+uid+'-'+idx);
+      var cap=document.getElementById('pcap-'+uid+'-'+idx);
+      if(del)del.addEventListener('click',function(){removePhoto(uid,idx);});
+      if(cap)cap.addEventListener('input',function(){updateCaption(uid,idx,this.value);});
+    })(i);
+  });
 }
 
 function initPiping(){
@@ -699,9 +762,41 @@ function dlEquip(){
     doc.setFont('helvetica','bold');doc.setTextColor(27,58,107);doc.text('Stage 2:',190,y+22);doc.setFont('helvetica','normal');doc.setTextColor(0,0,0);doc.text('Suc:'+(eq.s2s||'-')+'  Dis:'+(eq.s2d||'-'),230,y+22);y+=30;
     doc.setFillColor(46,95,138);doc.rect(14,y,W-28,13,'F');
     doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.text('FINDINGS / RECOMMENDATIONS',18,y+9);y+=15;
-    var nh=Math.max(40,H-y-28);
-    doc.setFillColor(255,255,255);doc.rect(14,y,W-28,nh,'F');doc.setDrawColor(200,210,220);doc.rect(14,y,W-28,nh,'S');
+    var notesH=eq.notes?Math.min(80,Math.max(30,doc.splitTextToSize(eq.notes,W-36).length*11)):30;
+    doc.setFillColor(255,255,255);doc.rect(14,y,W-28,notesH,'F');doc.setDrawColor(200,210,220);doc.rect(14,y,W-28,notesH,'S');
     if(eq.notes){doc.setFont('helvetica','normal');doc.setTextColor(30,30,30);doc.setFontSize(9);doc.text(doc.splitTextToSize(eq.notes,W-36),18,y+11);}
+    y+=notesH+4;
+    // Photos
+    var photos=eq.photos||[];
+    if(photos.length){
+      // Check if photos section header fits, else new page
+      if(y+20>H-30){doc.addPage();y=20;}
+      doc.setFillColor(46,95,138);doc.rect(14,y,W-28,13,'F');
+      doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.text('PHOTOS ('+photos.length+')',18,y+9);y+=17;
+      var phW=(W-28-10)/2;var phH=Math.round(phW*0.75);
+      for(var pi=0;pi<photos.length;pi++){
+        var col=pi%2;
+        if(col===0 && pi>0){y+=phH+20;}// move down a row after first column pair
+        // Page break check: need phH + caption space
+        if(col===0 && y+phH+20>H-30){
+          doc.setFillColor(27,58,107);doc.rect(0,H-20,W,20,'F');
+          doc.setTextColor(180,196,220);doc.setFont('helvetica','normal');doc.setFontSize(7);
+          doc.text('NTD Mechanical  |  TACLA65973C  |  ntdmechanical.com  |  214-785-2129',W/2,H-6,{align:'center'});
+          doc.addPage();y=20;
+        }
+        var px=14+col*(phW+10);
+        try{doc.addImage(photos[pi].data,'JPEG',px,y,phW,phH);}
+        catch(e1){try{doc.addImage(photos[pi].data,'PNG',px,y,phW,phH);}catch(e2){
+          doc.setFillColor(230,234,240);doc.rect(px,y,phW,phH,'F');
+          doc.setTextColor(120,120,120);doc.setFontSize(8);doc.text('Image',px+phW/2,y+phH/2,{align:'center'});
+        }}
+        doc.setDrawColor(180,195,220);doc.rect(px,y,phW,phH,'S');
+        var cap=photos[pi].caption||'';
+        doc.setFont('helvetica','normal');doc.setTextColor(60,60,60);doc.setFontSize(7);
+        doc.text(cap||('Photo '+(pi+1)),px+phW/2,y+phH+8,{align:'center',maxWidth:phW});
+      }
+      y+=phH+22;
+    }
     doc.setFillColor(27,58,107);doc.rect(0,H-20,W,20,'F');
     doc.setTextColor(180,196,220);doc.setFont('helvetica','normal');doc.setFontSize(7);
     doc.text('NTD Mechanical  |  TACLA65973C  |  ntdmechanical.com  |  214-785-2129  |  Garland, TX',W/2,H-6,{align:'center'});
@@ -959,7 +1054,7 @@ function loadJ(inp){
     try{
       var d=JSON.parse(e.target.result);
       if(d.site){var s=d.site;[['sf',s.f],['sa',s.a],['sct',s.ct],['ssc',s.sc],['spo',s.po],['sd',s.d],['sv',s.v],['stch',s.t],['sn',s.n]].forEach(function(x){var el=document.getElementById(x[0]);if(el&&x[1]!==undefined)el.value=x[1];});}
-      if(d.eqs){eqs=d.eqs;eid=d.eid||eqs.length+1;}
+      if(d.eqs){eqs=d.eqs;eqs.forEach(function(e){if(!e.photos)e.photos=[];});eid=d.eid||eqs.length+1;}
       renderEqs();ua();alert('Assessment loaded.');
     }catch(err){alert('Could not load file.');}
   };
