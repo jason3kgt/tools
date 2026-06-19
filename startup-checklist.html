@@ -211,12 +211,7 @@ textarea{resize:vertical;min-height:70px}
   &#10003; Form duplicated — shared fields kept. Enter new Unit # and Serial # to continue.
 </div>
 <button class="dlb" id="dl_btn" style="display:none">&#8681; Download Startup Report PDF</button>
-<div class="g2" id="save_btns" style="display:none">
-  <button class="sb" id="save_btn">&#128190; Save</button>
-  <button class="sb" id="load_btn">&#128193; Load</button>
-</div>
 <button class="sb" id="dup_btn" style="display:none;margin-top:8px;border-color:var(--am);color:var(--am)">&#10063; Duplicate for Next Unit</button>
-<input type="file" id="lf" accept=".json" style="display:none" onchange="loadJ(this)">
 
 </div>
 <script>
@@ -541,6 +536,7 @@ function rtuHTML(){
     +mf('Control Xfmr Primary Voltage','rtu_v_pri','V')
     +mf('Control Xfmr Secondary Voltage','rtu_v_sec','V')
     +ynRow('Primary voltage matches unit supply voltage?','rtu_v_match',false)
+    +mf('Outside Air Temp (Ambient — Pre-Startup)','rtu_t0','°F')
     +sh('POWER ON — COOLING & HEATING TESTS','var(--gn-dark)')
     +'<div class="mf-row"><span class="mf-label">Refrigerant Type</span>'+'<select id="mf_rtu_ref_type" style="-webkit-appearance:none;font-size:14px;padding:8px 10px"><option value="">-- Select --</option><option>R-454B</option><option>R-410A</option><option>R-407C</option><option>R-22</option><option>R-32</option><option>R-134a</option><option>R-123</option><option>R-404A</option><option>R-448A</option><option>R-449A</option><option>R-422D</option><option>R-417A</option><option>R-438A</option><option>R-290 (Propane)</option><option>R-600a (Isobutane)</option><option>Other</option></select>'+'</div>'
     +mf('Record Blower Amps','rtu_blw_amps','A')
@@ -555,8 +551,8 @@ function rtuHTML(){
     +'</div>'
     +sh('MEASURED TEMPERATURES')
     +'<div class="r3">'
-    +['Outside Air','Space','Heat Supply','Cool Supply','Mixed Air'].map(function(t,i){
-      return '<div class="fg"><label>'+t+'</label><input type="text" id="mf_rtu_t'+i+'" style="text-align:center" placeholder="°F" oninput="updateProgress()"></div>';
+    +['Space','Heat Supply','Cool Supply','Mixed Air'].map(function(t,i){
+      return '<div class="fg"><label>'+t+'</label><input type="text" id="mf_rtu_t'+(i+1)+'" style="text-align:center" placeholder="°F" oninput="updateProgress()"></div>';
     }).join('')
     +'</div>'
     +sh('REFRIGERANT DATA — PER COMPRESSOR')
@@ -761,19 +757,19 @@ function boilerHTML(){
     +'</div>'
     +'<div class="yn-table-hdr"><span>Item</span><span>Y / N / NA</span><span>Comments</span></div>'
     +yn_html
-    +sh('POWER ON — GAS PRESSURES & COMBUSTION','var(--gn-dark)')
-    +mf('Gas Inlet Pressure — Unit OFF','blr_gin_off','in. WC')
-    +mf('Gas Inlet Pressure — Unit ON','blr_gin_on','in. WC')
-    +mf('Manifold Outlet Pressure','blr_man_press','in. WC')
-    +mf('Combustion Blower Amps 1st Stage','blr_cba1','A')
-    +mf('Combustion Blower Amps 2nd Stage','blr_cba2','A')
-    +sh('WATER TEMPERATURES')
+    +sh('WATER TEMPERATURES — PRE-STARTUP BASELINE','var(--gn-dark)')
     +tbl(['Measurement','Reading','Unit'],[
       tr(tc('label','Supply Water Temperature')+tc('blr_swt','')+tc('label','°F')),
       tr(tc('label','Return Water Temperature')+tc('blr_rwt','')+tc('label','°F')),
       tr(tc('label','Delta-T')+tc('blr_dt','')+tc('label','°F')),
       tr(tc('label','System Operating Pressure')+tc('blr_sop','')+tc('label','PSI')),
     ].join(''))
+    +sh('POWER ON — GAS PRESSURES & COMBUSTION')
+    +mf('Gas Inlet Pressure — Unit OFF','blr_gin_off','in. WC')
+    +mf('Gas Inlet Pressure — Unit ON','blr_gin_on','in. WC')
+    +mf('Manifold Outlet Pressure','blr_man_press','in. WC')
+    +mf('Combustion Blower Amps 1st Stage','blr_cba1','A')
+    +mf('Combustion Blower Amps 2nd Stage','blr_cba2','A')
     +sh('ELECTRICAL')
     +mf('Supply Voltage to Unit','blr_v_sup','V')
     +mf('Control Transformer Voltage','blr_v_ctrl','V')
@@ -830,6 +826,7 @@ function ahuHTML(){
     +yn_html
     +sh('POWER ON — MEASUREMENTS','var(--gn-dark)')
     +mf('Supply Voltage to Unit','ahu_v_sup','V')
+    +mf('Outside Air Temp (Ambient — Pre-Startup)','ahu_oat','°F')
     +mf('Blower Amps','ahu_blw_amps','A')
     +mf('VFD Output Frequency','ahu_vfd_hz','Hz')
     +'<div class="r3">'
@@ -839,7 +836,6 @@ function ahuHTML(){
     +'</div>'
     +sh('MEASURED TEMPERATURES & PRESSURES')
     +tbl(['Measurement','Reading','Unit'],[
-      tr(tc('label','Outside Air Temp')+tc('ahu_oat','')+tc('label','°F')),
       tr(tc('label','Mixed Air Temp')+tc('ahu_mat','')+tc('label','°F')),
       tr(tc('label','Supply Air Temp')+tc('ahu_sat','')+tc('label','°F')),
       tr(tc('label','Return Air Temp')+tc('ahu_rat','')+tc('label','°F')),
@@ -993,7 +989,6 @@ function switchType(){
   var noteCard = document.getElementById('notes_card');
   var sigCard  = document.getElementById('sig_card');
   var dlBtn    = document.getElementById('dl_btn');
-  var savBtns  = document.getElementById('save_btns');
   var banner   = document.getElementById('eq_banner');
 
   if(!sel){
@@ -1002,7 +997,6 @@ function switchType(){
     noteCard.className='card hidden';
     sigCard.className='card hidden';
     dlBtn.style.display='none';
-    savBtns.style.display='none';
     banner.className='eq-banner';
     var pw0=document.getElementById('prog_wrap'); if(pw0)pw0.style.display='none';
     return;
@@ -1026,7 +1020,6 @@ function switchType(){
   document.getElementById('photos_card').className='card';
   sigCard.className='card';
   dlBtn.style.display='block';
-  savBtns.style.display='grid';
   var dupBtn=document.getElementById('dup_btn');if(dupBtn)dupBtn.style.display='block';
   // Show progress bar and build section dots
   var pw=document.getElementById('prog_wrap');
@@ -1372,59 +1365,6 @@ function dlPDF(){
 }
 
 // ── SAVE / LOAD ──
-function doSave(){
-  var data={v:2,ts:Date.now(),type:currentType,
-    unit:{facility:gv('facility'),date:gv('u_date'),job_po:gv('job_po'),address:gv('address'),
-      city_state:gv('city_state'),tech:gv('tech'),unit_num:gv('unit_num'),model:gv('model'),serial:gv('serial')},
-    notes:gv('notes'),followup:gv('followup'),photos:photos,
-    sig:{name:gv('sig_name'),title:gv('sig_title'),date:gv('sig_date')},
-    fields:{}
-  };
-  var inputs=document.querySelectorAll('#form_body input');
-  for(var i=0;i<inputs.length;i++){ data.fields[inputs[i].id]=inputs[i].value||''; }
-  var uri='data:application/json;charset=utf-8,'+encodeURIComponent(JSON.stringify(data));
-  var a=document.createElement('a'); a.href=uri;
-  a.download='NTD_Startup_'+(gv('unit_num')||gv('job_po')||'draft')+'.json';
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
-}
-
-function doLoad(){ document.getElementById('lf').click(); }
-
-function loadJ(inp){
-  var f=inp.files[0]; if(!f)return;
-  var r=new FileReader();
-  r.onload=function(e){
-    try{
-      var d=JSON.parse(e.target.result);
-      function sv2(id,v){ var el=document.getElementById(id); if(el)el.value=v||''; }
-      if(d.unit){ Object.keys(d.unit).forEach(function(k){ sv2(k,d.unit[k]); }); }
-      sv2('notes',d.notes); sv2('followup',d.followup);
-      if(d.sig){ sv2('sig_name',d.sig.name); sv2('sig_title',d.sig.title); sv2('sig_date',d.sig.date); }
-      if(d.photos){ photos=d.photos; renderPhotos(); }
-      if(d.type){
-        document.getElementById('eq_type').value=d.type;
-        switchType();
-        if(d.fields){
-          Object.keys(d.fields).forEach(function(id){
-            var el=document.getElementById(id);
-            if(el) el.value=d.fields[id]||'';
-          });
-          // Re-apply YN button states
-          Object.keys(d.fields).forEach(function(id){
-            if(id.indexOf('yn_')===0){
-              var ynId=id.replace('yn_','');
-              var val=d.fields[id];
-              if(val) setYN(ynId,val);
-            }
-          });
-        }
-      }
-      alert('Startup form loaded.');
-    }catch(err){ alert('Could not load file: '+err.message); }
-  };
-  r.readAsText(f); inp.value='';
-}
-
 // Set today
 var _t=new Date();
 
@@ -1658,8 +1598,7 @@ function init(){
   var sd=document.getElementById('sig_date'); if(sd)sd.value=today;
   // eq type now handled by selEQ button taps
   var dl=document.getElementById('dl_btn'); if(dl)dl.addEventListener('click',function(){dlPDF();});
-  var sv=document.getElementById('save_btn'); if(sv)sv.addEventListener('click',function(){doSave();});
-  var ld=document.getElementById('load_btn'); if(ld)ld.addEventListener('click',function(){doLoad();});
+  var dp=document.getElementById('dup_btn'); if(dp)dp.addEventListener('click',function(){duplicateForm();});
 }
 if(document.readyState==='loading'){
   document.addEventListener('DOMContentLoaded',init);
