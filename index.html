@@ -14,93 +14,138 @@
     *{margin:0;padding:0;box-sizing:border-box}
     body{font-family:Arial,sans-serif;background:#F0F4FA;min-height:100vh}
     .hdr{background:#1B3A6B;padding:20px 16px 16px;text-align:center}
-    .hdr img{height:48px;margin-bottom:8px}
     .hdr h1{color:#fff;font-size:20px;font-weight:700}
     .hdr p{color:rgba(255,255,255,.7);font-size:13px;margin-top:2px}
     .wrap{padding:20px 16px}
-    .card{background:#fff;border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.08);border:1px solid #E2E8F0;text-decoration:none;display:block;color:inherit}
+    .section-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#94A3B8;margin:20px 0 8px 4px}
+    .section-label:first-of-type{margin-top:0}
+    .card{background:#fff;border-radius:16px;padding:18px 20px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);border:1px solid #E2E8F0;text-decoration:none;display:block;color:inherit}
     .card:active{opacity:.85}
-    .card-icon{font-size:36px;margin-bottom:10px}
-    .card h2{font-size:18px;color:#1B3A6B;font-weight:700;margin-bottom:6px}
-    .card p{font-size:13px;color:#64748B;line-height:1.5}
-    .card .arrow{float:right;color:#1B3A6B;font-size:22px;margin-top:-2px}
-    .badge{display:inline-block;background:#E8F5EC;color:#166534;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin-top:8px}
-    .install-banner{background:#FFF3E0;border:1.5px solid #F59E0B;border-radius:12px;padding:14px 16px;margin-bottom:16px;font-size:13px;color:#92400E;line-height:1.6}
+    .card-top{display:flex;align-items:flex-start;gap:14px}
+    .card-icon{font-size:32px;flex-shrink:0;margin-top:2px}
+    .card-text{flex:1}
+    .card h2{font-size:17px;color:#1B3A6B;font-weight:700;margin-bottom:4px}
+    .card p{font-size:12px;color:#64748B;line-height:1.5}
+    .arrow{color:#CBD5E1;font-size:22px;flex-shrink:0;margin-top:4px}
+    .badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 9px;border-radius:10px;margin-top:8px}
+    .badge-green{background:#E8F5EC;color:#166534}
+    .badge-blue{background:#EEF3FB;color:#1B3A6B}
+    .badge-orange{background:#FEF0EA;color:#C04A0A}
+    .badge-new{background:#E8531A;color:#fff}
+    .install-banner{background:#FFF3E0;border:1.5px solid #F59E0B;border-radius:12px;padding:14px 16px;margin-bottom:20px;font-size:13px;color:#92400E;line-height:1.6}
     .install-banner strong{display:block;margin-bottom:4px;color:#78350F;font-size:14px}
-    .footer{text-align:center;padding:20px;color:#94A3B8;font-size:11px}
+    .footer{text-align:center;padding:24px 16px 32px;color:#94A3B8;font-size:11px;line-height:1.8}
   </style>
 </head>
 <body>
 <div class="hdr">
   <h1>NTD Mechanical</h1>
-  <p>Field Tools</p>
+  <p>Field Tools Suite</p>
 </div>
 <div class="wrap">
 
-    <div id="update_banner" style="display:none;background:#1B3A6B;color:#fff;padding:14px 16px;margin-bottom:16px;border-radius:12px;align-items:center;justify-content:space-between;gap:10px">
+  <div id="update_banner" style="display:none;background:#1B3A6B;color:#fff;padding:14px 16px;margin-bottom:16px;border-radius:12px;align-items:center;justify-content:space-between;gap:10px">
     <span style="font-size:13px;font-weight:600">&#128260; New version available</span>
     <button style="background:#E8531A;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Update Now</button>
   </div>
 
   <div class="install-banner">
     <strong>&#128241; Add to Home Screen for offline use</strong>
-    Tap the Share button in Safari, then "Add to Home Screen" — the tools will work without internet on jobsites.
+    Tap the Share button in Safari, then "Add to Home Screen" — tools work without internet on jobsites.
   </div>
 
-  <a class="card" href="startup-checklist.html">
-    <span class="arrow">›</span>
-    <div class="card-icon">&#9989;</div>
-    <h2>Equipment Startup Checklist</h2>
-    <p>RTU, Split/VRF/VRV, Chiller, Boiler, AHU, Exhaust Fan. Y/N/NA checks, measurements, photos, tech sign-off, PDF download.</p>
-    <span class="badge">6 Equipment Types</span>
-  </a>
+  <!-- SALES TOOLS -->
+  <div class="section-label">Sales Tools</div>
 
-
-  <a class="card" href="equipment-survey.html">
-    <span class="arrow">›</span>
-    <div class="card-icon">&#128221;</div>
-    <h2>Equipment Survey</h2>
-    <p>Pre-job site survey. Job info, site questions, per-unit equipment details, pre-existing conditions, customer acknowledgment and signature.</p>
-    <span class="badge">Pre-Job Form</span>
+  <a class="card" href="sales-assessment.html">
+    <div class="card-top">
+      <div class="card-icon">&#128202;</div>
+      <div class="card-text">
+        <h2>Sales Assessment</h2>
+        <p>Walk-around equipment assessment for PM sales. Visual condition scoring, filter/belt data, photos, capital forecast, and PM proposal — all in one tool.</p>
+        <span class="badge badge-new">New</span>
+        <span class="badge badge-orange">PM Sales Tool</span>
+      </div>
+      <div class="arrow">›</div>
+    </div>
   </a>
 
   <a class="card" href="service-quoting.html">
-    <span class="arrow">&#8250;</span>
-    <div class="card-icon">&#128203;</div>
-    <h2>Service Quoting Tool</h2>
-    <p>Build service repair proposals in the field. Preset RTU parts, labor, custom items, auto tax calculation, generates NTD proposal PDF.</p>
-    <span class="badge">Field Quoting</span>
+    <div class="card-top">
+      <div class="card-icon">&#128203;</div>
+      <div class="card-text">
+        <h2>Service Quoting Tool</h2>
+        <p>Build service repair proposals in the field. Preset RTU parts, labor, custom items, auto tax calculation, generates NTD proposal PDF.</p>
+        <span class="badge badge-orange">Field Quoting</span>
+      </div>
+      <div class="arrow">›</div>
+    </div>
   </a>
 
-  <a class="card" href="pm-quoting.html">
-    <span class="arrow">›</span>
-    <div class="card-icon">📋</div>
-    <h2>PM Quoting Tool</h2>
-    <p>Build PM proposals, import Field Assessment data, calculate pricing by plan and frequency, generate proposal PDF.</p>
-    <span class="badge">PM Sales Tool</span>
+  <!-- FIELD / TECH TOOLS -->
+  <div class="section-label">Field &amp; Tech Tools</div>
+
+  <a class="card" href="startup-checklist.html">
+    <div class="card-top">
+      <div class="card-icon">&#9989;</div>
+      <div class="card-text">
+        <h2>Equipment Startup Checklist</h2>
+        <p>RTU, Split/VRF/VRV, Chiller, Boiler, AHU, Exhaust Fan. Y/N/NA checks, measurements, photos, tech sign-off, PDF download.</p>
+        <span class="badge badge-blue">6 Equipment Types</span>
+      </div>
+      <div class="arrow">›</div>
+    </div>
   </a>
 
   <a class="card" href="field-assessment.html">
-    <span class="arrow">›</span>
-    <div class="card-icon">&#128203;</div>
-    <h2>Field Assessment App</h2>
-    <p>Condition scoring, replace vs repair forecast, capital expenditure projection. Generates executive summary PDF.</p>
-    <span class="badge">PM Sales Tool</span>
+    <div class="card-top">
+      <div class="card-icon">&#128295;</div>
+      <div class="card-text">
+        <h2>Service Maintenance Plan Form</h2>
+        <p>Detailed technical equipment assessment for techs. Full condition scoring, refrigerant readings, section-by-section inspection, PDF report.</p>
+        <span class="badge badge-blue">Tech Form</span>
+      </div>
+      <div class="arrow">›</div>
+    </div>
+  </a>
+
+  <a class="card" href="equipment-survey.html">
+    <div class="card-top">
+      <div class="card-icon">&#128221;</div>
+      <div class="card-text">
+        <h2>Equipment Survey</h2>
+        <p>Pre-job site survey. Job info, site questions, per-unit equipment details, pre-existing conditions, customer acknowledgment and signature.</p>
+        <span class="badge badge-blue">Pre-Job Form</span>
+      </div>
+      <div class="arrow">›</div>
+    </div>
+  </a>
+
+  <!-- MANAGEMENT -->
+  <div class="section-label">Management</div>
+
+  <a class="card" href="project-manager.html">
+    <div class="card-top">
+      <div class="card-icon">&#128196;</div>
+      <div class="card-text">
+        <h2>Project Manager</h2>
+        <p>Track projects, document checklists, stage management, and team contacts. RTU replacement, repairs, new installs, PM contracts.</p>
+        <span class="badge badge-green">Project Tracking</span>
+      </div>
+      <div class="arrow">›</div>
+    </div>
   </a>
 
 </div>
 <div class="footer">
-  NTD Mechanical &mdash; TACLA65973C &mdash; Garland, TX
+  NTD Mechanical &mdash; TACLA65973C &mdash; Garland, TX<br>
+  2477 Merritt Dr, Garland TX 75041 &mdash; 214-785-2129
 </div>
 <script>
 if('serviceWorker' in navigator){
   window.addEventListener('load', function(){
     navigator.serviceWorker.register('sw.js').then(function(reg){
-
-      // Check for updates every time app is opened
       reg.update();
-
-      // When a new service worker is waiting, show update banner
       reg.addEventListener('updatefound', function(){
         var newSW = reg.installing;
         newSW.addEventListener('statechange', function(){
@@ -109,24 +154,14 @@ if('serviceWorker' in navigator){
           }
         });
       });
-
-      // Also check if there's already a waiting SW
-      if(reg.waiting){
-        showUpdateBanner(reg.waiting);
-      }
+      if(reg.waiting){ showUpdateBanner(reg.waiting); }
     });
-
-    // Reload once the new SW takes control
     var refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', function(){
-      if(!refreshing){
-        refreshing = true;
-        window.location.reload();
-      }
+      if(!refreshing){ refreshing = true; window.location.reload(); }
     });
   });
 }
-
 function showUpdateBanner(sw){
   var banner = document.getElementById('update_banner');
   if(!banner) return;
@@ -135,7 +170,6 @@ function showUpdateBanner(sw){
   if(btn){
     btn.addEventListener('click', function(){
       sw.postMessage('skipWaiting');
-      // Fallback: if controllerchange doesn't fire within 2s, force reload
       setTimeout(function(){ window.location.reload(); }, 2000);
     });
   }
