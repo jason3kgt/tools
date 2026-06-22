@@ -4,13 +4,13 @@
   <link rel="manifest" href="manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="NTD Assessment">
+  <meta name="apple-mobile-web-app-title" content="NTD SMP Form">
   <link rel="apple-touch-icon" href="icon-192.png">
   <meta name="theme-color" content="#1B3A6B">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="NTD Assessment">
+<meta name="apple-mobile-web-app-title" content="NTD SMP Form">
 <meta name="theme-color" content="#1B3A6B">
 <title>NTD Mechanical - Service Maintenance Plan Form</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -291,6 +291,43 @@ function tacc(id,sec){
 function mkSel(uid,f,cur,opts){
   return '<select onchange="udf('+uid+',\''+f+'\',this.value)"><option value="">Select...</option>'+opts.map(function(o){return '<option '+(cur===o?'selected':'')+'>'+o+'</option>';}).join('')+'</select>';
 }
+var FILTER_SIZES=[
+  '-- Custom --',
+  '--- 1\" Filters ---',
+  '10x20x1','12x12x1','12x24x1','14x14x1','14x20x1','14x24x1','14x25x1',
+  '16x16x1','16x20x1','16x24x1','16x25x1','18x18x1','18x24x1',
+  '20x20x1','20x24x1','20x25x1','24x24x1','24x30x1','25x25x1',
+  '--- 2\" Filters ---',
+  '10x20x2','12x12x2','14x20x2','14x24x2','14x25x2',
+  '16x20x2','16x24x2','16x25x2','18x18x2','18x24x2',
+  '20x20x2','20x24x2','20x25x2','24x24x2','24x30x2','25x25x2',
+  '--- 4\" Filters ---',
+  '12x24x4','14x24x4','14x25x4','16x20x4','16x24x4','16x25x4',
+  '20x20x4','20x24x4','20x25x4','24x24x4','24x30x4','25x25x4',
+  '--- Specialty ---',
+  'Washable','HEPA','Bag Filter','Custom Size'
+];
+function fsDrop(uid,fld,val){
+  var cur=val||'';
+  var isCustom=cur&&FILTER_SIZES.indexOf(cur)===-1&&cur!=='-- Custom --'&&cur.indexOf('---')!==0;
+  var sel='<select class="si" style="min-width:110px" onchange="fsChg(this,'+uid+',\''+fld+'\')"><option value="">-- Size --</option>';
+  FILTER_SIZES.forEach(function(s){
+    if(s.indexOf('---')===0){sel+='<option value="" disabled style="color:#999;font-size:11px">'+s+'</option>';return;}
+    sel+='<option value="'+s+'"'+(cur===s&&!isCustom?' selected':'')+'>'+s+'</option>';
+  });
+  if(isCustom)sel+='<option value="'+cur+'" selected>'+cur+'</option>';
+  sel+='</select>';
+  if(isCustom||cur==='-- Custom --'){
+    sel+='<input type="text" class="si" style="margin-left:4px;min-width:80px" value="'+(isCustom?cur:'')+'" placeholder="e.g. 18x30x2" oninput="udf('+uid+',\''+fld+'\',this.value)">';
+  }
+  return sel;
+}
+function fsChg(sel,uid,fld){
+  var v=sel.value;
+  udf(uid,fld,v);
+  if(v==='-- Custom --'){udf(uid,fld,'');renderEqs();}
+  else{var nxt=sel.nextElementSibling;if(nxt&&nxt.tagName==='INPUT')nxt.remove();}
+}
 function eqH(eq,i){
   var d=eq.detail;
   var cb=function(fld){return mkCB(eq.id,fld,d[fld]||'');};
@@ -338,8 +375,8 @@ function eqH(eq,i){
   +'<div class="rvr"><label>Stage 2 Suc</label><input type="text" value="'+(eq.s2s||'')+'" placeholder="PSI" oninput="udf('+eq.id+',\'s2s\',this.value)"><label>Dis</label><input type="text" value="'+(eq.s2d||'')+'" placeholder="PSI" oninput="udf('+eq.id+',\'s2d\',this.value)"></div></div>'
   +'<button class="ab" onclick="tacc('+eq.id+',\'fan\')">Fan Section <span id="ar-'+eq.id+'-fan"></span></button>'
   +'<div class="ac" id="ac-'+eq.id+'-fan"><div class="sh" style="margin-top:8px">Filters</div>'
-  +'<div class="ir"><span class="il">Filter 1</span><span style="font-size:11px;color:var(--mu);margin-right:3px">Qty</span><input type="text" class="qi" value="'+(eq.f1q||'')+'" placeholder="#" oninput="udf('+eq.id+',\'f1q\',this.value)"><span style="font-size:11px;color:var(--mu);margin:0 3px">Size</span><input type="text" class="si" value="'+(eq.f1s||'')+'" placeholder="20x20x2" oninput="udf('+eq.id+',\'f1s\',this.value)">'+cb('fan_f1')+'</div>'
-  +'<div class="ir"><span class="il">Filter 2</span><span style="font-size:11px;color:var(--mu);margin-right:3px">Qty</span><input type="text" class="qi" value="'+(eq.f2q||'')+'" placeholder="#" oninput="udf('+eq.id+',\'f2q\',this.value)"><span style="font-size:11px;color:var(--mu);margin:0 3px">Size</span><input type="text" class="si" value="'+(eq.f2s||'')+'" placeholder="Size" oninput="udf('+eq.id+',\'f2s\',this.value)">'+cb('fan_f2')+'</div>'
+  +'<div class="ir"><span class="il">Filter 1</span><span style="font-size:11px;color:var(--mu);margin-right:3px">Qty</span><input type="text" class="qi" value="'+(eq.f1q||'')+'" placeholder="#" oninput="udf('+eq.id+',\'f1q\',this.value)"><span style="font-size:11px;color:var(--mu);margin:0 3px">Size</span>'+fsDrop(eq.id,'f1s',eq.f1s)+cb('fan_f1')+'</div>'
+  +'<div class="ir"><span class="il">Filter 2</span><span style="font-size:11px;color:var(--mu);margin-right:3px">Qty</span><input type="text" class="qi" value="'+(eq.f2q||'')+'" placeholder="#" oninput="udf('+eq.id+',\'f2q\',this.value)"><span style="font-size:11px;color:var(--mu);margin:0 3px">Size</span>'+fsDrop(eq.id,'f2s',eq.f2s)+cb('fan_f2')+'</div>'
   +'<div class="sh">Fan Components</div>'
   +'<div class="ir"><span class="il">Drain Pans</span>'+cb('fan_dp')+'</div>'
   +'<div class="ir"><span class="il">Motor</span>'+cb('fan_mot')+'</div>'
