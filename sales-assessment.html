@@ -1212,8 +1212,8 @@ function pmGenPDF(){
   // Table
   doc.setFillColor(NV[0],NV[1],NV[2]);doc.rect(M,y,IW,16,'F');
   doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(255,255,255);
-  var cols=[M+4,M+40,M+165,M+255,M+300,M+345,M+390,M+460];
-  ['#','Tag','Unit Type','Qty','Filters','Belts','Rate/Visit','Annual'].forEach(function(h,i){doc.text(h,cols[i],y+11);});y+=17;
+  var cols=[M+4,M+30,M+90,M+310,M+350,M+435];
+  ['#','Tag','Unit Type','Qty','Rate/Visit','Annual'].forEach(function(h,i){doc.text(h,cols[i],y+11);});y+=17;
   var vis=pmFreq==='Monthly'?12:4,totalAnnual=0;
   pmUnits.forEach(function(u,idx){
     if(!u.type)return;
@@ -1221,11 +1221,12 @@ function pmGenPDF(){
     var rpv=(rate+matA)*qty,ann=rpv*vis;totalAnnual+=ann;
     if(idx%2===0){doc.setFillColor(240,245,252);doc.rect(M,y,IW,14,'F');}
     doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(0,0,0);
-    doc.text(String(idx+1),cols[0],y+10);doc.text((u.tag||'').substring(0,12),cols[1],y+10);
-    doc.text((u.type||'').substring(0,24),cols[2],y+10);doc.text(String(qty),cols[3],y+10);
-    doc.text((u.fqty?u.fqty+' ':'')+(u.fsize||'').substring(0,14),cols[4],y+10);
-    doc.text(u.bqty?String(u.bqty):'',cols[5],y+10);
-    doc.text(pmFmt(rpv),cols[6],y+10);doc.setFont('helvetica','bold');doc.text(pmFmt(ann),cols[7],y+10);y+=14;
+    doc.text(String(idx+1),cols[0],y+10);
+    doc.text((u.tag||'').substring(0,12),cols[1],y+10);
+    doc.text((u.type||'').substring(0,36),cols[2],y+10);
+    doc.text(String(qty),cols[3],y+10);
+    doc.text(pmFmt(rpv),cols[4],y+10);
+    doc.setFont('helvetica','bold');doc.text(pmFmt(ann),cols[5],y+10);y+=14;
     if(y>680){doc.addPage();y=40;}
   });y+=10;
   doc.setFillColor(NV[0],NV[1],NV[2]);doc.rect(M,y,IW,14,'F');
