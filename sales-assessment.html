@@ -206,6 +206,8 @@ textarea{resize:vertical;min-height:70px}
     <div class="ch"><div class="cn">2</div><h2>Equipment Units</h2></div>
     <div class="cb" id="eql"><div class="empty">Tap below to add a unit</div></div>
     <button class="addb" id="addEqBtn">+ Add Equipment Unit</button>
+    <button class="dlb" onclick="dlSiteRecord()" style="margin-top:10px">&#128203; Download Site Record PDF</button>
+    <p style="font-size:10px;color:var(--mu);text-align:center;margin-top:6px;padding:0 8px">Internal use only &#x2014; filter/belt sizes, serial #s &amp; photos</p>
   </div>
   <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none" multiple>
 </div>
@@ -680,9 +682,18 @@ function updS(){
     var bodClr=isp?'#7f1d1d':isf?'#78350F':'#166534';
     var label=isp?'POOR — Immediate Action Required':isf?'FAIR — Monitor & Schedule':'GOOD — Continue PM Program';
     var flagStr=(e.flags&&e.flags.length)?'Flags: '+e.flags.join(', '):'';
+    var photoHtml='';
+    if(e.photos&&e.photos.length){
+      photoHtml='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:7px">';
+      for(var pi=0;pi<e.photos.length;pi++){
+        photoHtml+='<div style="border-radius:6px;overflow:hidden;aspect-ratio:1"><img src="'+e.photos[pi].data+'" style="width:100%;height:100%;object-fit:cover" alt="photo"></div>';
+      }
+      photoHtml+='</div>';
+    }
     return'<div style="background:'+bg+';border:1.5px solid '+border+';border-radius:10px;padding:10px 12px;margin-bottom:8px">'
       +'<div style="font-size:11px;font-weight:700;color:'+titClr+';margin-bottom:3px">'+(e.tag||'Unit '+e.id)+' — '+label+'</div>'
       +'<div style="font-size:11px;line-height:1.4;color:'+bodClr+'">'+(e.area?'Area: '+e.area+'<br>':'')+([e.manuf,e.model].filter(Boolean).join(' ')||'')+(flagStr?'<br>'+flagStr:'')+'<br>'+(e.notes||'See equipment notes.')+'</div>'
+      +photoHtml
       +'</div>';
   }).join('');}
 }
@@ -701,12 +712,18 @@ function updF(){
       +'</tr></thead><tbody>'
       +crit.map(function(e){
         var repl=getReplCost(e);var life=getLife(e);var age=getAge(e);
+        var fpRow='';
+        if(e.photos&&e.photos.length){
+          fpRow='<tr><td colspan="5" style="padding:4px 6px"><div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">';
+          for(var fpi=0;fpi<e.photos.length;fpi++){fpRow+='<div style="border-radius:5px;overflow:hidden;aspect-ratio:1"><img src="'+e.photos[fpi].data+'" style="width:100%;height:100%;object-fit:cover"></div>';}
+          fpRow+='</div></td></tr>';
+        }
         return'<tr><td>'+(e.tag||'U'+e.id)+(e.area?' — '+e.area:'')+'</td>'
           +'<td style="text-align:center">'+(age?age+'y':'-')+'</td>'
           +'<td style="text-align:center;color:var(--rd);font-weight:700">'+life+'y</td>'
           +'<td><input type="text" class="ci" value="'+fcc(repl)+'" id="fi'+e.id+'" oninput="updT()"></td>'
           +'<td style="text-align:left;font-size:10px;color:var(--rd);font-weight:600">'+(life===0?'Replace Immediately':'Replace — Year 1')+'</td>'
-          +'</tr>';
+          +'</tr>'+fpRow;
       }).join('')+'</tbody></table>';
   }
 
@@ -1145,6 +1162,95 @@ function pmExportJSON(){
   var subject=encodeURIComponent('NTD PM Quote - '+(gv('sf')||'Customer'));
   var body=encodeURIComponent('PM Quote Export for '+(gv('sf')||'Customer')+'\nAnnual Price: $'+parseFloat(data.annual_price).toFixed(2)+'\nQuarterly: $'+parseFloat(data.quarterly_price).toFixed(2)+'\nFrequency: '+data.frequency+'\n\n--- PASTE INTO NOTEPAD AND SAVE AS .json ---\n\n'+json);
   window.open('mailto:?subject='+subject+'&body='+body);
+}
+
+// ── SITE RECORD PDF (internal — full unit detail + photos) ──────
+function dlSiteRecord(){
+  var {jsPDF}=window.jspdf;
+  var doc=new jsPDF({orientation:'portrait',unit:'pt',format:'letter'});
+  var W=doc.internal.pageSize.getWidth(),H=doc.internal.pageSize.getHeight();
+  // Header
+  doc.setFillColor(27,58,107);doc.rect(0,0,W,58,'F');
+  try{doc.addImage(LG,'PNG',12,5,48,48);}catch(e){}
+  doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(14);doc.text('NTD Mechanical — Site Equipment Record',68,24);
+  doc.setFont('helvetica','normal');doc.setFontSize(8);
+  doc.text('INTERNAL USE ONLY — Do not share with customer',68,38);
+  doc.text([gv('sf'),gv('sa'),gv('sct')].filter(Boolean).join('  |  ')+'  |  '+gv('sd'),68,50);
+  doc.setFillColor(232,83,26);doc.rect(0,58,W,3,'F');
+  var y=70;
+  var NVc=[27,58,107],ORc=[232,83,26],GNc=[30,122,62],AMc=[212,130,10],RDc=[192,57,43];
+  var ovc=function(ov){return ov==='good'?GNc:ov==='fair'?AMc:ov==='poor'?RDc:[80,80,80];};
+
+  eqs.forEach(function(e,idx){
+    // page break check
+    if(y>680){doc.addPage();y=30;}
+    // Unit banner
+    var bc=ovc(e.ov);
+    doc.setFillColor(NVc[0],NVc[1],NVc[2]);doc.rect(14,y,W-28,16,'F');
+    doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(9);
+    doc.text('Unit '+(idx+1)+': '+(e.tag||'U'+e.id)+'  |  '+(e.type||'—')+'  |  '+(e.manuf||'')+(e.model?' '+e.model:''),18,y+11);
+    if(e.ov){doc.setTextColor(bc[0],bc[1],bc[2]);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.text(e.ov.toUpperCase(),W-18,y+11,{align:'right'});}
+    y+=18;
+    // Info grid
+    doc.setFillColor(245,248,252);doc.rect(14,y,W-28,44,'F');doc.setDrawColor(200,210,225);doc.rect(14,y,W-28,44,'S');
+    var gw=(W-28)/3;
+    var gfields=[
+      ['Serial #',e.serial||'—'],['Tonnage',e.tonnage||'—'],['Age/Year',e.age||'—'],
+      ['Area Served',e.area||'—'],
+      ['Filter 1',(e.f1q?e.f1q+'x ':'')+(e.f1s||'—')],
+      ['Filter 2',e.f2q||e.f2s?(e.f2q?e.f2q+'x ':''+(e.f2s||'')):'-'],
+      ['Belt Qty',e.bq||'—'],['Belt Size',e.bs||'—'],['Condition',e.ov?e.ov.charAt(0).toUpperCase()+e.ov.slice(1):'Not assessed']
+    ];
+    for(var gi=0;gi<gfields.length;gi++){
+      var gx=14+(gi%3)*gw,gy=y+3+(Math.floor(gi/3)*15);
+      doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(100,120,150);
+      doc.text(gfields[gi][0].toUpperCase(),gx+3,gy+7);
+      doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(30,30,30);
+      doc.text(String(gfields[gi][1]).substring(0,24),gx+3,gy+15);
+    }
+    y+=48;
+    // Visual flags
+    if(e.flags&&e.flags.length){
+      doc.setFillColor(254,242,242);doc.rect(14,y,W-28,14,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(192,57,43);
+      doc.text('FLAGS: '+e.flags.join('  ·  '),18,y+9);
+      y+=16;
+    }
+    // Notes
+    if(e.notes){
+      var nlines=doc.splitTextToSize(e.notes,'helvetica',8,W-40);
+      var nh=Math.min(nlines.length,5)*11+8;
+      doc.setFillColor(250,251,253);doc.rect(14,y,W-28,nh,'F');doc.setDrawColor(220,225,230);doc.rect(14,y,W-28,nh,'S');
+      doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(40,40,40);
+      var nl=doc.splitTextToSize(e.notes,W-36);
+      for(var ni=0;ni<Math.min(nl.length,5);ni++){doc.text(nl[ni],18,y+8+ni*11);}
+      y+=nh+4;
+    }
+    // Photos — 2-up grid
+    if(e.photos&&e.photos.length){
+      var pw=(W-36)/2,ph=pw*0.72;
+      var pcol=0;
+      for(var pi2=0;pi2<e.photos.length;pi2++){
+        if(y+ph>730){doc.addPage();y=30;}
+        var px=14+(pcol*(pw+8));
+        try{doc.addImage(e.photos[pi2].data,'JPEG',px,y,pw,ph);}catch(er){
+          try{doc.addImage(e.photos[pi2].data,'PNG',px,y,pw,ph);}catch(er2){}
+        }
+        pcol++;
+        if(pcol>=2){pcol=0;y+=ph+6;}
+      }
+      if(pcol===1)y+=ph+6;
+    }
+    y+=10;
+    // Divider
+    doc.setDrawColor(220,225,235);doc.setLineWidth(0.5);doc.line(14,y-4,W-14,y-4);
+  });
+  // Footer
+  doc.setFillColor(27,58,107);doc.rect(0,H-18,W,18,'F');
+  doc.setTextColor(160,186,210);doc.setFont('helvetica','normal');doc.setFontSize(6.5);
+  doc.text('NTD Mechanical  |  TACLA65973C  |  INTERNAL DOCUMENT — NOT FOR DISTRIBUTION',W/2,H-5,{align:'center'});
+  var blob=doc.output('blob');var url=URL.createObjectURL(blob);
+  window.open(url,'_blank');setTimeout(function(){URL.revokeObjectURL(url);},60000);
 }
 
 // ── INIT ──────────────────────────────────────────────────────
