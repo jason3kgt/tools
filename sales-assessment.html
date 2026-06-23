@@ -2041,6 +2041,11 @@ window.onload=function(){
   buildPlans();
   renderEqs();
   sqInit();
+  document.getElementById('pmImportBtn').addEventListener('click',function(){
+    if(confirm('Import all units from the Units tab? This will replace the current PM list.'))pmImport();
+  });
+  document.getElementById('pmAddBtn').addEventListener('click',pmAddUnit);
+  document.getElementById('sq-add-custom-btn').addEventListener('click',sqAddCustom);
 };
 </script>
 </body>
