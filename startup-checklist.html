@@ -258,12 +258,36 @@ textarea{resize:vertical;min-height:70px}
 <div id="dup_banner" style="display:none;background:#E8F5EC;border:1.5px solid #86EFAC;border-radius:10px;padding:10px 14px;margin-bottom:8px;font-size:13px;font-weight:600;color:#166534">
   &#10003; Form duplicated — shared fields kept. Enter new Unit # and Serial # to continue.
 </div>
-<button class="dlb" id="dl_btn" style="display:none">&#8681; Download Startup Report PDF</button>
+
+<!-- MULTI-UNIT SESSION ACTIONS -->
+<div id="unit_actions" style="display:none">
+  <button class="dlb" id="dl_btn">&#8681; Download This Unit PDF</button>
+  <div class="g2" style="margin-top:8px">
+    <button class="sb" id="save_unit_btn" style="border-color:var(--gn);color:var(--gn);font-weight:700">&#10003; Save Unit &amp; Start Next</button>
+    <button class="sb" id="dup_btn" style="border-color:var(--am);color:var(--am)">&#10063; Duplicate for Next Unit</button>
+  </div>
+  <button class="sb" id="finish_job_btn" style="margin-top:8px;border-color:var(--nv);color:var(--nv);display:none">&#9660; Finish Job &amp; Download All PDFs</button>
+</div>
+
+<!-- COMPLETED UNITS LOG -->
+<div id="session_log_card" style="display:none;background:#fff;border-radius:14px;border:1px solid var(--bd);margin-bottom:12px;overflow:hidden;margin-top:4px">
+  <div style="background:var(--nv);padding:10px 14px;display:flex;align-items:center;gap:8px;justify-content:space-between">
+    <div style="display:flex;align-items:center;gap:8px">
+      <span style="background:var(--or);color:#fff;font-size:10px;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">&#9776;</span>
+      <h2 style="font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.05em">Completed Units This Session</h2>
+    </div>
+    <span id="session_count_badge" style="background:var(--or);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px">0</span>
+  </div>
+  <div id="session_log_list" style="padding:8px 14px"></div>
+  <div style="padding:8px 14px;border-top:1px solid var(--bd)">
+    <button class="dlb" id="dl_all_btn" style="margin-top:0">&#9660; Download All Unit PDFs</button>
+  </div>
+</div>
+
 <div class="g2" id="save_btns" style="display:none">
   <button class="sb" id="save_btn">&#128190; Save</button>
   <button class="sb" id="load_btn">&#128193; Load</button>
 </div>
-<button class="sb" id="dup_btn" style="display:none;margin-top:8px;border-color:var(--am);color:var(--am)">&#10063; Duplicate for Next Unit</button>
 <input type="file" id="lf" accept=".json" style="display:none" onchange="loadJ(this)">
 
 </div>
@@ -1040,7 +1064,7 @@ function switchType(){
   var formDiv  = document.getElementById('form_body');
   var noteCard = document.getElementById('notes_card');
   var sigCard  = document.getElementById('sig_card');
-  var dlBtn    = document.getElementById('dl_btn');
+  var unitActions = document.getElementById('unit_actions');
   var savBtns  = document.getElementById('save_btns');
   var banner   = document.getElementById('eq_banner');
 
@@ -1049,7 +1073,7 @@ function switchType(){
     formDiv.className='hidden';
     noteCard.className='card hidden';
     sigCard.className='card hidden';
-    dlBtn.style.display='none';
+    unitActions.style.display='none';
     savBtns.style.display='none';
     banner.className='eq-banner';
     var pw0=document.getElementById('prog_wrap'); if(pw0)pw0.style.display='none';
@@ -1073,9 +1097,11 @@ function switchType(){
   noteCard.className='card';
   document.getElementById('photos_card').className='card';
   sigCard.className='card';
-  dlBtn.style.display='block';
+  unitActions.style.display='block';
+  // Show finish job button only if session has units
+  var finBtn = document.getElementById('finish_job_btn');
+  if(finBtn) finBtn.style.display = sessionUnits.length > 0 ? 'block' : 'none';
   savBtns.style.display='grid';
-  var dupBtn=document.getElementById('dup_btn');if(dupBtn)dupBtn.style.display='block';
   // Show progress bar and build section dots
   var pw=document.getElementById('prog_wrap');
   if(pw) pw.style.display='block';
@@ -1704,16 +1730,396 @@ function init(){
   var today=zeroPad(_t.getMonth()+1)+'/'+zeroPad(_t.getDate())+'/'+_t.getFullYear();
   var ud=document.getElementById('u_date'); if(ud)ud.value=today;
   var sd=document.getElementById('sig_date'); if(sd)sd.value=today;
-  // eq type now handled by selEQ button taps
   var dl=document.getElementById('dl_btn'); if(dl)dl.addEventListener('click',function(){dlPDF();});
   var sv=document.getElementById('save_btn'); if(sv)sv.addEventListener('click',function(){doSave();});
   var ld=document.getElementById('load_btn'); if(ld)ld.addEventListener('click',function(){doLoad();});
+  var suBtn=document.getElementById('save_unit_btn'); if(suBtn)suBtn.addEventListener('click',saveUnitToSession);
+  var dupBtn=document.getElementById('dup_btn'); if(dupBtn)dupBtn.addEventListener('click',duplicateForm);
+  var finBtn=document.getElementById('finish_job_btn'); if(finBtn)finBtn.addEventListener('click',downloadAllPDFs);
+  var dlAllBtn=document.getElementById('dl_all_btn'); if(dlAllBtn)dlAllBtn.addEventListener('click',downloadAllPDFs);
+  // Restore session from localStorage
+  restoreSession();
 }
 if(document.readyState==='loading'){
   document.addEventListener('DOMContentLoaded',init);
 } else {
   init();
 }
+
+// ── MULTI-UNIT SESSION SYSTEM ─────────────────────────────
+// sessionUnits: array of unit snapshots saved this session
+var sessionUnits = [];
+var SESSION_KEY = 'ntd_startup_session';
+
+function captureCurrentUnit(){
+  // Build a snapshot of everything on the current form
+  var snap = {
+    type: currentType,
+    ts: Date.now(),
+    fields: {},
+    yns: {},
+    mfnas: [],
+    notes: gv('notes'),
+    followup: gv('followup'),
+    photos: photos.slice(), // copy array
+    sig: { name: gv('sig_name'), date: gv('sig_date') }
+  };
+  // All text inputs
+  var allInputs = document.querySelectorAll('input[type=text], select, textarea');
+  for(var i=0;i<allInputs.length;i++){
+    var el=allInputs[i]; if(el.id) snap.fields[el.id]=el.value||'';
+  }
+  // YN hidden inputs
+  var yns = document.querySelectorAll('#form_body input[type=hidden][id^="yn_"]');
+  for(var j=0;j<yns.length;j++){
+    snap.yns[yns[j].id]=yns[j].value||'';
+  }
+  // MF NA states
+  var mfNaBtns = document.querySelectorAll('#form_body .mf-na-btn.active');
+  for(var k=0;k<mfNaBtns.length;k++){
+    var row=mfNaBtns[k].closest('.mf-row');
+    if(row){ var inp2=row.querySelector('input'); if(inp2&&inp2.id) snap.mfnas.push(inp2.id); }
+  }
+  return snap;
+}
+
+function saveUnitToSession(){
+  if(!currentType){ alert('Please select an equipment type and fill in the form first.'); return; }
+  var unitNum = gv('unit_num');
+  if(!unitNum){ alert('Unit # is required before saving.'); return; }
+
+  var snap = captureCurrentUnit();
+  snap.label = unitNum + (gv('model') ? ' — ' + gv('model').substring(0,30) : '');
+
+  sessionUnits.push(snap);
+  persistSession();
+  renderSessionLog();
+
+  // Show confirmation
+  var banner = document.getElementById('dup_banner');
+  banner.textContent = '\u2713 Unit ' + unitNum + ' saved (' + sessionUnits.length + ' total). Starting next unit...';
+  banner.style.display='block';
+  setTimeout(function(){ banner.style.display='none'; }, 3000);
+
+  // Now duplicate for next unit (carry over shared fields, clear unit-specific)
+  duplicateForm();
+
+  // Show the finish job button now that we have at least 1 saved unit
+  var finBtn = document.getElementById('finish_job_btn');
+  if(finBtn) finBtn.style.display='block';
+}
+
+function persistSession(){
+  try{
+    // Store everything except photo data (too large) — store photo count only
+    var toStore = sessionUnits.map(function(u){
+      return Object.assign({}, u, {
+        photos: u.photos.map(function(p){ return {caption:p.caption, data:p.data}; })
+      });
+    });
+    localStorage.setItem(SESSION_KEY, JSON.stringify(toStore));
+  } catch(e){
+    // localStorage full (photos) — store without photos
+    try{
+      var toStore2 = sessionUnits.map(function(u){
+        return Object.assign({}, u, {photos: u.photos.map(function(p){ return {caption:p.caption, data:''}; })});
+      });
+      localStorage.setItem(SESSION_KEY, JSON.stringify(toStore2));
+    } catch(e2){ /* silent fail */ }
+  }
+}
+
+function restoreSession(){
+  try{
+    var raw = localStorage.getItem(SESSION_KEY);
+    if(!raw) return;
+    var stored = JSON.parse(raw);
+    if(stored && stored.length){
+      sessionUnits = stored;
+      renderSessionLog();
+      // Show finish button if form is loaded
+      var finBtn = document.getElementById('finish_job_btn');
+      if(finBtn && currentType) finBtn.style.display='block';
+    }
+  } catch(e){ /* silent */ }
+}
+
+function clearSession(){
+  if(!confirm('Clear all ' + sessionUnits.length + ' saved units from this session? This cannot be undone.')) return;
+  sessionUnits = [];
+  localStorage.removeItem(SESSION_KEY);
+  renderSessionLog();
+  var finBtn=document.getElementById('finish_job_btn'); if(finBtn)finBtn.style.display='none';
+}
+
+function renderSessionLog(){
+  var card = document.getElementById('session_log_card');
+  var list = document.getElementById('session_log_list');
+  var badge = document.getElementById('session_count_badge');
+  if(!card||!list||!badge) return;
+
+  badge.textContent = sessionUnits.length;
+
+  if(!sessionUnits.length){
+    card.style.display='none';
+    return;
+  }
+  card.style.display='block';
+
+  list.innerHTML = '';
+  sessionUnits.forEach(function(u, idx){
+    var d = new Date(u.ts);
+    var timeStr = zeroPad(d.getHours())+':'+zeroPad(d.getMinutes());
+    var row = document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bd)';
+    row.innerHTML=
+      '<div>'+
+        '<div style="font-size:13px;font-weight:700;color:var(--nv)">'+(u.label||'Unit')+'</div>'+
+        '<div style="font-size:11px;color:var(--mu)">'+(EQ_TYPES[u.type]||u.type)+' &bull; Saved '+timeStr+'</div>'+
+      '</div>'+
+      '<div style="display:flex;gap:6px">'+
+        '<button data-idx="'+idx+'" class="session-pdf-btn" style="font-size:11px;font-weight:700;padding:5px 10px;border-radius:7px;border:1.5px solid var(--nv);background:#fff;color:var(--nv);cursor:pointer;font-family:inherit;touch-action:manipulation">PDF</button>'+
+        '<button data-idx="'+idx+'" class="session-del-btn" style="font-size:11px;font-weight:700;padding:5px 10px;border-radius:7px;border:1.5px solid var(--rd);background:#fff;color:var(--rd);cursor:pointer;font-family:inherit;touch-action:manipulation">✕</button>'+
+      '</div>';
+    list.appendChild(row);
+  });
+
+  // Add clear all button
+  var clearRow = document.createElement('div');
+  clearRow.style.cssText='padding-top:8px;text-align:right';
+  clearRow.innerHTML='<button onclick="clearSession()" style="font-size:11px;color:var(--mu);background:none;border:none;cursor:pointer;font-family:inherit;text-decoration:underline">Clear all saved units</button>';
+  list.appendChild(clearRow);
+
+  // Wire PDF buttons
+  var pdfBtns = list.querySelectorAll('.session-pdf-btn');
+  for(var i=0;i<pdfBtns.length;i++){
+    (function(btn){
+      btn.addEventListener('click', function(){
+        var idx = parseInt(btn.getAttribute('data-idx'));
+        generatePDFFromSnapshot(sessionUnits[idx]);
+      });
+    })(pdfBtns[i]);
+  }
+  // Wire delete buttons
+  var delBtns = list.querySelectorAll('.session-del-btn');
+  for(var j=0;j<delBtns.length;j++){
+    (function(btn){
+      btn.addEventListener('click', function(){
+        var idx = parseInt(btn.getAttribute('data-idx'));
+        if(confirm('Remove unit "' + (sessionUnits[idx].label||'this unit') + '" from the session?')){
+          sessionUnits.splice(idx,1);
+          persistSession();
+          renderSessionLog();
+        }
+      });
+    })(delBtns[j]);
+  }
+}
+
+function generatePDFFromSnapshot(snap){
+  // Temporarily set currentType and restore after
+  var savedType = currentType;
+  currentType = snap.type;
+
+  // Restore fields temporarily into a hidden clone approach —
+  // instead, directly call the PDF builder with the snapshot data
+  dlPDFFromSnap(snap);
+
+  currentType = savedType;
+}
+
+function dlPDFFromSnap(snap){
+  // Identical to dlPDF but reads from snap instead of DOM
+  var f = snap.fields || {};
+  function sf(id){ return f[id]||''; }
+
+  if(typeof window.jspdf === 'undefined' && typeof window.jsPDF === 'undefined'){
+    // jsPDF not loaded yet — load it then retry
+    var s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    s.onload=function(){ dlPDFFromSnap(snap); };
+    document.head.appendChild(s);
+    return;
+  }
+
+  var jsPDF = (window.jspdf&&window.jspdf.jsPDF)||window.jsPDF;
+  var doc = new jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
+  var PW=210,PH=297,M=14,IW=PW-2*M;
+
+  // Header — reuse same header as dlPDF
+  doc.setFillColor(27,58,107);
+  doc.rect(0,0,PW,52,'F');
+  try{
+    var lg=window.LG||'';
+    if(lg) doc.addImage('data:image/png;base64,'+lg,'PNG',M,8,28,28);
+  }catch(e){}
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(14); doc.setTextColor(255,255,255);
+  doc.text('NTD Mechanical',48,18);
+  doc.setFontSize(10); doc.setTextColor(200,220,255);
+  doc.text('Equipment Startup Report',48,25);
+  doc.setFontSize(9); doc.setTextColor(180,200,240);
+  doc.text(EQ_TYPES[snap.type]||'',48,31);
+  doc.setFontSize(8);
+  doc.text('TACLA65973C  |  2477 Merritt Dr, Garland TX 75041  |  (469) 323-0454',M,46);
+
+  var curY=58;
+  doc.setTextColor(27,58,107);
+  doc.setFont('helvetica','bold'); doc.setFontSize(9);
+
+  function labelVal(label,val,x,w){
+    doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(100,120,160);
+    doc.text(label.toUpperCase(),x,curY);
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(20,20,40);
+    doc.text(String(val||'—').substring(0,Math.floor(w/1.8)),x,curY+5);
+  }
+
+  labelVal('Facility',sf('facility'),M,IW/2);
+  labelVal('Date',sf('u_date'),M+IW/2,IW/2);
+  curY+=12;
+  labelVal('Address',sf('address'),M,IW/3);
+  labelVal('City/State',sf('city_state'),M+IW/3,IW/3);
+  labelVal('Tech',sf('tech'),M+IW*2/3,IW/3);
+  curY+=12;
+  labelVal('Unit #',sf('unit_num'),M,IW/4);
+  labelVal('Job/PO',sf('job_po'),M+IW/4,IW/4);
+  labelVal('Model',sf('model'),M+IW/2,IW/2);
+  curY+=12;
+  labelVal('Serial #',sf('serial'),M,IW/2);
+  curY+=10;
+
+  // Divider
+  doc.setDrawColor(27,58,107); doc.setLineWidth(0.3);
+  doc.line(M,curY,PW-M,curY); curY+=4;
+
+  // YN section — simplified listing
+  var ynKeys = Object.keys(snap.yns||{});
+  if(ynKeys.length){
+    doc.setFillColor(27,58,107);
+    doc.rect(M,curY,IW,6,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(255,255,255);
+    doc.text('INSPECTION ITEMS',M+2,curY+4.2);
+    curY+=8;
+
+    var pageH=PH-M;
+    for(var ki=0;ki<ynKeys.length;ki++){
+      var ynId=ynKeys[ki];
+      var ynVal=snap.yns[ynId];
+      if(!ynVal) continue;
+      // Find label from form — use id as fallback
+      var labelText = ynId.replace('yn_','').replace(/_/g,' ').toUpperCase();
+      var badge = ynVal==='y'?'YES':ynVal==='n'?'NO':'N/A';
+      var badgeColor = ynVal==='y'?[30,122,62]:ynVal==='n'?[192,57,43]:[180,130,10];
+
+      if(curY>pageH-10){ doc.addPage(); curY=M; }
+      doc.setFillColor(badgeColor[0],badgeColor[1],badgeColor[2]);
+      doc.roundedRect(M,curY,10,5,1,1,'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(6.5); doc.setTextColor(255,255,255);
+      doc.text(badge,M+5,curY+3.5,{align:'center'});
+      doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(20,20,40);
+      doc.text(labelText,M+12,curY+3.5);
+      curY+=7;
+    }
+    curY+=3;
+  }
+
+  // Notes
+  var notes=snap.notes; var fu=snap.followup;
+  if(notes||fu){
+    if(curY>PH-30){ doc.addPage(); curY=M; }
+    doc.setFillColor(27,58,107);
+    doc.rect(M,curY,IW,6,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(255,255,255);
+    doc.text('NOTES & FOLLOW-UP',M+2,curY+4.2);
+    curY+=9;
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(20,20,40);
+    if(notes){
+      var noteLines=doc.splitTextToSize(notes,IW-4);
+      doc.text(noteLines,M+2,curY);
+      curY+=noteLines.length*4+4;
+    }
+    if(fu){
+      doc.setFont('helvetica','bold'); doc.text('Follow-Up Items:',M+2,curY); curY+=5;
+      doc.setFont('helvetica','normal');
+      var fuLines=doc.splitTextToSize(fu,IW-4);
+      doc.text(fuLines,M+2,curY);
+      curY+=fuLines.length*4+4;
+    }
+  }
+
+  // Signature
+  if(curY>PH-40){ doc.addPage(); curY=M; }
+  doc.setDrawColor(27,58,107); doc.setLineWidth(0.3);
+  doc.line(M,curY,PW-M,curY); curY+=8;
+  doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(100,120,160);
+  doc.text('TECHNICIAN SIGN-OFF',M,curY); curY+=6;
+  doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(27,58,107);
+  doc.text(sf('sig_name')||'____',M+(IW/3-10)/2,curY+8,{align:'center'});
+  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(100,120,160);
+  doc.text('INITIALS',M+(IW/3-10)/2,curY+14,{align:'center'});
+  doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(20,20,40);
+  doc.text(sf('sig_date')||'___________',M+IW/3+4,curY+8);
+  doc.setFontSize(8); doc.setTextColor(100,120,160);
+  doc.text('DATE',M+IW/3+4,curY+14);
+
+  // Photos
+  var snapPhotos = snap.photos||[];
+  if(snapPhotos.length>0){
+    doc.addPage(); curY=M;
+    doc.setFillColor(27,58,107);
+    doc.rect(M,curY,IW,6,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(255,255,255);
+    doc.text('JOB SITE PHOTOS',M+2,curY+4.2);
+    curY+=10;
+    var imgW=(IW-6)/2;
+    snapPhotos.forEach(function(p,i){
+      if(!p||!p.data) return;
+      var col=i%2; var x=M+col*(imgW+6);
+      if(col===0&&i>0){ curY+=imgW*0.75+10; }
+      if(curY+imgW*0.75>PH-M){ doc.addPage(); curY=M; }
+      try{
+        doc.addImage(p.data,'JPEG',x,curY,imgW,imgW*0.75);
+        if(p.caption){ doc.setFontSize(7); doc.setTextColor(80,80,80); doc.text(p.caption||'',x,curY+imgW*0.75+4); }
+      }catch(e){}
+    });
+  }
+
+  // Footer on each page
+  var totalPages=doc.internal.getNumberOfPages();
+  for(var pg=1;pg<=totalPages;pg++){
+    doc.setPage(pg);
+    doc.setFontSize(7); doc.setTextColor(150,150,150);
+    doc.text('NTD Mechanical TACLA65973C | Page '+pg+' of '+totalPages,PW/2,PH-6,{align:'center'});
+  }
+
+  var fn='NTD_Startup_'+(EQ_TYPES[snap.type]||'').replace(/[^a-zA-Z0-9]/g,'_')+'_'+(sf('unit_num')||'unit')+'.pdf';
+  var blob=doc.output('blob');
+  var url=URL.createObjectURL(blob);
+  var w=window.open(url,'_blank');
+  if(!w){ alert('Allow popups to open PDFs.'); }
+  setTimeout(function(){ URL.revokeObjectURL(url); },60000);
+}
+
+function downloadAllPDFs(){
+  if(!sessionUnits.length){ alert('No saved units yet. Save at least one unit first.'); return; }
+  // Download each PDF with a short delay between them so iOS can handle multiple tabs
+  var delay=0;
+  sessionUnits.forEach(function(snap){
+    setTimeout(function(){
+      generatePDFFromSnapshot(snap);
+    }, delay);
+    delay += 1200;
+  });
+  // Also offer current unit if form is filled
+  if(currentType && gv('unit_num')){
+    setTimeout(function(){
+      var yn=confirm('Also download PDF for current unit "'+gv('unit_num')+'" (not yet saved to session)?');
+      if(yn) dlPDF();
+    }, delay);
+  }
+}
+
+
 
 // ── LOAD JOB SYSTEM ──────────────────────────────────────
 var LJ_OWNER = 'jason3kgt';
