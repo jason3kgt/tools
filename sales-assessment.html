@@ -1210,7 +1210,7 @@ function pmGenPDF(){
     doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(NV[0],NV[1],NV[2]);
     doc.text('NTD Mechanical',M+60,26);
     doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(80,80,80);
-    doc.text('North Texas Ductworks LLC dba NTD Mechanical  |  HVAC & Refrigeration Service',M+60,37);
+        doc.text('North Texas Ductworks LLC dba NTD Mechanical',M+60,37);
     doc.text('License: TACLA65973C  |  2477 Merritt Dr. Garland, TX 75041  |  Service: 214-785-2129  |  Office: 469-323-0454  |  ntdmechanical.com',M+60,47);
     doc.setFillColor(OR[0],OR[1],OR[2]);doc.rect(M,56,IW,2,'F');
     doc.setFillColor(NV[0],NV[1],NV[2]);doc.rect(M,60,IW,16,'F');
@@ -1403,17 +1403,19 @@ function pmGenPDF(){
     var pd=planDescs[key];var sel=pmPlans[key];
     var bg=idx%2===0?[248,251,255]:[255,255,255];
     var descLines=doc.splitTextToSize(pd.desc,IW-116);
-    var rh=Math.max(14,descLines.length*9+5);
+    var rh=Math.max(26,descLines.length*9+16);
     doc.setFillColor(bg[0],bg[1],bg[2]);doc.rect(M,y,IW,rh,'F');
     doc.setDrawColor(215,225,238);doc.rect(M,y,IW,rh,'S');
-    // Checkbox
-    doc.setDrawColor(NV[0],NV[1],NV[2]);doc.rect(M+8,y+rh/2-5,10,10,'S');
-    if(sel){doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(NV[0],NV[1],NV[2]);doc.text('X',M+9.5,y+rh/2+4);}
-    doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(NV[0],NV[1],NV[2]);
-    doc.text(pd.name,M+32,y+rh/2+3);
+    // Checkbox — vertically centred
+    doc.setDrawColor(NV[0],NV[1],NV[2]);doc.rect(M+6,y+rh/2-6,12,12,'S');
+    if(sel){doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(NV[0],NV[1],NV[2]);doc.text('X',M+7.5,y+rh/2+4);}
+    // Plan name — top of cell
+    doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(NV[0],NV[1],NV[2]);
+    doc.text(pd.name,M+26,y+11);
+    // Description — below name, indented same as name
     doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(40,40,40);
-    doc.text(descLines,M+112,y+8);
-    y+=rh;
+    doc.text(descLines,M+26,y+20);
+    y+=rh+2;
   });
 
   // Pricing & Billing
@@ -1496,12 +1498,16 @@ function pmGenPDF(){
   var epLines=doc.splitTextToSize(execPre,IW);doc.text(epLines,M,y);y+=epLines.length*10+10;
 
   // Customer ack box
-  doc.setFillColor(232,240,252);doc.rect(M,y,IW,18,'F');doc.setDrawColor(180,200,230);doc.rect(M,y,IW,18,'S');
+  var ackItems=['✓ Condensate disclaimer (Sec. 3)','✓ Billing rates $105/$125/hr (Sec. 5)','✓ Liability cap (Sec. 7)','✓ Cancellation terms (Sec. 10)','✓ Non-transferable'];
+  var ackLine=ackItems.join('     ');
+  var ackLines=doc.splitTextToSize(ackLine,IW-10);
+  var ackH=26+ackLines.length*10;
+  doc.setFillColor(232,240,252);doc.rect(M,y,IW,ackH,'F');doc.setDrawColor(180,200,230);doc.rect(M,y,IW,ackH,'S');
   doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(NV[0],NV[1],NV[2]);
-  doc.text('CUSTOMER ACKNOWLEDGMENT — By signing, Customer confirms they have read and agree to all terms, including:',M+4,y+7);
-  doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(40,40,40);
-  doc.text('✓ Condensate disclaimer (Sec. 3)   ✓ Billing rates $105/$125/hr (Sec. 5)   ✓ Liability cap (Sec. 7)   ✓ Cancellation terms (Sec. 10)   ✓ Non-transferable',M+4,y+15);
-  y+=24;
+  doc.text('CUSTOMER ACKNOWLEDGMENT — By signing, Customer confirms they have read and agree to all terms, including:',M+4,y+9,{maxWidth:IW-8});
+  doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(40,40,40);
+  doc.text(ackLines,M+4,y+20);
+  y+=ackH+6;
 
   // Signature blocks
   function sigBlock(doc,y,title,name,titleLine){
