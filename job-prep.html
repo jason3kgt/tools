@@ -607,6 +607,11 @@ function loadPublishedJobs(){
   })
   .then(function(files){
     if(!files) return;
+    // GitHub returns an object (not array) if path doesn't exist or is a single file
+    if(!Array.isArray(files)){
+      showJobsBanner('info','No jobs published yet. The jobs/ folder will be created when you publish your first job.');
+      return;
+    }
     var list = document.getElementById('jobs_list');
     list.innerHTML = '';
     var jsonFiles = files.filter(function(f){ return f.name.endsWith('.json'); });
