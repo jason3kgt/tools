@@ -320,7 +320,9 @@ textarea{resize:vertical;min-height:70px}
   <div class="pmcard">
     <div class="pmch"><h2>📊 Pricing Summary</h2></div>
     <div class="cb">
-      <div class="tot-row"><span class="tlbl">Total Annual PM</span><span class="tval" id="pm-annual">$0.00</span></div>
+      <div class="tot-row"><span class="tlbl">Base PM Annual</span><span class="tval" id="pm-annual">$0.00</span></div>
+      <div class="tot-row" id="pm-nte-row" style="display:none"><span class="tlbl">NTE Budget Annual (all units)</span><span class="tval" id="pm-nte-annual">—</span></div>
+      <div class="tot-row"><span class="tlbl">Total Annual Agreement</span><span class="tval" id="pm-grand-annual">$0.00</span></div>
       <div class="tot-row"><span class="tlbl">Quarterly Billing</span><span class="tval" id="pm-qtr">$0.00</span></div>
       <div class="tot-row"><span class="tlbl">Monthly Billing</span><span class="tval" id="pm-mo">$0.00</span></div>
       <div class="tot-row grand"><span class="tlbl">Units Quoted</span><span class="tval" id="pm-units">0</span></div>
@@ -527,7 +529,7 @@ function fsChg(sel){
   var eq=eqs.find(function(e){return e.id===uid;});if(!eq)return;
   if(v==='-- Custom --'){
     eq[fld]='';
-    // Swap select for select+text input by re-rendering just the ir row — easiest to re-render unit
+    // Swap select for select+text input by re-rendering just the ir row \u2014 easiest to re-render unit
     renderEqs();return;
   }
   eq[fld]=v;
@@ -737,7 +739,7 @@ function getReplYear(eq){
 
 function updS(){
   se('esf',gv('sf')||'-');
-  se('esm',[gv('sd'),gv('stch')].filter(Boolean).join(' — '));
+  se('esm',[gv('sd'),gv('stch')].filter(Boolean).join(' \u2014 '));
   var asd=eqs.filter(function(e){return e.ov!=='';});
   var poor=eqs.filter(function(e){return e.ov==='poor';}).length;
   var fair=eqs.filter(function(e){return e.ov==='fair';}).length;
@@ -772,7 +774,7 @@ function updS(){
     var border=isp?'#FCA5A5':isf?'#F6C470':'#86EFAC';
     var titClr=isp?'#991B1B':isf?'#92400E':'#14532D';
     var bodClr=isp?'#7f1d1d':isf?'#78350F':'#166534';
-    var label=isp?'POOR — Immediate Action Required':isf?'FAIR — Monitor & Schedule':'GOOD — Continue PM Program';
+    var label=isp?'POOR \u2014 Immediate Action Required':isf?'FAIR \u2014 Monitor & Schedule':'GOOD \u2014 Continue PM Program';
     var flagStr=(e.flags&&e.flags.length)?'Flags: '+e.flags.join(', '):'';
     var photoHtml='';
     if(e.photos&&e.photos.length){
@@ -783,7 +785,7 @@ function updS(){
       photoHtml+='</div>';
     }
     return'<div style="background:'+bg+';border:1.5px solid '+border+';border-radius:10px;padding:10px 12px;margin-bottom:8px">'
-      +'<div style="font-size:11px;font-weight:700;color:'+titClr+';margin-bottom:3px">'+(e.tag||'Unit '+e.id)+' — '+label+'</div>'
+      +'<div style="font-size:11px;font-weight:700;color:'+titClr+';margin-bottom:3px">'+(e.tag||'Unit '+e.id)+' \u2014 '+label+'</div>'
       +'<div style="font-size:11px;line-height:1.4;color:'+bodClr+'">'+(e.area?'Area: '+e.area+'<br>':'')+([e.manuf,e.model].filter(Boolean).join(' ')||'')+(flagStr?'<br>'+flagStr:'')+'<br>'+(e.notes||'See equipment notes.')+'</div>'
       +photoHtml
       +'</div>';
@@ -792,7 +794,7 @@ function updS(){
 
 // ── FORECAST ──────────────────────────────────────────────────
 function updF(){
-  se('fy1l','Year 1 — '+CY);se('fy2l','Year 2 — '+(CY+1));
+  se('fy1l','Year 1 \u2014 '+CY);se('fy2l','Year 2 \u2014 '+(CY+1));
   var scored=eqs.filter(function(e){return e.ov!=='';});
   var crit=eqs.filter(function(e){return e.ov==='poor';});
   var iw=document.getElementById('fcimm');
@@ -810,11 +812,11 @@ function updF(){
           for(var fpi=0;fpi<e.photos.length;fpi++){fpRow+='<div style="border-radius:5px;overflow:hidden;aspect-ratio:1"><img src="'+e.photos[fpi].data+'" style="width:100%;height:100%;object-fit:cover"></div>';}
           fpRow+='</div></td></tr>';
         }
-        return'<tr><td>'+(e.tag||'U'+e.id)+(e.area?' — '+e.area:'')+'</td>'
+        return'<tr><td>'+(e.tag||'U'+e.id)+(e.area?' \u2014 '+e.area:'')+'</td>'
           +'<td style="text-align:center">'+(age?age+'y':'-')+'</td>'
           +'<td style="text-align:center;color:var(--rd);font-weight:700">'+life+'y</td>'
           +'<td><input type="text" class="ci" value="'+fcc(repl)+'" id="fi'+e.id+'" oninput="updT()"></td>'
-          +'<td style="text-align:left;font-size:10px;color:var(--rd);font-weight:600">'+(life===0?'Replace Immediately':'Replace — Year 1')+'</td>'
+          +'<td style="text-align:left;font-size:10px;color:var(--rd);font-weight:600">'+(life===0?'Replace Immediately':'Replace \u2014 Year 1')+'</td>'
           +'</tr>'+fpRow;
       }).join('')+'</tbody></table>';
   }
@@ -854,7 +856,7 @@ function updF(){
         +'<td><input type="text" class="ci" value="'+fcc(r35)+'" id="y3p'+e.id+'" oninput="updT()" style="color:var(--am)"></td></tr>';
       rows+='<tr style="background:#F0FDF4;border-bottom:2px solid var(--bd)">'
         +'<td style="font-size:9px;font-weight:700;color:var(--gn);text-align:left;padding-left:4px">STATUS</td>'
-        +'<td colspan="3" style="text-align:center;font-size:11px;padding:4px 6px;color:var(--gn);font-weight:600">No replacement projected — continue PM</td></tr>';
+        +'<td colspan="3" style="text-align:center;font-size:11px;padding:4px 6px;color:var(--gn);font-weight:600">No replacement projected \u2014 continue PM</td></tr>';
     }else{
       var replBg=e.ov==='poor'?'#FEF2F2':'#FFFBEB';
       var replClr=e.ov==='poor'?'var(--rd)':'var(--am)';
@@ -883,11 +885,11 @@ function updF(){
 
   tw.innerHTML='<table class="ft"><thead><tr>'
     +'<th style="width:18%">Unit / Tag</th><th style="width:7%">Age</th><th style="width:9%">Cond.</th><th style="width:11%;font-size:8px">Scenario</th>'
-    +'<th>Yr 1 — '+CY+'</th><th>Yr 2 — '+(CY+1)+'</th><th>Yr 3–5 (cumul.)</th>'
+    +'<th>Yr 1 \u2014 '+CY+'</th><th>Yr 2 \u2014 '+(CY+1)+'</th><th>Yr 3–5 (cumul.)</th>'
     +'</tr></thead><tbody>'+rows+'</tbody>'
     +'<tfoot>'
-    +'<tr class="tt"><td colspan="4">Replace Scenario Totals</td><td id="ts1r">—</td><td id="ts2r">—</td><td id="ts3r">—</td></tr>'
-    +'<tr class="tp"><td colspan="4" style="color:var(--am)">Repair/PM Scenario Totals</td><td id="ts1p" style="color:var(--am)">—</td><td id="ts2p" style="color:var(--am)">—</td><td id="ts3p" style="color:var(--am)">—</td></tr>'
+    +'<tr class="tt"><td colspan="4">Replace Scenario Totals</td><td id="ts1r">\u2014</td><td id="ts2r">\u2014</td><td id="ts3r">\u2014</td></tr>'
+    +'<tr class="tp"><td colspan="4" style="color:var(--am)">Repair/PM Scenario Totals</td><td id="ts1p" style="color:var(--am)">\u2014</td><td id="ts2p" style="color:var(--am)">\u2014</td><td id="ts3p" style="color:var(--am)">\u2014</td></tr>'
     +'</tfoot></table>'
     +'<p style="font-size:10px;color:var(--mu);margin-top:8px;line-height:1.5">* Yr 3–5 repair costs are cumulative. Emergency breakdown costs not included.</p>';
   updT();
@@ -906,8 +908,8 @@ function updT(){
     p2+=pc((document.getElementById('y2p'+e.id)||{}).value);
     p3+=pc((document.getElementById('y3p'+e.id)||{}).value);
   });
-  se('ts1r',r1?fc(r1):'—');se('ts2r',r2?fc(r2):'—');se('ts3r',r3?fc(r3):'—');
-  se('ts1p',p1?fc(p1):'—');se('ts2p',p2?fc(p2):'—');se('ts3p',p3?fc(p3):'—');
+  se('ts1r',r1?fc(r1):'\u2014');se('ts2r',r2?fc(r2):'\u2014');se('ts3r',r3?fc(r3):'\u2014');
+  se('ts1p',p1?fc(p1):'\u2014');se('ts2p',p2?fc(p2):'\u2014');se('ts3p',p3?fc(p3):'\u2014');
   se('fy1t',fc(r1));se('fy2t',fc(r2));se('fy3t',fc(r3));
   se('f3yr',fc(r1+r2+r3));
 }
@@ -928,7 +930,7 @@ function pdfSite(doc,y){
   var fac=gv('sf'),addr=gv('sa'),city=gv('sct'),dt=gv('sd');
   doc.setFillColor(240,244,250);doc.rect(14,y,W-28,48,'F');doc.setDrawColor(180,195,220);doc.rect(14,y,W-28,48,'S');
   var lx=20,rx=W/2+6,ly=y+12;
-  [['CUSTOMER',fac,lx,ly],['PO / WO #','N/A — Assessment',rx,ly],['ADDRESS',[addr,city].filter(Boolean).join(', '),lx,ly+24],['DATE / ASSESSED BY',[dt,gv('stch')].filter(Boolean).join(' — '),rx,ly+24]].forEach(function(x){
+  [['CUSTOMER',fac,lx,ly],['PO / WO #','N/A \u2014 Assessment',rx,ly],['ADDRESS',[addr,city].filter(Boolean).join(', '),lx,ly+24],['DATE / ASSESSED BY',[dt,gv('stch')].filter(Boolean).join(' \u2014 '),rx,ly+24]].forEach(function(x){
     doc.setFont('helvetica','bold');doc.setTextColor(27,58,107);doc.setFontSize(7);doc.text(x[0],x[2],x[3]);
     doc.setFont('helvetica','normal');doc.setTextColor(0,0,0);doc.setFontSize(9);doc.text(x[1]||'-',x[2],x[3]+11,{maxWidth:(W-28)/2-12});
   });
@@ -947,7 +949,7 @@ function dlSummary(){
   var {jsPDF}=window.jspdf;
   var doc=new jsPDF({orientation:'portrait',unit:'pt',format:'letter'});
   var W=doc.internal.pageSize.getWidth(),H=doc.internal.pageSize.getHeight();
-  var y=pdfHdr(doc,'Executive Summary — Mechanical Asset Assessment','NTD Mechanical  |  '+gv('stch')+'  |  '+gv('sd'));
+  var y=pdfHdr(doc,'Executive Summary \u2014 Mechanical Asset Assessment','NTD Mechanical  |  '+gv('stch')+'  |  '+gv('sd'));
   y=pdfSite(doc,y);
   var asd=eqs.filter(function(e){return e.ov!=='';});
   var poor=eqs.filter(function(e){return e.ov==='poor';}).length;
@@ -1003,20 +1005,20 @@ function dlForecast(){
   var {jsPDF}=window.jspdf;
   var doc=new jsPDF({orientation:'portrait',unit:'pt',format:'letter'});
   var W=doc.internal.pageSize.getWidth(),H=doc.internal.pageSize.getHeight();
-  var y=pdfHdr(doc,'Capital Expenditure Forecast — 3-Year Plan','NTD Mechanical  |  '+gv('stch')+'  |  '+gv('sd'));
+  var y=pdfHdr(doc,'Capital Expenditure Forecast \u2014 3-Year Plan','NTD Mechanical  |  '+gv('stch')+'  |  '+gv('sd'));
   y=pdfSite(doc,y);
   var crit=eqs.filter(function(e){return e.ov==='poor';});
-  doc.setFillColor(153,27,27);doc.rect(14,y,W-28,13,'F');doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.text('IMMEDIATE — PRE-YEAR 1 (Poor-Rated Units)',18,y+9);y+=13;
+  doc.setFillColor(153,27,27);doc.rect(14,y,W-28,13,'F');doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.text('IMMEDIATE \u2014 PRE-YEAR 1 (Poor-Rated Units)',18,y+9);y+=13;
   if(!crit.length){
     doc.setFillColor(232,245,236);doc.rect(14,y,W-28,18,'F');doc.setFont('helvetica','normal');doc.setTextColor(30,122,62);doc.setFontSize(9);doc.text('No poor-rated units identified.',18,y+12);y+=22;
   }else{
     doc.autoTable({startY:y,head:[['Unit','Area','Age','Life Rem.','Replacement Cost','Action']],body:crit.map(function(e){
       var cost=document.getElementById('fi'+e.id);var age=getAge(e);
-      return[e.tag||'U'+e.id,e.area||'-',age?age+'y':'-',getLife(e)+'y',cost?cost.value:fcc(getReplCost(e)),'Replace — Immediate/Yr 1'];
+      return[e.tag||'U'+e.id,e.area||'-',age?age+'y':'-',getLife(e)+'y',cost?cost.value:fcc(getReplCost(e)),'Replace \u2014 Immediate/Yr 1'];
     }),theme:'grid',headStyles:{fillColor:[153,27,27],textColor:255,fontSize:8},bodyStyles:{fontSize:8},columnStyles:{4:{textColor:[192,57,43],fontStyle:'bold'}},margin:{left:14,right:14}});
     y=doc.lastAutoTable.finalY+10;
   }
-  doc.setFillColor(46,95,138);doc.rect(14,y,W-28,13,'F');doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.text('3-YEAR CAPITAL FORECAST — REPLACE vs. REPAIR/PM SCENARIOS',18,y+9);y+=13;
+  doc.setFillColor(46,95,138);doc.rect(14,y,W-28,13,'F');doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.text('3-YEAR CAPITAL FORECAST \u2014 REPLACE vs. REPAIR/PM SCENARIOS',18,y+9);y+=13;
   var scored=eqs.filter(function(e){return e.ov!=='';});
   var r1t=0,r2t=0,r3t=0,p1t=0,p2t=0,p3t=0;
   var fcBody=[];
@@ -1029,7 +1031,7 @@ function dlForecast(){
       r1t+=pm1;r2t+=pm1;r3t+=pm35v;p1t+=pr1;p2t+=pr2;p3t+=pr35;
       fcBody.push([e.tag||'U'+e.id,e.type||'-',age?age+'y':'-','PM CONTRACT',fcc(pm1),fcc(pm1),fcc(pm35v)]);
       fcBody.push(['','','','EST. REPAIRS',fcc(pr1),fcc(pr2),fcc(pr35)]);
-      fcBody.push(['','','','STATUS','No replacement projected — continue PM program','','']);
+      fcBody.push(['','','','STATUS','No replacement projected \u2014 continue PM program','','']);
     }else{
       var rv=['-','-','-'],yr=getReplYear(e);
       if(yr===0||yr===1){rv[0]=fcc(repl);r1t+=repl;}else if(yr===2){rv[1]=fcc(repl);r2t+=repl;}else if(yr===3){rv[2]=fcc(repl);r3t+=repl;}
@@ -1043,7 +1045,7 @@ function dlForecast(){
   });
   fcBody.push(['','','','REPLACE/PM TOTALS',r1t?fcc(r1t):'-',r2t?fcc(r2t):'-',r3t?fcc(r3t):'-']);
   fcBody.push(['','','','REPAIR TOTALS',fcc(p1t),fcc(p2t),fcc(p3t)]);
-  doc.autoTable({startY:y,head:[['Tag','Type','Age','Scenario','Yr 1 — '+CY,'Yr 2 — '+(CY+1),'Yr 3–5 (cumul.)']],body:fcBody,theme:'grid',
+  doc.autoTable({startY:y,head:[['Tag','Type','Age','Scenario','Yr 1 \u2014 '+CY,'Yr 2 \u2014 '+(CY+1),'Yr 3–5 (cumul.)']],body:fcBody,theme:'grid',
     headStyles:{fillColor:[46,95,138],textColor:255,fontSize:7},bodyStyles:{fontSize:8},
     didParseCell:function(d){
       if(d.section!=='body')return;var sc=d.cell.raw;if(!sc||typeof sc!=='string')return;
@@ -1062,7 +1064,7 @@ function dlForecast(){
   doc.setFillColor(27,58,107);doc.rect(14,y,W-28,66,'F');
   doc.setTextColor(160,186,210);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.text('REPLACEMENT RESERVE SUMMARY (Replace Scenario)',W/2,y+10,{align:'center'});
   var r4=(W-28)/4;
-  [['Year 1 — '+CY,fcc(r1t)],['Year 2 — '+(CY+1),fcc(r2t)],['Yr 3–5 (cumul.)',fcc(r3t)],['Immediate',fcc(immTot)]].forEach(function(r,i){
+  [['Year 1 \u2014 '+CY,fcc(r1t)],['Year 2 \u2014 '+(CY+1),fcc(r2t)],['Yr 3–5 (cumul.)',fcc(r3t)],['Immediate',fcc(immTot)]].forEach(function(r,i){
     var rx=14+i*r4;
     doc.setTextColor(180,200,220);doc.setFont('helvetica','normal');doc.setFontSize(7);doc.text(r[0],rx+r4/2,y+24,{align:'center'});
     doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(12);doc.text(r[1],rx+r4/2,y+42,{align:'center'});
@@ -1070,10 +1072,10 @@ function dlForecast(){
   doc.setTextColor(255,220,80);doc.setFont('helvetica','bold');doc.setFontSize(7);
   doc.text('3-YR REPLACE TOTAL: '+fcc(replTot)+'   |   3-YR REPAIR TOTAL: '+fcc(repTot),W/2,y+60,{align:'center'});y+=70;
   doc.setFillColor(232,83,26);doc.rect(14,y,W-28,34,'F');
-  doc.setTextColor(255,255,255);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.text('3-YEAR CAPITAL RESERVE — REPLACE SCENARIO',W/2,y+10,{align:'center'});
+  doc.setTextColor(255,255,255);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.text('3-YEAR CAPITAL RESERVE \u2014 REPLACE SCENARIO',W/2,y+10,{align:'center'});
   doc.setFont('helvetica','bold');doc.setFontSize(18);doc.text(fcc(replTot),W/2,y+27,{align:'center'});y+=38;
   doc.setFont('helvetica','normal');doc.setTextColor(120,120,120);doc.setFontSize(7);
-  doc.text('Estimates +/-15% — DFW market pricing. Repair/PM scenario does not extend asset life beyond projected end-of-life.',W/2,y+6,{align:'center'});
+  doc.text('Estimates +/-15% \u2014 DFW market pricing. Repair/PM scenario does not extend asset life beyond projected end-of-life.',W/2,y+6,{align:'center'});
   pdfFooter(doc);
   var blob=doc.output('blob');var url=URL.createObjectURL(blob);
   window.open(url,'_blank');setTimeout(function(){URL.revokeObjectURL(url);},60000);
@@ -1091,7 +1093,7 @@ function buildPlans(){
   g.addEventListener('click',function(e){
     var b=e.target.closest('[data-plankey]');if(!b)return;
     var key=b.getAttribute('data-plankey');
-    pmPlans[key]=!pmPlans[key];b.classList.toggle('on',pmPlans[key]);pmCalcAll();var nth=document.getElementById('pm-nte-th');if(nth)nth.style.display=pmPlans.comp?'':'none';
+    pmPlans[key]=!pmPlans[key];b.classList.toggle('on',pmPlans[key]);pmCalcAll();var nth=document.getElementById('pm-nte-th');if(nth)nth.style.display=pmPlans.comp?'':'none';var ntr=document.getElementById('pm-nte-row');if(ntr)ntr.style.display=pmPlans.comp?'':'none';
   });
 }
 function setFreq(f){
@@ -1149,11 +1151,11 @@ function pmGetMatAddon(u){
     var vis=pmFreq==='Monthly'?12:4;
     total+=cc/vis;
   }
-  if(pmPlans.comp){
-    var vis2=pmFreq==='Monthly'?12:4;
-    total+=(parseFloat(u.nte)||0)/vis2;
-  }
   return total;
+}
+function pmGetNTETotal(){
+  if(!pmPlans.comp)return 0;
+  return pmUnits.reduce(function(a,u){return a+(parseFloat(u.nte)||0);},0);
 }
 function pmRenderTable(){
   var tb=document.getElementById('pm-body');tb.innerHTML='';
@@ -1183,19 +1185,15 @@ function pmCalcAll(){
     var rate=pmGetRate(u.type),matA=pmGetMatAddon(u),qty=parseFloat(u.qty)||1;
     tot+=(rate+matA)*qty*vis;totU+=qty;
   });
+  var nteTot=pmGetNTETotal()*4;
+  var grandTot=tot+nteTot;
   document.getElementById('pm-annual').textContent=pmFmt(tot);
-  document.getElementById('pm-qtr').textContent=pmFmt(tot/4);
-  document.getElementById('pm-mo').textContent=pmFmt(tot/12);
+  document.getElementById('pm-nte-annual').textContent=pmPlans.comp?pmFmt(nteTot):'\u2014';
+  document.getElementById('pm-grand-annual').textContent=pmFmt(grandTot);
+  document.getElementById('pm-qtr').textContent=pmFmt(grandTot/4);
+  document.getElementById('pm-mo').textContent=pmFmt(grandTot/12);
   document.getElementById('pm-units').textContent=totU;
 }
-
-document.getElementById('pmImportBtn').addEventListener('click',function(){
-  if(confirm('Import all units from the Units tab? This will replace the current PM list.'))pmImport();
-});
-document.getElementById('pmAddBtn').addEventListener('click',pmAddUnit);
-document.getElementById('sq-add-custom-btn').addEventListener('click',sqAddCustom);
-
-// PM PDF
 function pmGenPDF(){
   var {jsPDF}=window.jspdf;
   var doc=new jsPDF({orientation:'portrait',unit:'pt',format:'letter'});
@@ -1231,7 +1229,7 @@ function pmGenPDF(){
   }
 
   // ═══════════════════════════════════════════════════
-  // PAGE 1 — Customer Info + Equipment Table
+  // PAGE 1 \u2014 Customer Info + Equipment Table
   // ═══════════════════════════════════════════════════
   var y=pgHdr(doc,'PREVENTIVE MAINTENANCE SERVICE AGREEMENT  |  Per Selected Plan(s)  |  '+pmFreq+' Scheduled Maintenance');
 
@@ -1310,11 +1308,14 @@ function pmGenPDF(){
     doc.setDrawColor(220,228,238);doc.rect(M,y,IW,13,'S');
     y+=14;
   }
+  // Calculate NTE and grand total for use across all pages
+  var ntePDFTotal=pmGetNTETotal()*4;
+  var grandPDFTotal=totalAnnual+ntePDFTotal;
 
   pgFtr(doc,1,4);
 
   // ═══════════════════════════════════════════════════
-  // PAGE 2 — Scope of Maintenance
+  // PAGE 2 \u2014 Scope of Maintenance
   // ═══════════════════════════════════════════════════
   doc.addPage();
   y=pgHdr(doc,'PREVENTIVE MAINTENANCE SERVICE AGREEMENT  |  Per Selected Plan(s)  |  '+pmFreq+' Scheduled Maintenance');
@@ -1327,7 +1328,7 @@ function pmGenPDF(){
     {name:'Spring',items:[
       'Replace all filters with MERV 8 pleated media',
       'Check and tighten all electrical connections; clean electrical compartments',
-      'Full condition assessment — record volts, amps, refrigerant pressures; compare to nameplate data',
+      'Full condition assessment \u2014 record volts, amps, refrigerant pressures; compare to nameplate data',
       'Inspect and clean indoor blower; annual belt inspection and replacement as needed',
       'Blow out condensate drain lines and treat with algaecide; clean drain pans',
       'Inspect condenser and evaporator coils; note fouling condition',
@@ -1339,7 +1340,7 @@ function pmGenPDF(){
     {name:'Summer',items:[
       'Replace all filters with MERV 8 pleated media',
       'Check and tighten all electrical connections; clean electrical compartments',
-      'Full condition assessment — record volts, amps, refrigerant pressures; compare to nameplate data',
+      'Full condition assessment \u2014 record volts, amps, refrigerant pressures; compare to nameplate data',
       'Inspect and clean indoor blower components',
       'Blow out condensate drain lines and treat with algaecide; clean drain pans',
       'Inspect condenser and evaporator coils; note fouling condition',
@@ -1395,7 +1396,7 @@ function pmGenPDF(){
   pgFtr(doc,2,4);
 
   // ═══════════════════════════════════════════════════
-  // PAGE 3 — Plans + Pricing + Exclusions + T&C
+  // PAGE 3 \u2014 Plans + Pricing + Exclusions + T&C
   // ═══════════════════════════════════════════════════
   doc.addPage();
   y=pgHdr(doc,'PREVENTIVE MAINTENANCE SERVICE AGREEMENT  |  Per Selected Plan(s)  |  '+pmFreq+' Scheduled Maintenance');
@@ -1409,9 +1410,9 @@ function pmGenPDF(){
   doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(NV[0],NV[1],NV[2]);
   doc.text('Selected',M+2,y+9);doc.text('Plan',M+32,y+9);doc.text('Description',M+112,y+9);y+=14;
   var planDescs={
-    mat:{name:'Materials Included',desc:'All materials and supplies required to perform scheduled maintenance — including filters, belts, lubricants, algaecide, and cleaning supplies — are included unless otherwise stated.'},
+    mat:{name:'Materials Included',desc:'All materials and supplies required to perform scheduled maintenance \u2014 including filters, belts, lubricants, algaecide, and cleaning supplies \u2014 are included unless otherwise stated.'},
     coil:{name:'In-Depth Coil Cleaning',desc:'Annual condenser and evaporator coil cleaning, all materials and labor. Available as an add-on or separate billable service.'},
-    comp:{name:'Replacement Components (NTE)',desc:'Repair and replacement of maintainable field components within an agreed Not-To-Exceed (NTE) amount per unit, per quarter. Covered components include capacitors, contactors, igniters, basic sensors, minor wiring repairs, wire nuts, and standard truck stock items. Compressors, coils, heat exchangers, refrigerant, and any component requiring specialized equipment or subcontractors are excluded and will be quoted separately. If a repair is estimated to exceed the unit\'s quarterly NTE, NTD will stop work, notify the customer, and obtain written approval before proceeding. Any work authorized beyond the NTE will be invoiced at the standard PM contract rate of $115.00 per hour for labor plus materials. Unused NTE does not roll over — it resets each quarter. NTE amounts are per unit and non-transferable between units. NTD will document all components replaced under this plan on the visit report provided after each scheduled maintenance visit.'},
+    comp:{name:'Replacement Components (NTE)',desc:'Repair and replacement of maintainable field components within an agreed Not-To-Exceed (NTE) amount per unit, per quarter. Covered components include capacitors, contactors, igniters, basic sensors, minor wiring repairs, wire nuts, and standard truck stock items. Compressors, coils, heat exchangers, refrigerant, and any component requiring specialized equipment or subcontractors are excluded and will be quoted separately. The NTE functions as a pre-approved on-site repair authorization \u2014 when our technician identifies a covered deficiency during a scheduled visit, he can address it immediately without requiring a separate service call, return trip, or additional dispatch charge. This eliminates delays, reduces total repair costs, and keeps your equipment running between visits. If a repair is estimated to exceed the unit\'s quarterly NTE, NTD will stop work, notify the customer, and obtain written approval before proceeding. Any work authorized beyond the NTE will be invoiced at the standard PM contract rate of $115.00 per hour for labor plus materials. Unused NTE does not roll over \u2014 it resets each quarter. NTE amounts are per unit, non-transferable between units, and will be documented on the visit report provided after each scheduled maintenance visit.'},
   };
   ['mat','coil','comp'].forEach(function(key,idx){
     var pd=planDescs[key];var sel=pmPlans[key];
@@ -1420,13 +1421,13 @@ function pmGenPDF(){
     var rh=Math.max(26,descLines.length*9+16);
     doc.setFillColor(bg[0],bg[1],bg[2]);doc.rect(M,y,IW,rh,'F');
     doc.setDrawColor(215,225,238);doc.rect(M,y,IW,rh,'S');
-    // Checkbox — vertically centred
+    // Checkbox \u2014 vertically centred
     doc.setDrawColor(NV[0],NV[1],NV[2]);doc.rect(M+6,y+rh/2-6,12,12,'S');
     if(sel){doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(NV[0],NV[1],NV[2]);doc.text('X',M+7.5,y+rh/2+4);}
-    // Plan name — top of cell
+    // Plan name \u2014 top of cell
     doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(NV[0],NV[1],NV[2]);
     doc.text(pd.name,M+26,y+11);
-    // Description — below name, indented same as name
+    // Description \u2014 below name, indented same as name
     doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(40,40,40);
     doc.text(descLines,M+26,y+20);
     y+=rh+2;
@@ -1434,10 +1435,13 @@ function pmGenPDF(){
 
   // Pricing & Billing
   y+=8;y=secHdr(doc,y,'PRICING & BILLING');y+=6;
-  var qtr=totalAnnual/4,mo=totalAnnual/12;
-  var pRows=[
-    ['Annual Agreement Price',pmFmt(totalAnnual),'Quarterly Billing Increment',pmFmt(qtr)],
-  ];
+  var pRows=[];
+  if(pmPlans.comp&&ntePDFTotal>0){
+    pRows.push(['Base PM Annual',pmFmt(totalAnnual),'NTE Budget Annual',pmFmt(ntePDFTotal)]);
+    pRows.push(['Total Annual Agreement',pmFmt(grandPDFTotal),'Quarterly Billing',pmFmt(grandPDFTotal/4)]);
+  }else{
+    pRows.push(['Annual Agreement Price',pmFmt(grandPDFTotal),'Quarterly Billing Increment',pmFmt(grandPDFTotal/4)]);
+  }
   pRows.forEach(function(r){
     doc.setFillColor(240,245,252);doc.rect(M,y,IW/2-2,28,'F');doc.rect(M+IW/2+2,y,IW/2-2,28,'F');
     doc.setDrawColor(210,220,230);doc.rect(M,y,IW/2-2,28,'S');doc.rect(M+IW/2+2,y,IW/2-2,28,'S');
@@ -1465,8 +1469,8 @@ function pmGenPDF(){
   // T&C
   y=secHdr(doc,y,'TERMS & CONDITIONS');y+=6;
   var tcs=[
-    ['1. Scope of Work & Inspections','Work limited to signed scope. NTD provides a written inspection report after each visit — work performed, deficiencies, condition scores, and recommended repairs. No verbal agreements expand scope. Change orders require written approval.'],
-    ['2. Customer Responsibilities','Customer shall: (a) operate equipment per manufacturer specs; (b) report unusual conditions promptly; (c) provide safe access; (d) not relocate equipment without written notice; (e) allow NTD to start/stop equipment; (f) not allow third-party repairs — unauthorized work voids warranties. Non-transferable.'],
+    ['1. Scope of Work & Inspections','Work limited to signed scope. NTD provides a written inspection report after each visit \u2014 work performed, deficiencies, condition scores, and recommended repairs. No verbal agreements expand scope. Change orders require written approval.'],
+    ['2. Customer Responsibilities','Customer shall: (a) operate equipment per manufacturer specs; (b) report unusual conditions promptly; (c) provide safe access; (d) not relocate equipment without written notice; (e) allow NTD to start/stop equipment; (f) not allow third-party repairs \u2014 unauthorized work voids warranties. Non-transferable.'],
     ['3. Condensate & DFW Climate','NTD flushes drain lines and treats with algaecide each visit. DFW dew points regularly exceed 70°F. NTD is NOT liable for water damage from normal condensation, drain overflow between visits, or pre-existing moisture damage. Customer must maintain insulation and report water staining immediately.'],
     ['4. Pricing & Payment','Payment due upon completion of each quarterly visit. Finance charges 1.5%/month (18% APR) on past-due balances. Disputed invoices must be raised in writing within 10 business days. Customer responsible for permit fees, parking, and site access costs.'],
     ['5. Service Hours & Rates','Standard hours: Mon–Fri, 7:00am–3:30pm (excl. Federal Holidays). PM Contract rates: Normal $115.00/hr | After-hours, nights, weekends & holidays $145.00/hr.'],
@@ -1500,7 +1504,7 @@ function pmGenPDF(){
   pgFtr(doc,3,4);
 
   // ═══════════════════════════════════════════════════
-  // PAGE 4 — Execution / Signatures
+  // PAGE 4 \u2014 Execution / Signatures
   // ═══════════════════════════════════════════════════
   doc.addPage();
   y=pgHdr(doc,'PREVENTIVE MAINTENANCE SERVICE AGREEMENT  |  Per Selected Plan(s)  |  '+pmFreq+' Scheduled Maintenance');
@@ -1516,7 +1520,7 @@ function pmGenPDF(){
   var ackH=14+ackItems.length*11+6;
   doc.setFillColor(232,240,252);doc.rect(M,y,IW,ackH,'F');doc.setDrawColor(180,200,230);doc.rect(M,y,IW,ackH,'S');
   doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(NV[0],NV[1],NV[2]);
-  doc.text('CUSTOMER ACKNOWLEDGMENT — By signing, Customer confirms they have read and agree to all terms, including:',M+4,y+9,{maxWidth:IW-8});
+  doc.text('CUSTOMER ACKNOWLEDGMENT \u2014 By signing, Customer confirms they have read and agree to all terms, including:',M+4,y+9,{maxWidth:IW-8});
   doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(40,40,40);
   for(var ai=0;ai<ackItems.length;ai++){doc.text(ackItems[ai],M+10,y+19+ai*11);}
   y+=ackH+6;
@@ -1540,8 +1544,8 @@ function pmGenPDF(){
     });
     return y+6;
   }
-  y=sigBlock(doc,y,'ACCEPTED BY — AUTHORIZED CUSTOMER REPRESENTATIVE','','');
-  y=sigBlock(doc,y,'PREPARED BY — NTD MECHANICAL REPRESENTATIVE','Jason Ezell','Outside Sales — Service Contracts');
+  y=sigBlock(doc,y,'ACCEPTED BY \u2014 AUTHORIZED CUSTOMER REPRESENTATIVE','','');
+  y=sigBlock(doc,y,'PREPARED BY \u2014 NTD MECHANICAL REPRESENTATIVE','Jason Ezell','Outside Sales \u2014 Service Contracts');
 
   // TDLR footer line
   y+=8;
@@ -1567,7 +1571,7 @@ function pmExportJSON(){
   window.open('mailto:?subject='+subject+'&body='+body);
 }
 
-// ── SITE RECORD PDF (internal — full unit detail + photos) ──────
+// ── SITE RECORD PDF (internal \u2014 full unit detail + photos) ──────
 function dlSiteRecord(){
   var {jsPDF}=window.jspdf;
   var doc=new jsPDF({orientation:'portrait',unit:'pt',format:'letter'});
@@ -1575,9 +1579,9 @@ function dlSiteRecord(){
   // Header
   doc.setFillColor(27,58,107);doc.rect(0,0,W,58,'F');
   try{doc.addImage(LG,'PNG',12,5,48,48);}catch(e){}
-  doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(14);doc.text('NTD Mechanical — Site Equipment Record',68,24);
+  doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(14);doc.text('NTD Mechanical \u2014 Site Equipment Record',68,24);
   doc.setFont('helvetica','normal');doc.setFontSize(8);
-  doc.text('INTERNAL USE ONLY — Do not share with customer',68,38);
+  doc.text('INTERNAL USE ONLY \u2014 Do not share with customer',68,38);
   doc.text([gv('sf'),gv('sa'),gv('sct')].filter(Boolean).join('  |  ')+'  |  '+gv('sd'),68,50);
   doc.setFillColor(232,83,26);doc.rect(0,58,W,3,'F');
   var y=70;
@@ -1591,18 +1595,18 @@ function dlSiteRecord(){
     var bc=ovc(e.ov);
     doc.setFillColor(NVc[0],NVc[1],NVc[2]);doc.rect(14,y,W-28,16,'F');
     doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(9);
-    doc.text('Unit '+(idx+1)+': '+(e.tag||'U'+e.id)+'  |  '+(e.type||'—')+'  |  '+(e.manuf||'')+(e.model?' '+e.model:''),18,y+11);
+    doc.text('Unit '+(idx+1)+': '+(e.tag||'U'+e.id)+'  |  '+(e.type||'\u2014')+'  |  '+(e.manuf||'')+(e.model?' '+e.model:''),18,y+11);
     if(e.ov){doc.setTextColor(bc[0],bc[1],bc[2]);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.text(e.ov.toUpperCase(),W-18,y+11,{align:'right'});}
     y+=18;
     // Info grid
     doc.setFillColor(245,248,252);doc.rect(14,y,W-28,44,'F');doc.setDrawColor(200,210,225);doc.rect(14,y,W-28,44,'S');
     var gw=(W-28)/3;
     var gfields=[
-      ['Serial #',e.serial||'—'],['Tonnage',e.tonnage||'—'],['Age/Year',e.age||'—'],
-      ['Area Served',e.area||'—'],
-      ['Filter 1',(e.f1q?e.f1q+'x ':'')+(e.f1s||'—')],
+      ['Serial #',e.serial||'\u2014'],['Tonnage',e.tonnage||'\u2014'],['Age/Year',e.age||'\u2014'],
+      ['Area Served',e.area||'\u2014'],
+      ['Filter 1',(e.f1q?e.f1q+'x ':'')+(e.f1s||'\u2014')],
       ['Filter 2',e.f2q||e.f2s?(e.f2q?e.f2q+'x ':''+(e.f2s||'')):'-'],
-      ['Belt Qty',e.bq||'—'],['Belt Size',e.bs||'—'],['Condition',e.ov?e.ov.charAt(0).toUpperCase()+e.ov.slice(1):'Not assessed']
+      ['Belt Qty',e.bq||'\u2014'],['Belt Size',e.bs||'\u2014'],['Condition',e.ov?e.ov.charAt(0).toUpperCase()+e.ov.slice(1):'Not assessed']
     ];
     for(var gi=0;gi<gfields.length;gi++){
       var gx=14+(gi%3)*gw,gy=y+3+(Math.floor(gi/3)*15);
@@ -1629,7 +1633,7 @@ function dlSiteRecord(){
       for(var ni=0;ni<Math.min(nl.length,5);ni++){doc.text(nl[ni],18,y+8+ni*11);}
       y+=nh+4;
     }
-    // Photos — 2-up grid
+    // Photos \u2014 2-up grid
     if(e.photos&&e.photos.length){
       var pw=(W-36)/2,ph=pw*0.72;
       var pcol=0;
@@ -1651,7 +1655,7 @@ function dlSiteRecord(){
   // Footer
   doc.setFillColor(27,58,107);doc.rect(0,H-18,W,18,'F');
   doc.setTextColor(160,186,210);doc.setFont('helvetica','normal');doc.setFontSize(6.5);
-  doc.text('NTD Mechanical  |  TACLA65973C  |  INTERNAL DOCUMENT — NOT FOR DISTRIBUTION',W/2,H-5,{align:'center'});
+  doc.text('NTD Mechanical  |  TACLA65973C  |  INTERNAL DOCUMENT \u2014 NOT FOR DISTRIBUTION',W/2,H-5,{align:'center'});
   var blob=doc.output('blob');var url=URL.createObjectURL(blob);
   window.open(url,'_blank');setTimeout(function(){URL.revokeObjectURL(url);},60000);
 }
@@ -1842,7 +1846,7 @@ function sqRenderItems(){
   b.innerHTML='';
   var vis=sqItems.filter(function(it){return it.type!=='L';});
   if(!vis.length){
-    b.innerHTML='<div style="color:var(--mu);font-size:13px;padding:12px 0;text-align:center">No items yet — use presets or add custom</div>';
+    b.innerHTML='<div style="color:var(--mu);font-size:13px;padding:12px 0;text-align:center">No items yet \u2014 use presets or add custom</div>';
     return;
   }
   sqItems.forEach(function(item,i){
@@ -1928,7 +1932,7 @@ function sqGeneratePDF(){
   doc.text('Texas Engineering Firm F-27189',W-M,38,{align:'right'});
   doc.setFillColor(NV[0],NV[1],NV[2]);doc.rect(M+60,28,IW-60,24,'F');
   doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(255,255,255);
-  doc.text('NTD MECHANICAL — SERVICE PROPOSAL',M+66,44);
+  doc.text('NTD MECHANICAL \u2014 SERVICE PROPOSAL',M+66,44);
   var y=78;
   var customer=document.getElementById('sq-customer').value||gv('sf')||'___________________________';
   var address=document.getElementById('sq-address').value||[gv('sa'),gv('sct')].filter(Boolean).join(', ')||'';
