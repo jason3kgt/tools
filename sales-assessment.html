@@ -1273,8 +1273,9 @@ function pmGenPDF(){
   doc.text('The following equipment is covered under this agreement. Model and serial numbers will be verified and updated upon completion of the first scheduled PM visit.',M,y);
   y+=12;
   // Table header
-  var ecols=[M,M+38,M+110,M+200,M+340,M+460];
-  var ehdrs=['Qty','Unit Type','Make','Model Number','Serial Number',''];
+  var showCompNTE=pmPlans.comp;
+  var ecols=showCompNTE?[M,M+32,M+95,M+185,M+310,M+415,M+475]:[M,M+38,M+110,M+200,M+340,M+460];
+  var ehdrs=showCompNTE?['Qty','Unit Type','Make','Model Number','Serial Number','NTE/Qtr','']:['Qty','Unit Type','Make','Model Number','Serial Number',''];
   doc.setFillColor(NV[0],NV[1],NV[2]);doc.rect(M,y,IW,13,'F');
   doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(255,255,255);
   ehdrs.forEach(function(h,i){doc.text(h,ecols[i]+2,y+9);});y+=14;
@@ -1292,8 +1293,13 @@ function pmGenPDF(){
     doc.text(String(qty),ecols[0]+2,y+9);
     doc.text((u.type||'').substring(0,18),ecols[1]+2,y+9);
     doc.text((matchEq.manuf||'').substring(0,14),ecols[2]+2,y+9);
-    doc.text((matchEq.model||'').substring(0,18),ecols[3]+2,y+9);
-    doc.text((matchEq.serial||'').substring(0,16),ecols[4]+2,y+9);
+    doc.text((matchEq.model||'').substring(0,16),ecols[3]+2,y+9);
+    doc.text((matchEq.serial||'').substring(0,14),ecols[4]+2,y+9);
+    if(showCompNTE){
+      doc.setFont('helvetica','bold');doc.setTextColor(OR[0],OR[1],OR[2]);
+      doc.text(pmFmt(parseFloat(u.nte)||0),ecols[5]+2,y+9);
+      doc.setFont('helvetica','normal');doc.setTextColor(0,0,0);
+    }
     y+=14;
   });
   // Add blank rows to fill to at least 20 rows
