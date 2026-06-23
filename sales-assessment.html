@@ -1257,7 +1257,7 @@ function pmGenPDF(){
   doc.text(iLines,M,y);y+=iLines.length*10+8;
 
   // Equipment table
-  y=secHdr(doc,y,'EQUIPMENT TO BE SERVICED');
+  y=secHdr(doc,y,'EQUIPMENT TO BE SERVICED');y+=6;
   doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(50,50,50);
   doc.text('The following equipment is covered under this agreement. Model and serial numbers will be verified and updated upon completion of the first scheduled PM visit.',M,y);
   y+=12;
@@ -1277,11 +1277,12 @@ function pmGenPDF(){
     doc.setFillColor(bg[0],bg[1],bg[2]);doc.rect(M,y,IW,13,'F');
     doc.setDrawColor(220,228,238);doc.rect(M,y,IW,13,'S');
     doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(0,0,0);
+    var matchEq=eqs.find(function(e){return e.tag===u.tag;})||{};
     doc.text(String(qty),ecols[0]+2,y+9);
     doc.text((u.type||'').substring(0,18),ecols[1]+2,y+9);
-    doc.text('',ecols[2]+2,y+9);
-    doc.text('',ecols[3]+2,y+9);
-    doc.text('',ecols[4]+2,y+9);
+    doc.text((matchEq.manuf||'').substring(0,14),ecols[2]+2,y+9);
+    doc.text((matchEq.model||'').substring(0,18),ecols[3]+2,y+9);
+    doc.text((matchEq.serial||'').substring(0,16),ecols[4]+2,y+9);
     y+=14;
   });
   // Add blank rows to fill to at least 20 rows
@@ -1300,7 +1301,7 @@ function pmGenPDF(){
   // ═══════════════════════════════════════════════════
   doc.addPage();
   y=pgHdr(doc,'PREVENTIVE MAINTENANCE SERVICE AGREEMENT  |  Per Selected Plan(s)  |  '+pmFreq+' Scheduled Maintenance');
-  y=secHdr(doc,y,'SCOPE OF MAINTENANCE');
+  y=secHdr(doc,y,'SCOPE OF MAINTENANCE');y+=6;
   doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(50,50,50);
   doc.text('This agreement provides four (4) preventive maintenance visits per calendar year, completed on a quarterly basis. The scope of work for each seasonal visit is detailed below.',M,y,{maxWidth:IW});
   y+=18;
@@ -1383,7 +1384,7 @@ function pmGenPDF(){
   y=pgHdr(doc,'PREVENTIVE MAINTENANCE SERVICE AGREEMENT  |  Per Selected Plan(s)  |  '+pmFreq+' Scheduled Maintenance');
 
   // Selected Plans
-  y=secHdr(doc,y,'SELECTED PLAN(S)');
+  y=secHdr(doc,y,'SELECTED PLAN(S)');y+=6;
   doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(60,60,60);
   doc.text('NTD shall perform services under the plan(s) marked below. Items not selected remain available as separately quoted add-on services.',M,y,{maxWidth:IW});y+=14;
   // Plans table header
@@ -1416,19 +1417,19 @@ function pmGenPDF(){
   });
 
   // Pricing & Billing
-  y+=8;y=secHdr(doc,y,'PRICING & BILLING');
+  y+=8;y=secHdr(doc,y,'PRICING & BILLING');y+=6;
   var qtr=totalAnnual/4,mo=totalAnnual/12;
   var pRows=[
     ['Annual Agreement Price',pmFmt(totalAnnual),'Quarterly Billing Increment',pmFmt(qtr)],
   ];
   pRows.forEach(function(r){
-    doc.setFillColor(240,245,252);doc.rect(M,y,IW/2-2,16,'F');doc.rect(M+IW/2+2,y,IW/2-2,16,'F');
-    doc.setDrawColor(210,220,230);doc.rect(M,y,IW/2-2,16,'S');doc.rect(M+IW/2+2,y,IW/2-2,16,'S');
+    doc.setFillColor(240,245,252);doc.rect(M,y,IW/2-2,28,'F');doc.rect(M+IW/2+2,y,IW/2-2,28,'F');
+    doc.setDrawColor(210,220,230);doc.rect(M,y,IW/2-2,28,'S');doc.rect(M+IW/2+2,y,IW/2-2,28,'S');
     doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(NV[0],NV[1],NV[2]);
-    doc.text(r[0],M+4,y+6);doc.text(r[2],M+IW/2+6,y+6);
-    doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(OR[0],OR[1],OR[2]);
-    doc.text(r[1],M+4,y+14);doc.text(r[3],M+IW/2+6,y+14);
-    y+=18;
+    doc.text(r[0],M+4,y+9);doc.text(r[2],M+IW/2+6,y+9);
+    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(OR[0],OR[1],OR[2]);
+    doc.text(r[1],M+4,y+23);doc.text(r[3],M+IW/2+6,y+23);
+    y+=30;
   });
   y+=4;
   doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(NV[0],NV[1],NV[2]);doc.text('Billing Terms',M,y);y+=10;
@@ -1440,13 +1441,13 @@ function pmGenPDF(){
   doc.text('After Hours, Weekends & Federal Holidays: $125.00 per hour',M,y);y+=14;
 
   // Exclusions
-  y=secHdr(doc,y,'EXCLUSIONS');
+  y=secHdr(doc,y,'EXCLUSIONS');y+=6;
   doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(40,40,40);
     var excl='This agreement does not cover any maintenance or repairs not described in the Scope of Maintenance above. Exclusions include, but are not limited to: water distribution systems, refrigerant piping and leak repairs, drain systems beyond standard condensate line maintenance, HEPA filters and pre-filters, ductwork, VAV boxes and fan-powered boxes, control dampers, humidifier components, and any equipment not listed in the Equipment to be Serviced section. Coil cleaning beyond visual inspection is excluded from standard plan pricing and is available as a separately quoted billable service. Refrigerant is not included unless specifically noted.';
   var exclL=doc.splitTextToSize(excl,IW);doc.text(exclL,M,y);y+=exclL.length*9+8;
 
   // T&C
-  y=secHdr(doc,y,'TERMS & CONDITIONS');
+  y=secHdr(doc,y,'TERMS & CONDITIONS');y+=6;
   var tcs=[
     ['1. Scope of Work & Inspections','Work limited to signed scope. NTD provides a written inspection report after each visit — work performed, deficiencies, condition scores, and recommended repairs. No verbal agreements expand scope. Change orders require written approval.'],
     ['2. Customer Responsibilities','Customer shall: (a) operate equipment per manufacturer specs; (b) report unusual conditions promptly; (c) provide safe access; (d) not relocate equipment without written notice; (e) allow NTD to start/stop equipment; (f) not allow third-party repairs — unauthorized work voids warranties. Non-transferable.'],
@@ -1487,7 +1488,7 @@ function pmGenPDF(){
   // ═══════════════════════════════════════════════════
   doc.addPage();
   y=pgHdr(doc,'PREVENTIVE MAINTENANCE SERVICE AGREEMENT  |  Per Selected Plan(s)  |  '+pmFreq+' Scheduled Maintenance');
-  y=secHdr(doc,y,'AGREEMENT EXECUTION');
+  y=secHdr(doc,y,'AGREEMENT EXECUTION');y+=8;
 
   // Preamble
   doc.setFont('helvetica','italic');doc.setFontSize(8);doc.setTextColor(50,50,50);
