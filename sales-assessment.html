@@ -1405,7 +1405,7 @@ function pmGenPDF(){
   var planDescs={
     mat:{name:'Materials Included',desc:'All materials and supplies required to perform scheduled maintenance — including filters, belts, lubricants, algaecide, and cleaning supplies — are included unless otherwise stated.'},
     coil:{name:'In-Depth Coil Cleaning',desc:'Annual condenser and evaporator coil cleaning, all materials and labor. Available as an add-on or separate billable service.'},
-    comp:{name:'Replacement Components',desc:'Repair and replacement of maintainable components within an agreed Not-To-Exceed (NTE) price per quarter.'},
+    comp:{name:'Replacement Components (NTE)',desc:'Repair and replacement of maintainable field components within an agreed Not-To-Exceed (NTE) amount per unit, per quarter. Covered components include capacitors, contactors, igniters, basic sensors, minor wiring repairs, wire nuts, and standard truck stock items. Compressors, coils, heat exchangers, refrigerant, and any component requiring specialized equipment or subcontractors are excluded and will be quoted separately. If a repair is estimated to exceed the unit\'s quarterly NTE, NTD will stop work, notify the customer, and obtain written approval before proceeding. Any work authorized beyond the NTE will be invoiced at the standard PM contract rate of $115.00 per hour for labor plus materials. Unused NTE does not roll over — it resets each quarter. NTE amounts are per unit and non-transferable between units. NTD will document all components replaced under this plan on the visit report provided after each scheduled maintenance visit.'},
   };
   ['mat','coil','comp'].forEach(function(key,idx){
     var pd=planDescs[key];var sel=pmPlans[key];
@@ -1447,8 +1447,8 @@ function pmGenPDF(){
   doc.text('Payment is due upon completion of each quarterly maintenance visit unless alternate payment arrangements have been established in writing prior to the signing of this agreement.',M,y,{maxWidth:IW});y+=16;
   doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(NV[0],NV[1],NV[2]);doc.text('Service Call Rates for PM Contract Customers:',M,y);y+=10;
   doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(40,40,40);
-  doc.text('Regular Hours (Mon–Fri, 7:00am–3:30pm): $105.00 per hour',M,y);y+=9;
-  doc.text('After Hours, Weekends & Federal Holidays: $125.00 per hour',M,y);y+=14;
+  doc.text('Regular Hours (Mon–Fri, 7:00am–3:30pm): $115.00 per hour',M,y);y+=9;
+  doc.text('After Hours, Weekends & Federal Holidays: $145.00 per hour',M,y);y+=14;
 
   // Exclusions
   y=secHdr(doc,y,'EXCLUSIONS');y+=6;
@@ -1463,7 +1463,7 @@ function pmGenPDF(){
     ['2. Customer Responsibilities','Customer shall: (a) operate equipment per manufacturer specs; (b) report unusual conditions promptly; (c) provide safe access; (d) not relocate equipment without written notice; (e) allow NTD to start/stop equipment; (f) not allow third-party repairs — unauthorized work voids warranties. Non-transferable.'],
     ['3. Condensate & DFW Climate','NTD flushes drain lines and treats with algaecide each visit. DFW dew points regularly exceed 70°F. NTD is NOT liable for water damage from normal condensation, drain overflow between visits, or pre-existing moisture damage. Customer must maintain insulation and report water staining immediately.'],
     ['4. Pricing & Payment','Payment due upon completion of each quarterly visit. Finance charges 1.5%/month (18% APR) on past-due balances. Disputed invoices must be raised in writing within 10 business days. Customer responsible for permit fees, parking, and site access costs.'],
-    ['5. Service Hours & Rates','Standard hours: Mon–Fri, 7:00am–3:30pm (excl. Federal Holidays). PM Contract rates: Normal $105.00/hr | After-hours, nights, weekends & holidays $125.00/hr.'],
+    ['5. Service Hours & Rates','Standard hours: Mon–Fri, 7:00am–3:30pm (excl. Federal Holidays). PM Contract rates: Normal $115.00/hr | After-hours, nights, weekends & holidays $145.00/hr.'],
     ['6. Warranties','Labor warranty: 90 days from service date on work directly performed by NTD. Void if third party modifies covered equipment. Parts carry manufacturer warranty only. NO IMPLIED WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.'],
     ['7. Limitation of Liability','NTD liability limited to direct damage caused solely by NTD negligence. NOT liable for: consequential damages; equipment damage from misuse, acts of God, or power failures; mold; building contents; future code changes; or pre-existing conditions. Max liability = fees paid or 12 months of PM fees.'],
     ['8. Mold & Air Quality','NTD does not perform mold testing or remediation. Not liable for mold, health effects, or air quality issues regardless of moisture source. When mold is observed it will be documented and Customer notified. Remediation is Customer\'s sole responsibility.'],
@@ -1506,7 +1506,7 @@ function pmGenPDF(){
   var epLines=doc.splitTextToSize(execPre,IW);doc.text(epLines,M,y);y+=epLines.length*10+10;
 
   // Customer ack box
-  var ackItems=['✓ Condensate disclaimer (Sec. 3)','✓ Billing rates $105/$125/hr (Sec. 5)','✓ Liability cap (Sec. 7)','✓ Cancellation terms (Sec. 10)','✓ Non-transferable'];
+  var ackItems=['✓ Condensate disclaimer (Sec. 3)','✓ Billing rates $115/$145/hr (Sec. 5)','✓ Liability cap (Sec. 7)','✓ Cancellation terms (Sec. 10)','✓ Non-transferable'];
   var ackH=14+ackItems.length*11+6;
   doc.setFillColor(232,240,252);doc.rect(M,y,IW,ackH,'F');doc.setDrawColor(180,200,230);doc.rect(M,y,IW,ackH,'S');
   doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(NV[0],NV[1],NV[2]);
