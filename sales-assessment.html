@@ -1188,61 +1188,349 @@ document.getElementById('sq-add-custom-btn').addEventListener('click',sqAddCusto
 function pmGenPDF(){
   var {jsPDF}=window.jspdf;
   var doc=new jsPDF({orientation:'portrait',unit:'pt',format:'letter'});
-  var NV=[27,58,107],OR=[232,83,26];
-  var W=612,M=40,IW=W-M*2;
-  doc.setFillColor(NV[0],NV[1],NV[2]);doc.rect(M,30,IW,28,'F');
-  doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(255,255,255);
-  doc.text('NTD MECHANICAL — PREVENTIVE MAINTENANCE PROPOSAL',M+8,49);
-  doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(100,100,100);
-  doc.text('TACLA65973C  |  North Texas Ductworks LLC  |  2477 Merritt Dr, Garland TX 75041  |  469-323-0454  |  ntdmechanical.com',M,72);
-  var y=90;
-  var fields=[['Submitted To:',gv('sf')],['Date:',gv('pm-agr-date')],['Address:',[gv('sa'),gv('sct')].filter(Boolean).join(', ')],['Attention:',gv('pm-attn')||gv('scn')],['Agreement #:',gv('pm-agr-num')]];
-  fields.forEach(function(f,i){
-    doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(NV[0],NV[1],NV[2]);doc.text(f[0],M,y+i*16);
-    doc.setFont('helvetica','normal');doc.setTextColor(0,0,0);doc.text(f[1]||'-',M+80,y+i*16);
-  });
-  y+=fields.length*16+6;
-  var selPlanNames=PM_PLANS.filter(function(p){return pmPlans[p.key];}).map(function(p){return p.label.replace(/\n/g,' ');});
-  if(selPlanNames.length){
-    doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(NV[0],NV[1],NV[2]);doc.text('Selected Plan(s):',M,y);
-    doc.setFont('helvetica','normal');doc.setTextColor(0,0,0);doc.text(selPlanNames.join('  |  '),M+78,y);y+=14;
+  var NV=[27,58,107],OR=[232,83,26],ST=[46,95,138];
+  var W=612,M=36,IW=W-M*2;
+  var H=792;
+
+  // ── helpers ──────────────────────────────────────────────
+  function secHdr(doc,y,label,col){
+    col=col||NV;
+    doc.setFillColor(col[0],col[1],col[2]);doc.rect(M,y,IW,14,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(255,255,255);
+    doc.text(label,M+4,y+10);return y+16;
   }
-  doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(NV[0],NV[1],NV[2]);doc.text('Service Frequency:',M,y);
-  doc.setFont('helvetica','normal');doc.setTextColor(0,0,0);doc.text(pmFreq+' ('+(pmFreq==='Monthly'?'12':'4')+' visits/year)',M+92,y);y+=20;
-  // Table
-  doc.setFillColor(NV[0],NV[1],NV[2]);doc.rect(M,y,IW,16,'F');
-  doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(255,255,255);
-  var cols=[M+4,M+30,M+90,M+310,M+350,M+435];
-  ['#','Tag','Unit Type','Qty','Rate/Visit','Annual'].forEach(function(h,i){doc.text(h,cols[i],y+11);});y+=17;
+  function pgFtr(doc,pg,tot){
+    doc.setFillColor(NV[0],NV[1],NV[2]);doc.rect(0,H-20,W,20,'F');
+    doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(180,196,220);
+    doc.text('NTD Mechanical  |  TACLA65973C  |  North Texas Ductworks LLC  |  ntdmechanical.com  |  214-785-2129',W/2,H-6,{align:'center'});
+    doc.setTextColor(255,255,255);doc.text('Page '+pg+' of '+tot,W-M,H-6,{align:'right'});
+  }
+  function pgHdr(doc,sub){
+    try{doc.addImage(LG,'PNG',M,10,52,44);}catch(e){}
+    doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(NV[0],NV[1],NV[2]);
+    doc.text('NTD Mechanical',M+60,26);
+    doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(80,80,80);
+    doc.text('North Texas Ductworks LLC dba NTD Mechanical  |  HVAC & Refrigeration Service',M+60,37);
+    doc.text('License: TACLA65973C  |  2477 Merritt Dr. Garland, TX 75041  |  Service: 214-785-2129  |  Office: 469-323-0454  |  ntdmechanical.com',M+60,47);
+    doc.setFillColor(OR[0],OR[1],OR[2]);doc.rect(M,56,IW,2,'F');
+    doc.setFillColor(NV[0],NV[1],NV[2]);doc.rect(M,60,IW,16,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(255,255,255);
+    doc.text(sub||'PREVENTIVE MAINTENANCE SERVICE AGREEMENT  |  Per Selected Plan(s)  |  '+pmFreq+' Scheduled Maintenance',M+4,71);
+    return 82;
+  }
+
+  // ═══════════════════════════════════════════════════
+  // PAGE 1 — Customer Info + Equipment Table
+  // ═══════════════════════════════════════════════════
+  var y=pgHdr(doc,'PREVENTIVE MAINTENANCE SERVICE AGREEMENT  |  Per Selected Plan(s)  |  '+pmFreq+' Scheduled Maintenance');
+
+  // Customer info box
+  y=secHdr(doc,y,'CUSTOMER & AGREEMENT INFORMATION');
+  var ciFields=[
+    ['Renewal Date',gv('pm-renewal'),'Agreement #',gv('pm-agr-num')],
+    ['Customer',gv('sf'),'',''],
+    ['Service Address',[gv('sa'),gv('sct')].filter(Boolean).join(', '),'',''],
+    ['Attention',gv('pm-attn')||gv('scn'),'',''],
+    ['NTD Contact','Jason Ezell  |  945-346-7443  |  jezell@ntdmechanical.com','',''],
+  ];
+  ciFields.forEach(function(r){
+    doc.setFillColor(240,245,252);doc.rect(M,y,IW,14,'F');
+    doc.setDrawColor(210,220,230);doc.rect(M,y,IW,14,'S');
+    doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(NV[0],NV[1],NV[2]);
+    doc.text(r[0],M+3,y+10);
+    doc.setFont('helvetica','normal');doc.setTextColor(0,0,0);doc.setFontSize(8.5);
+    doc.text(r[1]||'',M+80,y+10);
+    if(r[2]){
+      doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(NV[0],NV[1],NV[2]);
+      doc.text(r[2],M+IW/2,y+10);
+      doc.setFont('helvetica','normal');doc.setTextColor(0,0,0);doc.setFontSize(8.5);
+      doc.text(r[3]||'',M+IW/2+70,y+10);
+    }
+    y+=15;
+  });
+
+  // Intro text
+  y+=6;
+  doc.setFont('helvetica','italic');doc.setFontSize(8);doc.setTextColor(60,60,60);
+    var intro='North Texas Ductworks LLC dba NTD Mechanical agrees to furnish services in accordance with the general terms and conditions and all attached scope of maintenance schedules outlined in this agreement. This agreement becomes valid upon execution by both parties. Model and serial numbers will be confirmed and updated upon completion of the first scheduled PM visit.';
+  var iLines=doc.splitTextToSize(intro,IW);
+  doc.text(iLines,M,y);y+=iLines.length*10+8;
+
+  // Equipment table
+  y=secHdr(doc,y,'EQUIPMENT TO BE SERVICED');
+  doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(50,50,50);
+  doc.text('The following equipment is covered under this agreement. Model and serial numbers will be verified and updated upon completion of the first scheduled PM visit.',M,y);
+  y+=12;
+  // Table header
+  var ecols=[M,M+38,M+110,M+200,M+340,M+460];
+  var ehdrs=['Qty','Unit Type','Make','Model Number','Serial Number',''];
+  doc.setFillColor(NV[0],NV[1],NV[2]);doc.rect(M,y,IW,13,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(255,255,255);
+  ehdrs.forEach(function(h,i){doc.text(h,ecols[i]+2,y+9);});y+=14;
   var vis=pmFreq==='Monthly'?12:4,totalAnnual=0;
-  pmUnits.forEach(function(u,idx){
-    if(!u.type)return;
+  var eqRows=pmUnits.filter(function(u){return u.type;});
+  eqRows.forEach(function(u,idx){
+    if(y>710){doc.addPage();pgFtr(doc,1,4);y=30;}
     var rate=pmGetRate(u.type),matA=pmGetMatAddon(u),qty=parseFloat(u.qty)||1;
-    var rpv=(rate+matA)*qty,ann=rpv*vis;totalAnnual+=ann;
-    if(idx%2===0){doc.setFillColor(240,245,252);doc.rect(M,y,IW,14,'F');}
+    totalAnnual+=(rate+matA)*qty*vis;
+    var bg=idx%2===0?[248,251,255]:[255,255,255];
+    doc.setFillColor(bg[0],bg[1],bg[2]);doc.rect(M,y,IW,13,'F');
+    doc.setDrawColor(220,228,238);doc.rect(M,y,IW,13,'S');
     doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(0,0,0);
-    doc.text(String(idx+1),cols[0],y+10);
-    doc.text((u.tag||'').substring(0,12),cols[1],y+10);
-    doc.text((u.type||'').substring(0,36),cols[2],y+10);
-    doc.text(String(qty),cols[3],y+10);
-    doc.text(pmFmt(rpv),cols[4],y+10);
-    doc.setFont('helvetica','bold');doc.text(pmFmt(ann),cols[5],y+10);y+=14;
-    if(y>680){doc.addPage();y=40;}
-  });y+=10;
-  doc.setFillColor(NV[0],NV[1],NV[2]);doc.rect(M,y,IW,14,'F');
-  doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(255,255,255);
-  doc.text('TOTAL ANNUAL PM PRICE:',M+8,y+10);doc.text(pmFmt(totalAnnual),W-M-8,y+10,{align:'right'});y+=15;
-  doc.setFillColor(232,247,232);doc.rect(M,y,IW/2-2,14,'F');
-  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(0,0,0);
-  doc.text('Quarterly Billing: '+pmFmt(totalAnnual/4),M+8,y+10);
-  doc.setFillColor(232,247,232);doc.rect(M+IW/2+2,y,IW/2-2,14,'F');
-  doc.text('Monthly Billing: '+pmFmt(totalAnnual/12),M+IW/2+10,y+10);y+=30;
-  // Signature block
-  doc.setFontSize(8);doc.setTextColor(0,0,0);doc.setFont('helvetica','normal');
-  doc.text('Submitted by:',M,y);doc.setFont('helvetica','bold');doc.text('Jason Ezell  |  Outside Service Sales  |  (945) 346-7443  |  jezell@ntdmechanical.com',M+58,y);y+=16;
-  doc.setFontSize(7.5);doc.setTextColor(120,120,120);doc.setFont('helvetica','italic');
-  doc.text('This proposal is valid for 30 days. Pricing based on current rates and '+pmFreq.toLowerCase()+' service frequency.',M,y);
-  doc.text('All materials for included plans are at current market cost. Regulated by TDLR. TACLA65973C.',M,y+10);
+    doc.text(String(qty),ecols[0]+2,y+9);
+    doc.text((u.type||'').substring(0,18),ecols[1]+2,y+9);
+    doc.text('',ecols[2]+2,y+9);
+    doc.text('',ecols[3]+2,y+9);
+    doc.text('',ecols[4]+2,y+9);
+    y+=14;
+  });
+  // Add blank rows to fill to at least 20 rows
+  var blanksNeeded=Math.max(0,20-eqRows.length);
+  for(var bi=0;bi<blanksNeeded;bi++){
+    var bg2=((eqRows.length+bi)%2===0)?[248,251,255]:[255,255,255];
+    doc.setFillColor(bg2[0],bg2[1],bg2[2]);doc.rect(M,y,IW,13,'F');
+    doc.setDrawColor(220,228,238);doc.rect(M,y,IW,13,'S');
+    y+=14;
+  }
+
+  pgFtr(doc,1,4);
+
+  // ═══════════════════════════════════════════════════
+  // PAGE 2 — Scope of Maintenance
+  // ═══════════════════════════════════════════════════
+  doc.addPage();
+  y=pgHdr(doc,'PREVENTIVE MAINTENANCE SERVICE AGREEMENT  |  Per Selected Plan(s)  |  '+pmFreq+' Scheduled Maintenance');
+  y=secHdr(doc,y,'SCOPE OF MAINTENANCE');
+  doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(50,50,50);
+  doc.text('This agreement provides four (4) preventive maintenance visits per calendar year, completed on a quarterly basis. The scope of work for each seasonal visit is detailed below.',M,y,{maxWidth:IW});
+  y+=18;
+
+  var seasons=[
+    {name:'Spring',items:[
+      'Replace all filters with MERV 8 pleated media',
+      'Check and tighten all electrical connections; clean electrical compartments',
+      'Full condition assessment — record volts, amps, refrigerant pressures; compare to nameplate data',
+      'Inspect and clean indoor blower; annual belt inspection and replacement as needed',
+      'Blow out condensate drain lines and treat with algaecide; clean drain pans',
+      'Inspect condenser and evaporator coils; note fouling condition',
+      'Inspect for refrigerant leaks (visual)',
+      'Inspect all safety controls (cooling)',
+      'Inspect electrical disconnect',
+      'Verify thermostat operation',
+    ]},
+    {name:'Summer',items:[
+      'Replace all filters with MERV 8 pleated media',
+      'Check and tighten all electrical connections; clean electrical compartments',
+      'Full condition assessment — record volts, amps, refrigerant pressures; compare to nameplate data',
+      'Inspect and clean indoor blower components',
+      'Blow out condensate drain lines and treat with algaecide; clean drain pans',
+      'Inspect condenser and evaporator coils; note fouling condition',
+      'Inspect for refrigerant leaks (visual)',
+      'Inspect all safety controls (cooling)',
+      'Inspect electrical disconnect',
+      'Verify thermostat operation',
+    ]},
+    {name:'Fall',items:[
+      'Replace all filters with MERV 8 pleated media',
+      'Clean and adjust ignition and burner assembly (gas units)',
+      'Check and clean heat exchanger; inspect for cracks (gas units)',
+      'Sequence electric heat; check and record amp draws (electric units)',
+      'Inspect and clean indoor blower components',
+      'Check and tighten all electrical connections; clean electrical compartments',
+      'Blow out condensate drain lines and treat with algaecide; clean drain pans',
+      'Verify thermostat operation (heating and cooling)',
+    ]},
+    {name:'Winter',items:[
+      'Replace all filters with MERV 8 pleated media',
+      'Clean and adjust ignition and burner assembly (gas units)',
+      'Inspect and clean indoor blower components',
+      'Check and tighten all electrical connections; clean electrical compartments',
+      'Blow out condensate drain lines and treat with algaecide; clean drain pans',
+      'Verify thermostat operation (heating and cooling)',
+    ]},
+  ];
+
+  var colW=IW/2-4;
+  for(var si=0;si<seasons.length;si+=2){
+    var s1=seasons[si],s2=seasons[si+1];
+    var x1=M,x2=M+colW+8;
+    // Season header bars
+    doc.setFillColor(ST[0],ST[1],ST[2]);doc.rect(x1,y,colW,13,'F');
+    if(s2){doc.setFillColor(ST[0],ST[1],ST[2]);doc.rect(x2,y,colW,13,'F');}
+    doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(255,255,255);
+    doc.text(s1.name,x1+4,y+9);
+    if(s2)doc.text(s2.name,x2+4,y+9);
+    y+=15;
+    var maxItems=Math.max(s1.items.length,s2?s2.items.length:0);
+    for(var ii=0;ii<maxItems;ii++){
+      var rowH=13;
+      if(ii%2===0){doc.setFillColor(245,248,252);}else{doc.setFillColor(255,255,255);}
+      doc.rect(x1,y,colW,rowH,'F');if(s2)doc.rect(x2,y,colW,rowH,'F');
+      doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(30,30,30);
+      if(s1.items[ii])doc.text('• '+s1.items[ii],x1+4,y+9,{maxWidth:colW-6});
+      if(s2&&s2.items[ii])doc.text('• '+s2.items[ii],x2+4,y+9,{maxWidth:colW-6});
+      y+=rowH;
+    }
+    y+=10;
+  }
+
+  pgFtr(doc,2,4);
+
+  // ═══════════════════════════════════════════════════
+  // PAGE 3 — Plans + Pricing + Exclusions + T&C
+  // ═══════════════════════════════════════════════════
+  doc.addPage();
+  y=pgHdr(doc,'PREVENTIVE MAINTENANCE SERVICE AGREEMENT  |  Per Selected Plan(s)  |  '+pmFreq+' Scheduled Maintenance');
+
+  // Selected Plans
+  y=secHdr(doc,y,'SELECTED PLAN(S)');
+  doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(60,60,60);
+  doc.text('NTD shall perform services under the plan(s) marked below. Items not selected remain available as separately quoted add-on services.',M,y,{maxWidth:IW});y+=14;
+  // Plans table header
+  doc.setFillColor(220,228,240);doc.rect(M,y,30,13,'F');doc.rect(M+30,y,80,13,'F');doc.rect(M+110,y,IW-110,13,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(NV[0],NV[1],NV[2]);
+  doc.text('Selected',M+2,y+9);doc.text('Plan',M+32,y+9);doc.text('Description',M+112,y+9);y+=14;
+  var planDescs={
+    tm:{name:'Time & Material',desc:'All materials, labor, and supplies invoiced upon completion of each scheduled maintenance visit.'},
+    mat:{name:'Materials Included',desc:'All materials and supplies required to perform scheduled maintenance — including filters, belts, lubricants, algaecide, and cleaning supplies — are included unless otherwise stated.'},
+    lab:{name:'Labor Included',desc:'All job and travel labor to perform planned and routine preventive maintenance tasks is included.'},
+    coil:{name:'In-Depth Coil Cleaning',desc:'Annual condenser and evaporator coil cleaning, all materials and labor. Available as an add-on or separate billable service.'},
+    comp:{name:'Replacement Components',desc:'Repair and replacement of maintainable components within an agreed Not-To-Exceed (NTE) price per quarter.'},
+    full:{name:'Full Protection Plan',desc:'All materials, labor, and parts included. NTD maintains equipment to industry and factory standards. Once equipment condition is deemed poor and can no longer be maintained at a fair status, it shall be removed from Full Protection coverage until replaced at the customer\'s cost.'},
+  };
+  ['tm','mat','lab','coil','comp','full'].forEach(function(key,idx){
+    var pd=planDescs[key];var sel=pmPlans[key];
+    var bg=idx%2===0?[248,251,255]:[255,255,255];
+    var descLines=doc.splitTextToSize(pd.desc,IW-116);
+    var rh=Math.max(14,descLines.length*9+5);
+    doc.setFillColor(bg[0],bg[1],bg[2]);doc.rect(M,y,IW,rh,'F');
+    doc.setDrawColor(215,225,238);doc.rect(M,y,IW,rh,'S');
+    // Checkbox
+    doc.setDrawColor(NV[0],NV[1],NV[2]);doc.rect(M+8,y+rh/2-5,10,10,'S');
+    if(sel){doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(NV[0],NV[1],NV[2]);doc.text('X',M+9.5,y+rh/2+4);}
+    doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(NV[0],NV[1],NV[2]);
+    doc.text(pd.name,M+32,y+rh/2+3);
+    doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(40,40,40);
+    doc.text(descLines,M+112,y+8);
+    y+=rh;
+  });
+
+  // Pricing & Billing
+  y+=8;y=secHdr(doc,y,'PRICING & BILLING');
+  var qtr=totalAnnual/4,mo=totalAnnual/12;
+  var pRows=[
+    ['Annual Agreement Price',pmFmt(totalAnnual),'Quarterly Billing Increment',pmFmt(qtr)],
+  ];
+  pRows.forEach(function(r){
+    doc.setFillColor(240,245,252);doc.rect(M,y,IW/2-2,16,'F');doc.rect(M+IW/2+2,y,IW/2-2,16,'F');
+    doc.setDrawColor(210,220,230);doc.rect(M,y,IW/2-2,16,'S');doc.rect(M+IW/2+2,y,IW/2-2,16,'S');
+    doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(NV[0],NV[1],NV[2]);
+    doc.text(r[0],M+4,y+6);doc.text(r[2],M+IW/2+6,y+6);
+    doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(OR[0],OR[1],OR[2]);
+    doc.text(r[1],M+4,y+14);doc.text(r[3],M+IW/2+6,y+14);
+    y+=18;
+  });
+  y+=4;
+  doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(NV[0],NV[1],NV[2]);doc.text('Billing Terms',M,y);y+=10;
+  doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(40,40,40);
+  doc.text('Payment is due upon completion of each quarterly maintenance visit unless alternate payment arrangements have been established in writing prior to the signing of this agreement.',M,y,{maxWidth:IW});y+=16;
+  doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(NV[0],NV[1],NV[2]);doc.text('Service Call Rates for PM Contract Customers:',M,y);y+=10;
+  doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(40,40,40);
+  doc.text('Regular Hours (Mon–Fri, 7:00am–3:30pm): $105.00 per hour',M,y);y+=9;
+  doc.text('After Hours, Weekends & Federal Holidays: $125.00 per hour',M,y);y+=14;
+
+  // Exclusions
+  y=secHdr(doc,y,'EXCLUSIONS');
+  doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(40,40,40);
+    var excl='This agreement does not cover any maintenance or repairs not described in the Scope of Maintenance above. Exclusions include, but are not limited to: water distribution systems, refrigerant piping and leak repairs, drain systems beyond standard condensate line maintenance, HEPA filters and pre-filters, ductwork, VAV boxes and fan-powered boxes, control dampers, humidifier components, and any equipment not listed in the Equipment to be Serviced section. Coil cleaning beyond visual inspection is excluded from standard plan pricing and is available as a separately quoted billable service. Refrigerant is not included unless specifically noted.';
+  var exclL=doc.splitTextToSize(excl,IW);doc.text(exclL,M,y);y+=exclL.length*9+8;
+
+  // T&C
+  y=secHdr(doc,y,'TERMS & CONDITIONS');
+  var tcs=[
+    ['1. Scope of Work & Inspections','Work limited to signed scope. NTD provides a written inspection report after each visit — work performed, deficiencies, condition scores, and recommended repairs. No verbal agreements expand scope. Change orders require written approval.'],
+    ['2. Customer Responsibilities','Customer shall: (a) operate equipment per manufacturer specs; (b) report unusual conditions promptly; (c) provide safe access; (d) not relocate equipment without written notice; (e) allow NTD to start/stop equipment; (f) not allow third-party repairs — unauthorized work voids warranties. Non-transferable.'],
+    ['3. Condensate & DFW Climate','NTD flushes drain lines and treats with algaecide each visit. DFW dew points regularly exceed 70°F. NTD is NOT liable for water damage from normal condensation, drain overflow between visits, or pre-existing moisture damage. Customer must maintain insulation and report water staining immediately.'],
+    ['4. Pricing & Payment','Payment due upon completion of each quarterly visit. Finance charges 1.5%/month (18% APR) on past-due balances. Disputed invoices must be raised in writing within 10 business days. Customer responsible for permit fees, parking, and site access costs.'],
+    ['5. Service Hours & Rates','Standard hours: Mon–Fri, 7:00am–3:30pm (excl. Federal Holidays). PM Contract rates: Normal $105.00/hr | After-hours, nights, weekends & holidays $125.00/hr.'],
+    ['6. Warranties','Labor warranty: 90 days from service date on work directly performed by NTD. Void if third party modifies covered equipment. Parts carry manufacturer warranty only. NO IMPLIED WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.'],
+    ['7. Limitation of Liability','NTD liability limited to direct damage caused solely by NTD negligence. NOT liable for: consequential damages; equipment damage from misuse, acts of God, or power failures; mold; building contents; future code changes; or pre-existing conditions. Max liability = fees paid or 12 months of PM fees.'],
+    ['8. Mold & Air Quality','NTD does not perform mold testing or remediation. Not liable for mold, health effects, or air quality issues regardless of moisture source. When mold is observed it will be documented and Customer notified. Remediation is Customer\'s sole responsibility.'],
+    ['9. Permits, Codes & Licensing','NTD holds TDLR license (TX Occ. Code Ch. 1302). Permit fees billed to Customer. Future government-mandated code changes are NOT covered and will be quoted separately.'],
+    ['10. Modifications & Cancellation','All modifications and cancellations must be in writing. Either party may cancel with 30 days written notice before each quarter or month start. Agreement auto-renews annually unless cancelled per these terms.'],
+    ['11. Indemnification & Insurance','Customer indemnifies NTD against claims from Customer negligence, property conditions, or tenant/visitor claims. NTD maintains TX general liability and workers\' comp coverage. Certificates available on request.'],
+    ['12. Dispute Resolution','Governed by Texas law. Venue: Dallas or Tarrant County. Good-faith mediation required before suit. Prevailing party recovers attorneys\' fees. Customer responsible for collection costs.'],
+  ];
+  var half=Math.ceil(tcs.length/2),cw2=IW/2-4;
+  var colYs=[y,y];
+  for(var ti=0;ti<tcs.length;ti++){
+    var col=ti<half?0:1;
+    var cx=col===0?M:M+cw2+8;
+    var tc=tcs[ti];
+    var bodyLines=doc.splitTextToSize(tc[1],cw2-4);
+    var boxH=bodyLines.length*8+14;
+    if(colYs[col]+boxH>H-30){colYs[col]=y;}
+    doc.setFillColor(ti%2===0?245:255,ti%2===0?248:255,ti%2===0?252:255);
+    doc.rect(cx,colYs[col],cw2,boxH,'F');
+    doc.setDrawColor(215,225,238);doc.rect(cx,colYs[col],cw2,boxH,'S');
+    doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(NV[0],NV[1],NV[2]);
+    doc.text(tc[0],cx+3,colYs[col]+9);
+    doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(30,30,30);
+    doc.text(bodyLines,cx+3,colYs[col]+17);
+    colYs[col]+=boxH+3;
+  }
+
+  pgFtr(doc,3,4);
+
+  // ═══════════════════════════════════════════════════
+  // PAGE 4 — Execution / Signatures
+  // ═══════════════════════════════════════════════════
+  doc.addPage();
+  y=pgHdr(doc,'PREVENTIVE MAINTENANCE SERVICE AGREEMENT  |  Per Selected Plan(s)  |  '+pmFreq+' Scheduled Maintenance');
+  y=secHdr(doc,y,'AGREEMENT EXECUTION');
+
+  // Preamble
+  doc.setFont('helvetica','italic');doc.setFontSize(8);doc.setTextColor(50,50,50);
+    var execPre='By signing below, both parties acknowledge and agree to the terms and conditions of this Preventive Maintenance Service Agreement. This agreement becomes binding upon execution by both parties and shall remain in effect for one (1) year from the renewal date stated above, unless otherwise terminated in accordance with the cancellation terms herein.';
+  var epLines=doc.splitTextToSize(execPre,IW);doc.text(epLines,M,y);y+=epLines.length*10+10;
+
+  // Customer ack box
+  doc.setFillColor(232,240,252);doc.rect(M,y,IW,18,'F');doc.setDrawColor(180,200,230);doc.rect(M,y,IW,18,'S');
+  doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(NV[0],NV[1],NV[2]);
+  doc.text('CUSTOMER ACKNOWLEDGMENT — By signing, Customer confirms they have read and agree to all terms, including:',M+4,y+7);
+  doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(40,40,40);
+  doc.text('✓ Condensate disclaimer (Sec. 3)   ✓ Billing rates $105/$125/hr (Sec. 5)   ✓ Liability cap (Sec. 7)   ✓ Cancellation terms (Sec. 10)   ✓ Non-transferable',M+4,y+15);
+  y+=24;
+
+  // Signature blocks
+  function sigBlock(doc,y,title,name,titleLine){
+    doc.setFillColor(NV[0],NV[1],NV[2]);doc.rect(M,y,IW,13,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(255,255,255);
+    doc.text(title,M+4,y+9);y+=16;
+    var rows=[['Name',name||''],['Title',titleLine||''],['Signature',''],['Date','']];
+    rows.forEach(function(r,ri){
+      var bg=ri%2===0?[248,251,255]:[255,255,255];
+      doc.setFillColor(bg[0],bg[1],bg[2]);doc.rect(M,y,IW,16,'F');
+      doc.setDrawColor(215,225,238);doc.rect(M,y,IW,16,'S');
+      doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(NV[0],NV[1],NV[2]);
+      doc.text(r[0],M+4,y+11);
+      doc.setFont('helvetica','normal');doc.setTextColor(0,0,0);
+      if(r[1])doc.text(r[1],M+60,y+11);
+      else{doc.setDrawColor(150,150,150);doc.line(M+60,y+12,M+IW-4,y+12);}
+      y+=17;
+    });
+    return y+6;
+  }
+  y=sigBlock(doc,y,'ACCEPTED BY — AUTHORIZED CUSTOMER REPRESENTATIVE','','');
+  y=sigBlock(doc,y,'PREPARED BY — NTD MECHANICAL REPRESENTATIVE','Jason Ezell','Outside Sales — Service Contracts');
+
+  // TDLR footer line
+  y+=8;
+  doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(100,100,100);
+  doc.text('Regulated by the Texas Department of Licensing and Regulation  |  PO Box 12157, Austin TX 78711  |  (800) 803-9202 or (512) 463-6599  |  www.tdlr.texas.gov',W/2,y,{align:'center'});
+
+  pgFtr(doc,4,4);
+
   var blob=doc.output('blob');var url=URL.createObjectURL(blob);
   window.open(url,'_blank');setTimeout(function(){URL.revokeObjectURL(url);},60000);
 }
