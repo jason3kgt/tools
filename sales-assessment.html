@@ -297,6 +297,7 @@ textarea{resize:vertical;min-height:70px}
             <th style="min-width:36px">Qty</th>
             <th style="min-width:50px">Filters</th>
             <th style="min-width:40px">Belts</th>
+            <th id="pm-nte-th" style="min-width:65px;display:none">NTE/Qtr</th>
             <th style="min-width:65px">Rate/Visit</th>
             <th style="min-width:70px">Annual</th>
             <th style="width:24px"></th>
@@ -1090,7 +1091,7 @@ function buildPlans(){
   g.addEventListener('click',function(e){
     var b=e.target.closest('[data-plankey]');if(!b)return;
     var key=b.getAttribute('data-plankey');
-    pmPlans[key]=!pmPlans[key];b.classList.toggle('on',pmPlans[key]);pmCalcAll();
+    pmPlans[key]=!pmPlans[key];b.classList.toggle('on',pmPlans[key]);pmCalcAll();var nth=document.getElementById('pm-nte-th');if(nth)nth.style.display=pmPlans.comp?'':'none';
   });
 }
 function setFreq(f){
@@ -1121,11 +1122,11 @@ function pmImport(){
   eqs.forEach(function(eq){
     var fQty=(parseFloat(eq.f1q)||0)+(parseFloat(eq.f2q)||0);
     var fSize=[eq.f1s,eq.f2s].filter(Boolean).join(' / ');
-    pmUnits.push({tag:eq.tag||'',type:pmMapType(eq.type,eq.tonnage),qty:1,fqty:fQty||'',fsize:fSize||(eq.f1s||''),bqty:parseFloat(eq.bq)||'',bsize:eq.bs||'',notes:eq.area?'Area: '+eq.area:''});
+    pmUnits.push({tag:eq.tag||'',type:pmMapType(eq.type,eq.tonnage),qty:1,fqty:fQty||'',fsize:fSize||(eq.f1s||''),bqty:parseFloat(eq.bq)||'',bsize:eq.bs||'',notes:eq.area?'Area: '+eq.area:'',nte:0});
   });
   pmRenderTable();pmCalcAll();
 }
-function pmAddUnit(){pmUnits.push({tag:'',type:'',qty:1,fqty:'',fsize:'',bqty:'',bsize:'',notes:''});pmRenderTable();pmCalcAll();}
+function pmAddUnit(){pmUnits.push({tag:'',type:'',qty:1,fqty:'',fsize:'',bqty:'',bsize:'',notes:'',nte:0});pmRenderTable();pmCalcAll();}
 function pmDelUnit(i){pmUnits.splice(i,1);pmRenderTable();pmCalcAll();}
 function pmTypeSelect(val,idx){
   var s='<select onchange="pmUnits['+idx+'].type=this.value;pmCalcAll()" style="min-width:130px">';
@@ -1148,6 +1149,10 @@ function pmGetMatAddon(u){
     var vis=pmFreq==='Monthly'?12:4;
     total+=cc/vis;
   }
+  if(pmPlans.comp){
+    var vis2=pmFreq==='Monthly'?12:4;
+    total+=(parseFloat(u.nte)||0)/vis2;
+  }
   return total;
 }
 function pmRenderTable(){
@@ -1163,6 +1168,7 @@ function pmRenderTable(){
       +'<td><input type="text" value="'+(u.fqty||'')+'" placeholder="Qty" style="width:36px" onchange="pmUnits['+i+'].fqty=this.value;pmCalcAll()"><br>'
       +'<input type="text" value="'+(u.fsize||'')+'" placeholder="Size" style="width:56px;margin-top:2px" onchange="pmUnits['+i+'].fsize=this.value"></td>'
       +'<td><input type="text" value="'+(u.bqty||'')+'" placeholder="#" style="width:36px" onchange="pmUnits['+i+'].bqty=this.value;pmCalcAll()"></td>'
+      +'<td style="display:'+(pmPlans.comp?'table-cell':'none')+'"><input type="number" value="'+(u.nte||0)+'" min="0" style="width:60px;text-align:right" placeholder="$0" onchange="pmUnits['+i+'].nte=parseFloat(this.value)||0;pmCalcAll()" title="NTE per quarter for this unit"></td>'
       +'<td class="rate">'+pmFmt(rpv)+'</td>'
       +'<td class="num">'+pmFmt(ann)+'</td>'
       +'<td><button class="del-btn" onclick="pmDelUnit('+i+')" style="touch-action:manipulation">✕</button></td>';
