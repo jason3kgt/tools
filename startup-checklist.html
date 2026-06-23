@@ -280,7 +280,7 @@ textarea{resize:vertical;min-height:70px}
   </div>
   <div id="session_log_list" style="padding:8px 14px"></div>
   <div style="padding:8px 14px;border-top:1px solid var(--bd)">
-    <button class="dlb" id="dl_all_btn" style="margin-top:0">&#9660; Download All Unit PDFs</button>
+    <button class="dlb" id="dl_all_btn" style="margin-top:0">&#9660; Download PDFs for All Saved Units</button>
   </div>
 </div>
 
@@ -1791,20 +1791,39 @@ function saveUnitToSession(){
   var snap = captureCurrentUnit();
   snap.label = unitNum + (gv('model') ? ' — ' + gv('model').substring(0,30) : '');
 
-  sessionUnits.push(snap);
+  var isUpdate = (editingIndex >= 0 && editingIndex < sessionUnits.length);
+
+  if(isUpdate){
+    // Preserve original timestamp, update everything else
+    snap.ts = sessionUnits[editingIndex].ts;
+    sessionUnits[editingIndex] = snap;
+  } else {
+    sessionUnits.push(snap);
+  }
+
   persistSession();
   renderSessionLog();
 
-  // Show confirmation
+  // Reset edit state
+  editingIndex = -1;
+
+  // Reset save button label
+  var saveBtn = document.getElementById('save_unit_btn');
+  if(saveBtn) saveBtn.textContent = '\u2713 Save Unit & Start Next';
+
+  // Show confirmation banner
   var banner = document.getElementById('dup_banner');
-  banner.textContent = '\u2713 Unit ' + unitNum + ' saved (' + sessionUnits.length + ' total). Starting next unit...';
-  banner.style.display='block';
+  var msg = isUpdate
+    ? '\u2713 Unit ' + unitNum + ' updated (' + sessionUnits.length + ' total). Starting next unit...'
+    : '\u2713 Unit ' + unitNum + ' saved (' + sessionUnits.length + ' total). Starting next unit...';
+  banner.textContent = msg;
+  banner.style.cssText = 'display:block;background:#E8F5EC;border:1.5px solid #86EFAC;border-radius:10px;padding:10px 14px;margin-bottom:8px;font-size:13px;font-weight:600;color:#166534';
   setTimeout(function(){ banner.style.display='none'; }, 3000);
 
-  // Now duplicate for next unit (carry over shared fields, clear unit-specific)
+  // Duplicate for next unit
   duplicateForm();
 
-  // Show the finish job button now that we have at least 1 saved unit
+  // Show finish job button
   var finBtn = document.getElementById('finish_job_btn');
   if(finBtn) finBtn.style.display='block';
 }
@@ -1878,6 +1897,7 @@ function renderSessionLog(){
         '<div style="font-size:11px;color:var(--mu)">'+(EQ_TYPES[u.type]||u.type)+' &bull; Saved '+timeStr+'</div>'+
       '</div>'+
       '<div style="display:flex;gap:6px">'+
+        '<button data-idx="'+idx+'" class="session-edit-btn" style="font-size:11px;font-weight:700;padding:5px 10px;border-radius:7px;border:1.5px solid var(--st);background:#fff;color:var(--st);cursor:pointer;font-family:inherit;touch-action:manipulation">Edit</button>'+
         '<button data-idx="'+idx+'" class="session-pdf-btn" style="font-size:11px;font-weight:700;padding:5px 10px;border-radius:7px;border:1.5px solid var(--nv);background:#fff;color:var(--nv);cursor:pointer;font-family:inherit;touch-action:manipulation">PDF</button>'+
         '<button data-idx="'+idx+'" class="session-del-btn" style="font-size:11px;font-weight:700;padding:5px 10px;border-radius:7px;border:1.5px solid var(--rd);background:#fff;color:var(--rd);cursor:pointer;font-family:inherit;touch-action:manipulation">✕</button>'+
       '</div>';
@@ -1891,6 +1911,16 @@ function renderSessionLog(){
   list.appendChild(clearRow);
 
   // Wire PDF buttons
+  // Wire edit buttons
+  var editBtns = list.querySelectorAll('.session-edit-btn');
+  for(var ei=0;ei<editBtns.length;ei++){
+    (function(btn){
+      btn.addEventListener('click', function(){
+        var idx = parseInt(btn.getAttribute('data-idx'));
+        loadUnitForEdit(idx);
+      });
+    })(editBtns[ei]);
+  }
   var pdfBtns = list.querySelectorAll('.session-pdf-btn');
   for(var i=0;i<pdfBtns.length;i++){
     (function(btn){
@@ -1914,6 +1944,108 @@ function renderSessionLog(){
       });
     })(delBtns[j]);
   }
+}
+
+// Track which session index is being edited (-1 = new unit)
+var editingIndex = -1;
+
+function loadUnitForEdit(idx){
+  var snap = sessionUnits[idx];
+  if(!snap) return;
+
+  // Option B: auto-save current form first if it has a unit number
+  if(currentType && gv('unit_num')){
+    var autoSnap = captureCurrentUnit();
+    autoSnap.label = gv('unit_num') + (gv('model') ? ' — ' + gv('model').substring(0,30) : '');
+
+    if(editingIndex >= 0 && editingIndex < sessionUnits.length){
+      // Was already editing a saved unit — update it in place
+      autoSnap.ts = sessionUnits[editingIndex].ts; // keep original timestamp
+      sessionUnits[editingIndex] = autoSnap;
+    } else {
+      // Was working on a new unit — save it as new
+      sessionUnits.push(autoSnap);
+    }
+    persistSession();
+    renderSessionLog();
+  }
+
+  // Now load the requested unit into the form
+  editingIndex = idx;
+
+  // Set equipment type first (triggers form build)
+  var eqMap = {'RTU':'rtu','Split':'split','AHU':'ahu','Chiller':'chiller','Boiler':'boiler','Exhaust Fan':'exhaust'};
+  var eqKey = eqMap[snap.type] || snap.type || 'rtu';
+  selEQ({preventDefault:function(){}}, eqKey);
+
+  // Restore all field values after form renders
+  setTimeout(function(){
+    var f = snap.fields || {};
+    // Text inputs and selects
+    Object.keys(f).forEach(function(id){
+      var el = document.getElementById(id);
+      if(el && f[id] !== undefined) el.value = f[id];
+    });
+
+    // YN hidden inputs + visual state
+    var yns = snap.yns || {};
+    Object.keys(yns).forEach(function(id){
+      var el = document.getElementById(id);
+      if(el){
+        el.value = yns[id];
+        // Update button visual state
+        var row = el.closest ? el.closest('.yn-row') : null;
+        if(row){
+          var val = yns[id];
+          row.querySelectorAll('.yb').forEach(function(b){ b.classList.remove('sel-y','sel-n','sel-na'); });
+          if(val==='y'){ var yBtn=row.querySelector('.yb[data-val="y"]'); if(yBtn) yBtn.classList.add('sel-y'); row.classList.add('answered'); }
+          else if(val==='n'){ var nBtn=row.querySelector('.yb[data-val="n"]'); if(nBtn) nBtn.classList.add('sel-n'); row.classList.add('answered-n'); }
+          else if(val==='na'){ var naBtn=row.querySelector('.yb[data-val="na"]'); if(naBtn) naBtn.classList.add('sel-na'); row.classList.add('answered-na'); }
+        }
+      }
+    });
+
+    // MF NA states
+    var mfnas = snap.mfnas || [];
+    mfnas.forEach(function(inputId){
+      var inp = document.getElementById(inputId);
+      if(inp){
+        var row = inp.closest ? inp.closest('.mf-row') : null;
+        if(row){
+          var naBtn = row.querySelector('.mf-na-btn');
+          if(naBtn){ naBtn.classList.add('active'); row.classList.add('mf-na-active'); inp.disabled=true; }
+        }
+      }
+    });
+
+    // Notes, followup, sig
+    var n=document.getElementById('notes'); if(n) n.value=snap.notes||'';
+    var fu=document.getElementById('followup'); if(fu) fu.value=snap.followup||'';
+    var sn=document.getElementById('sig_name'); if(sn) sn.value=(snap.sig&&snap.sig.name)||'';
+    var sd=document.getElementById('sig_date'); if(sd) sd.value=(snap.sig&&snap.sig.date)||'';
+
+    // Photos
+    photos = (snap.photos||[]).slice();
+    renderPhotos();
+
+    // Update progress bar
+    updateProgress();
+
+    // Change Save button label to indicate update mode
+    var saveBtn = document.getElementById('save_unit_btn');
+    if(saveBtn) saveBtn.textContent = '\u2713 Update Unit & Continue';
+
+    // Show editing banner
+    var banner = document.getElementById('dup_banner');
+    var unitLabel = (f.unit_num||snap.label||'unit');
+    banner.textContent = '\u270E Editing saved unit: ' + unitLabel + ' — make changes then tap Update Unit & Continue';
+    banner.style.cssText = 'display:block;background:#EFF6FF;border:1.5px solid #93C5FD;border-radius:10px;padding:10px 14px;margin-bottom:8px;font-size:13px;font-weight:600;color:#1E40AF';
+
+    // Scroll to top of form
+    var unitCard = document.getElementById('unit_num');
+    if(unitCard) unitCard.scrollIntoView({behavior:'smooth', block:'center'});
+
+  }, 350);
 }
 
 function generatePDFFromSnapshot(snap){
@@ -2102,20 +2234,86 @@ function dlPDFFromSnap(snap){
 
 function downloadAllPDFs(){
   if(!sessionUnits.length){ alert('No saved units yet. Save at least one unit first.'); return; }
-  // Download each PDF with a short delay between them so iOS can handle multiple tabs
-  var delay=0;
-  sessionUnits.forEach(function(snap){
-    setTimeout(function(){
-      generatePDFFromSnapshot(snap);
-    }, delay);
-    delay += 1200;
+
+  // iOS Safari blocks multiple window.open calls — show a tap-each panel instead
+  var existing = document.getElementById('dl_all_panel');
+  if(existing){ existing.parentNode.removeChild(existing); }
+
+  var panel = document.createElement('div');
+  panel.id = 'dl_all_panel';
+  panel.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:9999;overflow-y:auto;-webkit-overflow-scrolling:touch';
+
+  var inner = document.createElement('div');
+  inner.style.cssText = 'background:#fff;border-radius:16px 16px 0 0;position:absolute;bottom:0;left:0;right:0;padding:16px;max-height:85vh;overflow-y:auto';
+
+  var header = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">'
+    + '<div><div style="font-size:15px;font-weight:700;color:var(--nv)">Download Unit PDFs</div>'
+    + '<div style="font-size:11px;color:var(--mu);margin-top:2px">Tap each unit to open its PDF</div></div>'
+    + '<button id="dl_panel_close" style="background:none;border:1.5px solid var(--bd);border-radius:8px;padding:6px 12px;font-size:13px;font-weight:700;color:var(--mu);cursor:pointer;font-family:inherit">Done</button>'
+    + '</div>';
+
+  var rows = '';
+  sessionUnits.forEach(function(snap, idx){
+    var f = snap.fields||{};
+    var unitNum = f.unit_num||snap.label||('Unit '+(idx+1));
+    var model = f.model ? f.model.substring(0,28) : '';
+    var eqType = EQ_TYPES[snap.type]||snap.type||'';
+    rows += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--bd)">'
+      + '<div>'
+      + '<div style="font-size:14px;font-weight:700;color:var(--nv)">'+unitNum+'</div>'
+      + '<div style="font-size:11px;color:var(--mu)">'+eqType+(model?' &bull; '+model:'')+'</div>'
+      + '</div>'
+      + '<button data-idx="'+idx+'" class="dlpanel-btn" style="background:var(--nv);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;touch-action:manipulation">&#8681; PDF</button>'
+      + '</div>';
   });
-  // Also offer current unit if form is filled
-  if(currentType && gv('unit_num')){
-    setTimeout(function(){
-      var yn=confirm('Also download PDF for current unit "'+gv('unit_num')+'" (not yet saved to session)?');
-      if(yn) dlPDF();
-    }, delay);
+
+  // Current unit row if filled
+  var hasCurrent = currentType && gv('unit_num');
+  if(hasCurrent){
+    rows += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--bd)">'
+      + '<div>'
+      + '<div style="font-size:14px;font-weight:700;color:var(--am)">'+gv('unit_num')+' (current — not saved)</div>'
+      + '<div style="font-size:11px;color:var(--mu)">'+EQ_TYPES[currentType]+'</div>'
+      + '</div>'
+      + '<button id="dl_current_btn" style="background:var(--am);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;touch-action:manipulation">&#8681; PDF</button>'
+      + '</div>';
+  }
+
+  inner.innerHTML = header + rows;
+  panel.appendChild(inner);
+  document.body.appendChild(panel);
+
+  // Wire close
+  document.getElementById('dl_panel_close').addEventListener('click', function(){
+    panel.parentNode.removeChild(panel);
+  });
+  panel.addEventListener('click', function(e){
+    if(e.target===panel){ panel.parentNode.removeChild(panel); }
+  });
+
+  // Wire each PDF button — must be direct user tap, no setTimeout
+  var dlBtns = panel.querySelectorAll('.dlpanel-btn');
+  for(var i=0;i<dlBtns.length;i++){
+    (function(btn){
+      btn.addEventListener('click', function(){
+        var idx = parseInt(btn.getAttribute('data-idx'));
+        btn.textContent = '...';
+        btn.disabled = true;
+        generatePDFFromSnapshot(sessionUnits[idx]);
+        setTimeout(function(){ btn.textContent = '\u2713 Done'; btn.style.background='var(--gn)'; }, 1500);
+      });
+    })(dlBtns[i]);
+  }
+
+  // Wire current unit button
+  var curBtn = document.getElementById('dl_current_btn');
+  if(curBtn){
+    curBtn.addEventListener('click', function(){
+      curBtn.textContent = '...';
+      curBtn.disabled = true;
+      dlPDF();
+      setTimeout(function(){ curBtn.textContent = '\u2713 Done'; curBtn.style.background='var(--gn)'; }, 1500);
+    });
   }
 }
 
