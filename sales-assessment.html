@@ -1265,6 +1265,23 @@ function pmGenPDF(){
   var iLines=doc.splitTextToSize(intro,IW);
   doc.text(iLines,M,y);y+=iLines.length*10+8;
 
+  // Site Notes (internal reference)
+  var pmSiteNotes=gv('sn');
+  if(pmSiteNotes){
+    doc.setFillColor(255,251,235);doc.rect(M,y,IW,14,'F');
+    doc.setDrawColor(245,200,80);doc.rect(M,y,IW,14,'S');
+    doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(140,100,0);
+    doc.text('SITE NOTES (Internal Reference):',M+3,y+6);
+    doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(80,60,0);
+    var pmSnLines=doc.splitTextToSize(pmSiteNotes,IW-120);
+    doc.text(pmSnLines[0]||'',M+115,y+6);
+    if(pmSnLines.length>1){
+      y+=14;
+      doc.setFillColor(255,251,235);doc.rect(M,y,IW,14,'F');doc.setDrawColor(245,200,80);doc.rect(M,y,IW,14,'S');
+      doc.text(pmSnLines.slice(1).join(' '),M+3,y+6,{maxWidth:IW-6});
+    }
+    y+=16;
+  }
   // Equipment table
   y=secHdr(doc,y,'EQUIPMENT TO BE SERVICED');y+=6;
   doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(50,50,50);
@@ -1652,6 +1669,20 @@ function dlSiteRecord(){
     // Divider
     doc.setDrawColor(220,225,235);doc.setLineWidth(0.5);doc.line(14,y-4,W-14,y-4);
   });
+  // Site Notes
+  var srNotes=gv('sn');
+  if(srNotes){
+    if(y>650){doc.addPage();y=30;}
+    doc.setFillColor(46,95,138);doc.rect(14,y,W-28,13,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(255,255,255);
+    doc.text('BUILDING / SITE NOTES',18,y+9);y+=16;
+    doc.setFillColor(248,250,252);doc.rect(14,y,W-28,60,'F');
+    doc.setDrawColor(200,210,220);doc.rect(14,y,W-28,60,'S');
+    doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(30,30,30);
+    var snLines=doc.splitTextToSize(srNotes,W-40);
+    for(var sni=0;sni<Math.min(snLines.length,6);sni++){doc.text(snLines[sni],18,y+10+sni*10);}
+    y+=64;
+  }
   // Footer
   doc.setFillColor(27,58,107);doc.rect(0,H-18,W,18,'F');
   doc.setTextColor(160,186,210);doc.setFont('helvetica','normal');doc.setFontSize(6.5);
@@ -1947,6 +1978,16 @@ function sqGeneratePDF(){
   doc.setFont('helvetica','bold');doc.setTextColor(NV[0],NV[1],NV[2]);doc.text('Submitted To:',M,y);doc.setFont('helvetica','normal');doc.setTextColor(0,0,0);doc.text(customer,M+78,y);y+=16;
   if(address){doc.setFont('helvetica','bold');doc.setTextColor(NV[0],NV[1],NV[2]);doc.text('Address:',M,y);doc.setFont('helvetica','normal');doc.setTextColor(0,0,0);doc.text(address,M+78,y);y+=16;}
   if(attention){doc.setFont('helvetica','bold');doc.setTextColor(NV[0],NV[1],NV[2]);doc.text('Attention:',M,y);doc.setFont('helvetica','normal');doc.setTextColor(0,0,0);doc.text(attention,M+78,y);y+=16;}
+  var sqSiteNotes=gv('sn');
+  if(sqSiteNotes){
+    doc.setFillColor(255,251,235);doc.rect(M,y,IW,14,'F');
+    doc.setDrawColor(245,200,80);doc.rect(M,y,IW,14,'S');
+    doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(140,100,0);
+    doc.text('Site Notes:',M+3,y+6);
+    doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(80,60,0);
+    doc.text(sqSiteNotes,M+55,y+6,{maxWidth:IW-58});
+    y+=16;
+  }
   y+=6;
   doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(0,0,0);
   var intro='NTD Mechanical is pleased to provide our PRICING PROPOSAL for HVAC Services'+(jobref?' for the '+jobref+' project':'')+'. Please review the associated quotation values:';
