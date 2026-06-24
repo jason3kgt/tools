@@ -1,13 +1,13 @@
-var CACHE='ntd-tools-v11';
+var CACHE='ntd-tools-v10';
 var ASSETS=[
   './',
   './index.html',
   './startup-checklist.html',
-  './sales-assessment.html',
-  './pm-checklist.html',
+  './field-assessment.html',
+  './hvac-asset-survey.html',
   './equipment-survey.html',
+  './pm-quoting.html',
   './project-manager.html',
-  './job-prep.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
