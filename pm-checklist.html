@@ -438,17 +438,34 @@ function calcVisit(contractStartISO) {
   var now = new Date();
   if (isNaN(start.getTime())) return null;
   var diffMs = now - start;
-  if (diffMs < 0) return { year: 1, quarter: 1, month: 1, label: 'Q1 — Year 1' };
-  var diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  var contractYear = Math.floor(diffDays / 365) + 1;
-  var dayInYear = diffDays % 365;
-  var quarter = Math.floor(dayInYear / 91.25) + 1;
-  if (quarter > 4) quarter = 4;
-  var month = Math.floor(diffDays / 30.44) + 1;
-  var monthInYear = ((month - 1) % 12) + 1;
+  // If contract hasn't started yet, treat as Q1 Year 1 (first quarterly visit)
+  if (diffMs < 0) {
+    return { year:1, quarter:1, isQuarterMonth:true, isAnnualMonth:true,
+             totalMonths:0, label:'Q1 — Year 1 (Pre-Start)' };
+  }
+  // Total full months elapsed since contract start
+  var totalMonths = (now.getFullYear() - start.getFullYear()) * 12
+                  + (now.getMonth() - start.getMonth());
+  // Quarter number within the contract (1-based, increments every 3 months)
+  var contractQuarterNum = Math.floor(totalMonths / 3) + 1;
+  var contractYear = Math.floor((contractQuarterNum - 1) / 4) + 1;
+  var quarterInYear = ((contractQuarterNum - 1) % 4) + 1;
+  // This month is a quarter month if it's exactly on a 3-month boundary
+  var isQuarterMonth = (totalMonths % 3 === 0);
+  // Annual visit = first quarter of each contract year
+  var isAnnualMonth = (quarterInYear === 1 && isQuarterMonth);
   var mNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  var label = 'Q' + quarter + ' \u2014 Year ' + contractYear;
-  return { year: contractYear, quarter: quarter, month: month, monthInYear: monthInYear, monthName: mNames[monthInYear-1], label: label };
+  var label = isQuarterMonth
+    ? ('Q' + quarterInYear + ' — Year ' + contractYear)
+    : ('Monthly — ' + mNames[now.getMonth()] + ' (Year ' + contractYear + ')');
+  return {
+    year: contractYear,
+    quarter: quarterInYear,
+    isQuarterMonth: isQuarterMonth,
+    isAnnualMonth: isAnnualMonth,
+    totalMonths: totalMonths,
+    label: label
+  };
 }
 
 // ─── NAVIGATION ───────────────────────────────────────────────────
@@ -565,22 +582,24 @@ function clearSite() {
 function renderVisitBanner(data, visit) {
   var el = document.getElementById('visit-banner-area');
   if (!el || !visit) return;
-  var quarterly = (data.equipment || []).filter(function(u) { return u.frequency === 'quarterly' || u.frequency === 'quarterly+annual'; });
-  var monthly = (data.equipment || []).filter(function(u) { return u.frequency === 'monthly'; });
-  var annual = (data.equipment || []).filter(function(u) { return u.frequency === 'annual'; });
-  // On monthly visits, quarterly units are NOT due unless it's also a quarter month
-  // Visit label shows what's actually due today
+  var all = data.equipment || [];
+  var monthly = all.filter(function(u){ return u.frequency === 'monthly'; });
+  var quarterly = visit.isQuarterMonth ? all.filter(function(u){ return u.frequency === 'quarterly'; }) : [];
+  var annual = visit.isAnnualMonth ? all.filter(function(u){ return u.frequency === 'annual'; }) : [];
+  var total = monthly.length + quarterly.length + annual.length;
   var html = '<div class="vbanner">';
-  html += '<div class="vb-title">Visit: ' + visit.label + '</div>';
-  html += '<div class="vb-sub">';
-  if (quarterly.length) html += quarterly.length + ' quarterly unit(s) due this visit. ';
-  if (monthly.length) html += monthly.length + ' monthly tunnel unit(s) due every visit. ';
-  if (annual.length) html += annual.length + ' annual inspection unit(s).';
-  html += '</div>';
+  html += '<div class="vb-title">&#128197; ' + visit.label + '</div>';
+  html += '<div class="vb-sub">' + total + ' unit(s) due this visit: ';
+  var parts = [];
+  if (monthly.length) parts.push(monthly.length + ' monthly tunnel');
+  if (quarterly.length) parts.push(quarterly.length + ' quarterly');
+  if (annual.length) parts.push(annual.length + ' annual inspection');
+  html += parts.join(', ') + '.</div>';
   html += '<div class="vb-tags">';
-  if (quarterly.length) html += '<span class="vb-tag">Q' + visit.quarter + ' Quarterly</span>';
   if (monthly.length) html += '<span class="vb-tag tunnel">Monthly Tunnel</span>';
-  if (annual.length) html += '<span class="vb-tag" style="background:var(--gn)">Annual</span>';
+  if (quarterly.length) html += '<span class="vb-tag">Q' + visit.quarter + ' Quarterly</span>';
+  if (annual.length) html += '<span class="vb-tag ann">Annual Inspection</span>';
+  if (!visit.isQuarterMonth) html += '<span class="vb-tag" style="background:var(--mu)">Quarterly units not due this month</span>';
   html += '</div></div>';
   el.innerHTML = html;
 }
@@ -589,17 +608,23 @@ function loadEquipmentFromProfile(data, visit) {
   eqs = [];
   eid = 1;
   var units = data.equipment || [];
-  var isMonthly = visit ? (visit.monthInYear % 3 !== 0) : false;
-  // Actually: all units load — quarterly ones just happen quarterly
-  // The banner tells the tech what's due; all are listed so nothing gets missed
   for (var i = 0; i < units.length; i++) {
     var u = units[i];
+    var freq = (u.frequency || 'quarterly').toLowerCase();
+    // Filter: only load units due on this visit type
+    if (freq === 'monthly') {
+      // Always due — tunnel RTUs every visit
+    } else if (freq === 'quarterly') {
+      if (!visit || !visit.isQuarterMonth) continue; // skip if not a quarter month
+    } else if (freq === 'annual') {
+      if (!visit || !visit.isAnnualMonth) continue; // skip if not annual month
+    }
     var serviceType = mapServiceType(u);
     eqs.push({
       id: eid++,
       tag: u.tag || '',
       type: u.type || 'RTU',
-      freq: u.frequency || 'quarterly',
+      freq: freq,
       tunnel: u.tunnel || false,
       filterQty: u.filter_qty || '',
       filterSize: u.filter_size || '',
