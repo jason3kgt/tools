@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NTD PM Visit">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="theme-color" content="#1B3A6B">
+<title>NTD Mechanical - PM Visit Checklist</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{--nv:#1B3A6B;--st:#2E5F8A;--or:#E8531A;--gn:#1E7A3E;--am:#D4820A;--rd:#C0392B;--bd:#DDE2EA;--of:#F7F8FA;--tx:#1A1A2E;--mu:#6B7280}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#EEF1F7;color:var(--tx);font-size:14px;padding-bottom:80px}
+.hdr{background:var(--nv);padding:10px 14px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.hl{width:42px;height:42px;object-fit:contain;border-radius:6px;background:#fff;padding:2px;flex-shrink:0}
+.ht h1{font-size:15px;font-weight:700;color:#fff}.ht p{font-size:10px;color:rgba(255,255,255,.55);margin-top:1px}
+.tabs{background:var(--nv);display:flex;border-top:1px solid rgba(255,255,255,.1);overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:1;min-width:55px;padding:8px 4px 10px;text-align:center;font-size:9px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:rgba(255,255,255,.45);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit;outline:none;-webkit-appearance:none}
+.tab.on{color:#fff;border-bottom-color:var(--or)}
+.ti{font-size:16px;display:block;margin-bottom:2px}
+.pg{display:none;padding:12px;max-width:700px;margin:0 auto}.pg.on{display:block}
+.card{background:#fff;border-radius:14px;border:1px solid var(--bd);margin-bottom:12px;overflow:hidden}
+.ch{background:var(--nv);padding:10px 14px;display:flex;align-items:center;gap:8px}
+.ch h2{font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.05em}
+.cn{background:var(--or);color:#fff;font-size:10px;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cb{padding:12px 14px}
+.fg{display:flex;flex-direction:column;gap:3px;margin-bottom:10px}.fg:last-child{margin-bottom:0}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.r3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
+label{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--mu)}
+input[type=text],select,textarea{width:100%;padding:9px 11px;border:1.5px solid var(--bd);border-radius:9px;font-family:inherit;font-size:14px;color:var(--tx);background:var(--of);-webkit-appearance:none}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--st);background:#fff}
+textarea{resize:vertical;min-height:70px}
+/* Visit banner */
+.vbanner{border-radius:12px;padding:14px;margin-bottom:12px;border:2px solid var(--nv);background:#EEF1F7}
+.vb-title{font-size:14px;font-weight:700;color:var(--nv);margin-bottom:4px}
+.vb-sub{font-size:12px;color:var(--mu);line-height:1.5}
+.vb-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.vb-tag{font-size:10px;font-weight:700;padding:3px 9px;border-radius:8px;background:var(--nv);color:#fff}
+.vb-tag.tunnel{background:var(--or)}
+.vb-tag.ann{background:var(--gn)}
+.vb-tag.vav{background:var(--st)}
+/* Equipment accordion */
+.er{border:1.5px solid var(--bd);border-radius:13px;margin-bottom:10px;overflow:hidden}
+.er.ok{border-color:#86EFAC}.er.wn{border-color:#FCD34D}.er.hi{border-color:#FCA5A5}
+.eh{background:var(--of);padding:10px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--bd)}
+.en{background:var(--nv);color:#fff;font-size:11px;font-weight:700;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.et{font-size:14px;font-weight:600;color:var(--nv);flex:1}
+.esub{font-size:10px;color:var(--mu)}
+.bdg{font-size:10px;font-weight:700;padding:3px 9px;border-radius:10px;background:var(--of);color:var(--mu);border:1px solid var(--bd)}
+.bdg.ok{background:#E8F5EC;color:var(--gn);border-color:var(--gn)}
+.bdg.wn{background:#FFF3E0;color:var(--am);border-color:var(--am)}
+.bdg.hi{background:#FDEDEC;color:var(--rd);border-color:var(--rd)}
+.eb{padding:0}
+/* Accordion sections */
+.ab{width:100%;background:none;border:none;border-top:1px solid var(--bd);padding:10px 14px;font-family:inherit;font-size:12px;font-weight:600;color:var(--st);text-align:left;cursor:pointer;display:flex;justify-content:space-between;align-items:center;touch-action:manipulation}
+.ac{display:none;padding:0 14px 12px}.ac.on{display:block}
+.sh{font-size:10px;font-weight:700;color:var(--nv);text-transform:uppercase;letter-spacing:.06em;padding:7px 0 6px;border-bottom:1px solid var(--bd);margin-bottom:9px;margin-top:4px}
+/* G/F/P rows */
+.ir{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.il{font-size:13px;font-weight:500;color:var(--tx);min-width:150px;flex-shrink:0}
+.ib{padding:6px 12px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid var(--bd);background:var(--of);color:var(--mu);font-family:inherit;touch-action:manipulation;min-width:38px;text-align:center}
+.ib.g{background:#E8F5EC;border-color:var(--gn);color:var(--gn)}
+.ib.f{background:#FFF3E0;border-color:var(--am);color:var(--am)}
+.ib.p{background:#FDEDEC;border-color:var(--rd);color:var(--rd)}
+/* Readings */
+.rvr{display:flex;align-items:center;gap:8px;font-size:12px;flex-wrap:wrap;margin-bottom:7px}
+.rvr label{text-transform:none;letter-spacing:0;font-weight:500;color:var(--mu);font-size:12px;min-width:0}
+.rvr input{width:70px;padding:6px;font-size:13px;font-weight:600;text-align:center;border:1.5px solid var(--bd);border-radius:7px;background:var(--of);font-family:monospace;color:var(--tx)}
+.rvr input:focus{outline:none;border-color:var(--st);background:#fff}
+.qi{width:52px;padding:6px 8px;font-size:12px;border:1.5px solid var(--bd);border-radius:7px;background:var(--of);font-family:inherit;color:var(--tx);text-align:center}
+.si{width:90px;padding:6px 8px;font-size:12px;border:1.5px solid var(--bd);border-radius:7px;background:var(--of);font-family:inherit;color:var(--tx)}
+.qi:focus,.si:focus{outline:none;border-color:var(--st);background:#fff}
+/* Buttons */
+.dlb{display:block;width:100%;padding:13px;border-radius:10px;font-size:14px;font-weight:700;background:var(--or);color:#fff;border:none;margin-top:8px;font-family:inherit;cursor:pointer;touch-action:manipulation}
+.dlb:active{opacity:.85}
+.addb{display:block;width:100%;padding:11px;border-radius:10px;font-size:13px;font-weight:600;border:1.5px solid var(--nv);background:#fff;color:var(--nv);margin-top:8px;font-family:inherit;cursor:pointer;touch-action:manipulation}
+.load-btn{width:100%;padding:13px;border-radius:10px;font-size:14px;font-weight:700;background:var(--nv);color:#fff;border:none;font-family:inherit;cursor:pointer;touch-action:manipulation;margin-bottom:10px}
+.load-btn:active{opacity:.85}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.empty{text-align:center;padding:24px 12px;color:var(--mu);font-size:13px}
+/* Site chip */
+.site-chip{display:flex;align-items:center;gap:8px;background:#E8F0FA;border:1.5px solid var(--nv);border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:12px;font-weight:600;color:var(--nv)}
+.site-chip .clr{background:none;border:none;color:var(--rd);font-size:15px;cursor:pointer;font-weight:700;margin-left:auto;padding:0;font-family:inherit}
+/* Condition key */
+.key-g{background:#E8F5EC;border:2px solid var(--gn);border-radius:10px;padding:10px;text-align:center}
+.key-f{background:#FFF3E0;border:2px solid var(--am);border-radius:10px;padding:10px;text-align:center}
+.key-p{background:#FDEDEC;border:2px solid var(--rd);border-radius:10px;padding:10px;text-align:center}
+/* Summary stats */
+.sum-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.sum-stat{background:var(--of);border:1.5px solid var(--bd);border-radius:10px;padding:10px;text-align:center}
+.sum-stat.ok{border-color:#86EFAC;background:#E8F5EC}
+.sum-stat.wn{border-color:#FCD34D;background:#FFF3E0}
+.sum-stat.hi{border-color:#FCA5A5;background:#FDEDEC}
+.snum{font-size:24px;font-weight:800;color:var(--nv);line-height:1}
+.sum-stat.ok .snum{color:var(--gn)}.sum-stat.wn .snum{color:var(--am)}.sum-stat.hi .snum{color:var(--rd)}
+.slbl{font-size:9px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--mu);margin-top:2px}
+/* Summary table */
+.at{width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed}
+.at th{background:var(--nv);color:#fff;padding:7px 8px;text-align:left;font-size:9px;letter-spacing:.04em;text-transform:uppercase;font-weight:600}
+.at td{padding:7px 8px;border-bottom:1px solid var(--bd)}.at tr:nth-child(even) td{background:var(--of)}.at tr:last-child td{border-bottom:none}
+.rp{display:inline-block;padding:2px 7px;border-radius:8px;font-size:9px;font-weight:700;text-transform:uppercase}
+.rok{background:#E8F5EC;color:var(--gn)}.rw{background:#FFF3E0;color:var(--am)}.rh{background:#FDEDEC;color:var(--rd)}
+/* Modal */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:flex-end;justify-content:center}
+.modal.on{display:flex}
+.modal-sheet{background:#fff;border-radius:20px 20px 0 0;padding:20px 16px 32px;width:100%;max-width:500px;max-height:80vh;overflow-y:auto}
+.modal-title{font-size:16px;font-weight:700;color:var(--nv);margin-bottom:14px}
+.site-row{padding:12px;border:1.5px solid var(--bd);border-radius:10px;margin-bottom:8px;cursor:pointer;touch-action:manipulation}
+.site-row:active{background:var(--of)}
+.site-row h3{font-size:14px;font-weight:600;color:var(--nv)}
+.site-row p{font-size:11px;color:var(--mu);margin-top:3px}
+.modal-cancel{width:100%;padding:12px;border-radius:10px;font-size:14px;font-weight:600;background:var(--of);color:var(--mu);border:1.5px solid var(--bd);font-family:inherit;cursor:pointer;margin-top:8px;touch-action:manipulation}
+/* Tunnel flag */
+.tunnel-flag{font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;background:var(--or);color:#fff;margin-left:4px}
+.annual-flag{font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;background:var(--gn);color:#fff;margin-left:4px}
+/* Piping */
+.pi{border:1.5px solid var(--bd);border-radius:12px;margin-bottom:10px;overflow:hidden}
+.ph{background:var(--of);padding:9px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--bd)}
+.pn{background:var(--st);color:#fff;font-size:10px;font-weight:700;width:19px;height:19px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pb{padding:10px 12px}
+.tab{background:none;border:none;font-family:inherit;outline:none;-webkit-appearance:none}
+</style>
+</head>
+<body>
+<header class="hdr">
+  <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKwAAACgCAIAAAAekRD0AAABTGlDQ1BJQ0MgUHJvZmlsZQAAeJxjYGA8kZOcW8wkwMCQm1dSFOTupBARGaXA/oiBmUGEgZOBj0E2Mbm4wDfYLYQBCIoTy4uTS4pyGFDAt2sMjCD6sm5GYl7K3IkMtg4NG2wdSnQa5y1V6mPADzhTUouTgfQHII5PLigqYWBg5AGyecpLCkBsCSBbpAjoKCBbB8ROh7AdQOwkCDsErCYkyBnIzgCyE9KR2ElIbKhdIMBaCvQsskNKUitKQLSzswEDKAwgop9DwH5jFDuJEMtfwMBg8YmBgbkfIZY0jYFheycDg8QthJgKUB1/KwPDtiPJpUVlUGu0gLiG4QfjHKZS5maWk2x+HEJcEjxJfF8Ez4t8k8iS0VNwVlmjmaVXZ/zacrP9NbdwX7OQshjxFNmcttKwut4OnUlmc1Yv79l0e9/MU8evpz4p//jz/38AR4Nk5SKet7kAAF0PSURBVHja7V11nB3V9T9n7p3ZmZ3dze7m7u4JIYSEkODuFCnuLi0UKC20lEKhQAuUoqWlQCnFiru7u3tCCAnZbHZ3tud+f3/MkpQQIAlJ6Mc8j8fMvXfunPO+5573nHMJIQTPcYhIABCe/wsAAAQAQAAQgN3SMCIiIiIgAAIgAAJgCEPvbgIQERERAQEQAAEQAMMYQu9uAhARERERARAAARAAw" class="hl" alt="NTD">
+  <div class="ht"><h1>NTD Mechanical</h1><p>PM Visit Checklist</p></div>
+  <a href="index.html" style="color:rgba(255,255,255,.8);font-size:22px;text-decoration:none;padding:4px 8px;line-height:1;margin-left:auto" ontouchend="location.href='index.html'" title="Home">⌂</a>
+</header>
+<nav class="tabs">
+  <button type="button" class="tab on" onclick="go(0)"><span class="ti">🏠</span>Site</button>
+  <button type="button" class="tab" onclick="go(1)"><span class="ti">🔧</span>Equipment</button>
+  <button type="button" class="tab" onclick="go(2)"><span class="ti">🔩</span>Piping</button>
+  <button type="button" class="tab" onclick="go(3)"><span class="ti">📋</span>Summary</button>
+</nav>
+
+<!-- PAGE 0: SITE -->
+<div class="pg on" id="pg0">
+<div id="site-chip-area"></div>
+<div class="card"><div class="ch"><span class="cn">1</span><h2>Site Information</h2></div><div class="cb">
+  <button class="load-btn" id="load-site-btn" onclick="openModal()" type="button">📍 Load Site Profile</button>
+  <div class="fg"><label>Customer / Facility</label><input type="text" id="sf" placeholder="e.g. ILS Gummies" oninput="ua()"></div>
+  <div class="fg"><label>Address</label><input type="text" id="sa" placeholder="Street address" oninput="ua()"></div>
+  <div class="r2">
+    <div class="fg"><label>City</label><input type="text" id="sct" placeholder="City" oninput="ua()"></div>
+    <div class="fg"><label>Date</label><input type="text" id="sd" placeholder="MM/DD/YYYY" oninput="ua()"></div>
+  </div>
+  <div class="fg"><label>PO / WO #</label><input type="text" id="spo" placeholder="WO#" oninput="ua()"></div>
+  <div class="r2">
+    <div class="fg"><label>Technician</label><input type="text" id="stch" placeholder="Name" oninput="ua()"></div>
+    <div class="fg"><label>Visit Label</label><input type="text" id="sv" placeholder="e.g. Q2 2026" oninput="ua()" id="sv" readonly style="background:#EEF1F7;font-weight:600;color:var(--nv)"></div>
+  </div>
+  <div class="fg"><label>Site Notes</label><textarea id="sn" placeholder="Access info, key contacts, gate codes, roof access..."></textarea></div>
+</div></div>
+
+<div id="visit-banner-area"></div>
+</div>
+
+<!-- PAGE 1: EQUIPMENT -->
+<div class="pg" id="pg1">
+<div class="card"><div class="ch"><span class="cn">*</span><h2>Condition Key — G / F / P</h2></div><div class="cb">
+  <div class="r3">
+    <div class="key-g"><div style="font-size:18px;font-weight:800;color:var(--gn)">G</div><div style="font-size:10px;font-weight:700;color:var(--gn)">GOOD</div></div>
+    <div class="key-f"><div style="font-size:18px;font-weight:800;color:var(--am)">F</div><div style="font-size:10px;font-weight:700;color:var(--am)">FAIR</div></div>
+    <div class="key-p"><div style="font-size:18px;font-weight:800;color:var(--rd)">P</div><div style="font-size:10px;font-weight:700;color:var(--rd)">POOR</div></div>
+  </div>
+  <p style="font-size:12px;color:var(--mu);line-height:1.5">Tap G/F/P for each item. Poor-rated units auto-flag in Summary. Add units manually if not using a site profile.</p>
+</div></div>
+<div class="card"><div class="ch"><span class="cn">2</span><h2>Equipment Units</h2></div><div class="cb">
+  <div id="eql"><div class="empty">Load a site profile on the Site tab, or add units manually below.</div></div>
+  <button class="addb" onclick="addEq()" type="button">+ Add Unit Manually</button>
+</div></div>
+<button class="dlb" onclick="dlEquip()" type="button">⬇ Download Equipment Report PDF</button>
+</div>
+
+<!-- PAGE 2: PIPING -->
+<div class="pg" id="pg2">
+<div class="card"><div class="ch"><span class="cn">3</span><h2>Piping &amp; Mechanical</h2></div><div class="cb" id="pipb"></div></div>
+</div>
+
+<!-- PAGE 3: SUMMARY -->
+<div class="pg" id="pg3">
+<div class="card"><div class="ch"><span class="cn">4</span><h2>Visit Summary</h2></div><div class="cb">
+  <div class="sum-grid" id="sum-grid">
+    <div class="sum-stat"><div class="snum" id="sn-good">0</div><div class="slbl">Good</div></div>
+    <div class="sum-stat wn"><div class="snum" id="sn-fair">0</div><div class="slbl">Fair</div></div>
+    <div class="sum-stat hi"><div class="snum" id="sn-poor">0</div><div class="slbl">Poor / Action</div></div>
+  </div>
+  <div id="sum-tbl"><div class="empty">Score equipment on the Equipment tab.</div></div>
+</div></div>
+<div class="card"><div class="ch"><span class="cn">!</span><h2>Findings &amp; Recommendations</h2></div><div class="cb">
+  <div id="flags-area"><div class="empty">No poor-condition items flagged yet.</div></div>
+</div></div>
+<div class="card"><div class="ch"><span class="cn">5</span><h2>Overall Visit Notes</h2></div><div class="cb">
+  <div class="fg"><label>General Site Conditions</label><textarea id="overall-notes" placeholder="Overall site condition, access issues, customer interactions, next visit prep..."></textarea></div>
+  <div class="r2">
+    <div class="fg"><label>Tech Signature</label><input type="text" id="tech-sig" placeholder="Tech name / sign-off"></div>
+    <div class="fg"><label>Customer Sign-Off</label><input type="text" id="cust-sig" placeholder="Customer name"></div>
+  </div>
+</div></div>
+<button class="dlb" onclick="dlSummary()" type="button">⬇ Download Visit Report PDF</button>
+</div>
+
+<!-- SITE PICKER MODAL -->
+<div class="modal" id="site-modal">
+  <div class="modal-sheet">
+    <div class="modal-title">Select Site Profile</div>
+    <div id="site-list">
+      <div class="empty">Loading available sites...</div>
+    </div>
+    <div style="margin-top:12px;font-size:11px;color:var(--mu)">Or enter a direct JSON URL:</div>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <input type="text" id="custom-url" placeholder="https://jason3kgt.github.io/tools/sites/..." style="flex:1;font-size:12px">
+      <button type="button" onclick="loadCustomUrl()" style="padding:8px 14px;background:var(--nv);color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">Load</button>
+    </div>
+    <button class="modal-cancel" onclick="closeModal()" type="button">Cancel</button>
+  </div>
+</div>
+
+<script>
+// ─── LOGO (short version for speed — tools repo has full base64) ───
+var LG = '';
+try { var _c = document.querySelector('.hl'); if(_c) LG = _c.src; } catch(e){}
+
+// ─── STATE ───────────────────────────────────────────────────────────
+var eqs = [];
+var eid = 1;
+var siteProfile = null;
+
+// ─── KNOWN SITE INDEX ─────────────────────────────────────────────
+// Add entries here as new PM sites are published to GitHub
+var KNOWN_SITES = [
+  {
+    name: 'ILS Gummies',
+    address: 'Grand Prairie, TX',
+    url: 'https://jason3kgt.github.io/tools/sites/ils-gummies.json',
+    plans: 'Quarterly + Monthly Tunnel',
+    units: '35+ RTU, VAV, EF'
+  }
+];
+
+// ─── TASK CHECKLISTS BY SERVICE TYPE ─────────────────────────────
+// Matches ILS Scope of Work but works for any PM account
+var TASKS = {
+  'rtu-quarterly': {
+    label: 'RTU — Quarterly',
+    sections: [
+      { name: 'Filters', items: [
+        { label: 'Filters replaced', key: 'filt_chg' },
+        { label: 'Filter condition noted', key: 'filt_cond' }
+      ]},
+      { name: 'Condensing Section', items: [
+        { label: 'Refrigerant charge checked', key: 'cond_charge' },
+        { label: 'Visual leak check', key: 'cond_leak' },
+        { label: 'Condenser fans', key: 'cond_fans' },
+        { label: 'Condenser coil', key: 'cond_coil' },
+        { label: 'Compressor', key: 'cond_comp' },
+        { label: 'Filter drier', key: 'cond_drier' }
+      ]},
+      { name: 'Heating Section', items: [
+        { label: 'Burners / Heat exchanger', key: 'heat_burner' },
+        { label: 'Ignition controls', key: 'heat_ign' },
+        { label: 'Safety controls', key: 'heat_safety' },
+        { label: 'Gas valves / operation', key: 'heat_valves' }
+      ]},
+      { name: 'Fan / Evaporator Section', items: [
+        { label: 'Drain pans cleaned', key: 'fan_dp' },
+        { label: 'Blower motor', key: 'fan_mot' },
+        { label: 'Evaporator coil', key: 'fan_evap' },
+        { label: 'Belts / Pulleys', key: 'fan_belt' },
+        { label: 'Blower wheel / Bearings', key: 'fan_blwr' },
+        { label: 'Duct system', key: 'fan_duct' }
+      ]},
+      { name: 'Roof / Service Area', items: [
+        { label: 'Curb & stands', key: 'roof_curb' },
+        { label: 'Debris / Cleanliness', key: 'roof_debris' },
+        { label: 'Condensate drain', key: 'roof_drain' },
+        { label: 'ACR piping / Insulation', key: 'roof_acr' }
+      ]},
+      { name: 'Electrical', items: [
+        { label: 'Wiring & connections', key: 'el_wire' },
+        { label: 'Disconnect / Fuses', key: 'el_disc' },
+        { label: 'Operational controls', key: 'el_op' },
+        { label: 'Thermostat / BMS setpoints', key: 'el_tstat' },
+        { label: 'Safety controls', key: 'el_safe' }
+      ]},
+      { name: 'Economizer / Dampers', items: [
+        { label: 'Economizer / Damper operation', key: 'econ_op' }
+      ]}
+    ]
+  },
+  'rtu-monthly': {
+    label: 'RTU — Monthly (Tunnel)',
+    sections: [
+      { name: 'Filters', items: [
+        { label: 'Filters replaced (high-particulate)', key: 'filt_chg' },
+        { label: 'Filter loading documented', key: 'filt_load' }
+      ]},
+      { name: 'Condensing Section', items: [
+        { label: 'Refrigerant charge checked', key: 'cond_charge' },
+        { label: 'Visual leak check', key: 'cond_leak' },
+        { label: 'Condenser fans', key: 'cond_fans' },
+        { label: 'Condenser coil — lint/debris check', key: 'cond_coil' },
+        { label: 'Compressor', key: 'cond_comp' },
+        { label: 'Filter drier', key: 'cond_drier' }
+      ]},
+      { name: 'Heating Section', items: [
+        { label: 'Burners / Heat exchanger', key: 'heat_burner' },
+        { label: 'Ignition controls', key: 'heat_ign' },
+        { label: 'Safety controls', key: 'heat_safety' },
+        { label: 'Gas valves / operation', key: 'heat_valves' }
+      ]},
+      { name: 'Fan / Evaporator Section', items: [
+        { label: 'Drain pans cleaned', key: 'fan_dp' },
+        { label: 'Blower motor amp draw checked', key: 'fan_mot' },
+        { label: 'Evaporator coil — debris check', key: 'fan_evap' },
+        { label: 'Belt tension checked', key: 'fan_belt' },
+        { label: 'Blower wheel / Bearings', key: 'fan_blwr' },
+        { label: 'Duct system', key: 'fan_duct' }
+      ]},
+      { name: 'Roof / Service Area', items: [
+        { label: 'Curb & stands', key: 'roof_curb' },
+        { label: 'Debris / Lint accumulation', key: 'roof_debris' },
+        { label: 'Condensate drain', key: 'roof_drain' },
+        { label: 'ACR piping / Insulation', key: 'roof_acr' }
+      ]},
+      { name: 'Electrical', items: [
+        { label: 'Wiring & connections', key: 'el_wire' },
+        { label: 'Disconnect / Fuses', key: 'el_disc' },
+        { label: 'Operational controls', key: 'el_op' },
+        { label: 'Thermostat / BMS setpoints', key: 'el_tstat' },
+        { label: 'Safety controls', key: 'el_safe' }
+      ]}
+    ]
+  },
+  'vav-quarterly': {
+    label: 'VAV — Quarterly',
+    sections: [
+      { name: 'Filter', items: [
+        { label: 'Filter replaced', key: 'filt_chg' },
+        { label: 'Filter condition', key: 'filt_cond' }
+      ]},
+      { name: 'VAV Box', items: [
+        { label: 'Reheat element / controls', key: 'vav_reheat' },
+        { label: 'Airflow at box verified', key: 'vav_airflow' },
+        { label: 'Actuator operation', key: 'vav_act' },
+        { label: 'Electrical connections', key: 'vav_elec' },
+        { label: 'BMS / Controls integration', key: 'vav_bms' }
+      ]}
+    ]
+  },
+  'ef-annual': {
+    label: 'Exhaust Fan — Annual',
+    sections: [
+      { name: 'Inspection', items: [
+        { label: 'Bearings — noise / heat check', key: 'ef_bear' },
+        { label: 'Belt condition & tension', key: 'ef_belt' },
+        { label: 'Motor amp draw', key: 'ef_amp' },
+        { label: 'Dampers & linkages', key: 'ef_damp' },
+        { label: 'Housing & inlet screen cleaned', key: 'ef_clean' }
+      ]}
+    ]
+  },
+  'tf-annual': {
+    label: 'Tunnel Fan — Annual',
+    sections: [
+      { name: 'Inspection', items: [
+        { label: 'Bearings — noise / vibration', key: 'tf_bear' },
+        { label: 'Motor temperature', key: 'tf_mot' },
+        { label: 'Fan wheel — debris / imbalance', key: 'tf_wheel' },
+        { label: 'Airflow direction & volume', key: 'tf_air' },
+        { label: 'Inlet screen cleaned', key: 'tf_clean' }
+      ]}
+    ]
+  },
+  'ms-annual': {
+    label: 'Mini Split — Annual',
+    sections: [
+      { name: 'Inspection', items: [
+        { label: 'Filter cleaned / replaced', key: 'ms_filt' },
+        { label: 'Coil condition', key: 'ms_coil' },
+        { label: 'Drain pan & line', key: 'ms_drain' },
+        { label: 'Controls & setpoints', key: 'ms_ctrl' },
+        { label: 'Outdoor unit condition', key: 'ms_out' }
+      ]}
+    ]
+  },
+  'ahu-quarterly': {
+    label: 'AHU — Quarterly',
+    sections: [
+      { name: 'Filters', items: [
+        { label: 'Filters replaced', key: 'filt_chg' },
+        { label: 'Filter condition noted', key: 'filt_cond' }
+      ]},
+      { name: 'Coil / Drain', items: [
+        { label: 'Evaporator coil', key: 'fan_evap' },
+        { label: 'Drain pans cleaned', key: 'fan_dp' },
+        { label: 'Condensate drain', key: 'roof_drain' }
+      ]},
+      { name: 'Fan / Motor', items: [
+        { label: 'Blower motor', key: 'fan_mot' },
+        { label: 'Belt / Pulleys', key: 'fan_belt' },
+        { label: 'Blower wheel / Bearings', key: 'fan_blwr' }
+      ]},
+      { name: 'Electrical / Controls', items: [
+        { label: 'Wiring & connections', key: 'el_wire' },
+        { label: 'Operational controls', key: 'el_op' },
+        { label: 'Thermostat / BMS setpoints', key: 'el_tstat' }
+      ]}
+    ]
+  },
+  'general-quarterly': {
+    label: 'General — Quarterly',
+    sections: [
+      { name: 'General Inspection', items: [
+        { label: 'Filters checked / replaced', key: 'filt_chg' },
+        { label: 'Coil condition', key: 'fan_evap' },
+        { label: 'Drain pan & drain line', key: 'fan_dp' },
+        { label: 'Motor & fan', key: 'fan_mot' },
+        { label: 'Belts / Pulleys', key: 'fan_belt' },
+        { label: 'Electrical connections', key: 'el_wire' },
+        { label: 'Controls & setpoints', key: 'el_tstat' },
+        { label: 'Safety controls', key: 'el_safe' }
+      ]}
+    ]
+  }
+};
+
+// ─── VISIT CALCULATOR ─────────────────────────────────────────────
+function calcVisit(contractStartISO) {
+  if (!contractStartISO) return null;
+  var start = new Date(contractStartISO);
+  var now = new Date();
+  if (isNaN(start.getTime())) return null;
+  var diffMs = now - start;
+  if (diffMs < 0) return { year: 1, quarter: 1, month: 1, label: 'Q1 — Year 1' };
+  var diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  var contractYear = Math.floor(diffDays / 365) + 1;
+  var dayInYear = diffDays % 365;
+  var quarter = Math.floor(dayInYear / 91.25) + 1;
+  if (quarter > 4) quarter = 4;
+  var month = Math.floor(diffDays / 30.44) + 1;
+  var monthInYear = ((month - 1) % 12) + 1;
+  var mNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var label = 'Q' + quarter + ' \u2014 Year ' + contractYear;
+  return { year: contractYear, quarter: quarter, month: month, monthInYear: monthInYear, monthName: mNames[monthInYear-1], label: label };
+}
+
+// ─── NAVIGATION ───────────────────────────────────────────────────
+function go(n) {
+  var pgs = document.querySelectorAll('.pg');
+  var tbs = document.querySelectorAll('.tab');
+  for (var i = 0; i < pgs.length; i++) {
+    pgs[i].style.display = (i === n) ? 'block' : 'none';
+    pgs[i].className = 'pg' + (i === n ? ' on' : '');
+    tbs[i].className = 'tab' + (i === n ? ' on' : '');
+  }
+  if (n === 3) ua();
+}
+
+// ─── MODAL ────────────────────────────────────────────────────────
+function openModal() {
+  var el = document.getElementById('site-modal');
+  if (el) el.className = 'modal on';
+  renderKnownSites();
+}
+function closeModal() {
+  var el = document.getElementById('site-modal');
+  if (el) el.className = 'modal';
+}
+function renderKnownSites() {
+  var el = document.getElementById('site-list');
+  if (!el) return;
+  var h = '';
+  for (var i = 0; i < KNOWN_SITES.length; i++) {
+    var s = KNOWN_SITES[i];
+    h += '<div class="site-row" data-idx="' + i + '">'
+       + '<h3>' + s.name + '</h3>'
+       + '<p>' + s.address + ' &mdash; ' + s.plans + '</p>'
+       + '<p style="color:var(--st);margin-top:2px">' + s.units + '</p>'
+       + '</div>';
+  }
+  el.innerHTML = h;
+  var rows = el.querySelectorAll('.site-row');
+  for (var j = 0; j < rows.length; j++) {
+    rows[j].addEventListener('click', function() {
+      var idx = parseInt(this.getAttribute('data-idx'));
+      loadSiteFromUrl(KNOWN_SITES[idx].url, KNOWN_SITES[idx].name);
+    });
+  }
+}
+function loadCustomUrl() {
+  var url = (document.getElementById('custom-url') || {}).value || '';
+  if (!url) { alert('Please enter a URL.'); return; }
+  loadSiteFromUrl(url, '');
+}
+
+// ─── SITE PROFILE LOADING ─────────────────────────────────────────
+function loadSiteFromUrl(url, displayName) {
+  var listEl = document.getElementById('site-list');
+  if (listEl) listEl.innerHTML = '<div class="empty">Loading\u2026</div>';
+  fetch(url)
+    .then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(function(data) {
+      applyProfile(data);
+      closeModal();
+    })
+    .catch(function(err) {
+      alert('Could not load site profile.\n' + err.message + '\n\nCheck your internet connection or the URL.');
+      renderKnownSites();
+    });
+}
+
+function applyProfile(data) {
+  siteProfile = data;
+  // Fill site fields
+  sv('sf', data.customer || '');
+  sv('sa', data.address || '');
+  sv('sct', data.city || '');
+  sv('sn', data.site_notes || '');
+
+  // Today's date
+  var now = new Date();
+  var mm = String(now.getMonth()+1).padStart(2,'0');
+  var dd = String(now.getDate()).padStart(2,'0');
+  var yy = now.getFullYear();
+  sv('sd', mm + '/' + dd + '/' + yy);
+
+  // Calculate visit
+  var visit = calcVisit(data.contract_start);
+  sv('sv', visit ? visit.label : '');
+
+  // Show site chip
+  var chip = document.getElementById('site-chip-area');
+  if (chip) {
+    chip.innerHTML = '<div class="site-chip"><span>📍 ' + (data.customer || 'Site') + ' loaded</span><button class="clr" onclick="clearSite()" type="button">✕ Clear</button></div>';
+  }
+
+  // Show visit banner
+  renderVisitBanner(data, visit);
+
+  // Load equipment from profile
+  loadEquipmentFromProfile(data, visit);
+}
+
+function clearSite() {
+  siteProfile = null;
+  var chip = document.getElementById('site-chip-area');
+  if (chip) chip.innerHTML = '';
+  var banner = document.getElementById('visit-banner-area');
+  if (banner) banner.innerHTML = '';
+  sv('sf',''); sv('sa',''); sv('sct',''); sv('sn',''); sv('sv','');
+  eqs = [];
+  renderEqs();
+}
+
+function renderVisitBanner(data, visit) {
+  var el = document.getElementById('visit-banner-area');
+  if (!el || !visit) return;
+  var quarterly = (data.equipment || []).filter(function(u) { return u.frequency === 'quarterly' || u.frequency === 'quarterly+annual'; });
+  var monthly = (data.equipment || []).filter(function(u) { return u.frequency === 'monthly'; });
+  var annual = (data.equipment || []).filter(function(u) { return u.frequency === 'annual'; });
+  // On monthly visits, quarterly units are NOT due unless it's also a quarter month
+  // Visit label shows what's actually due today
+  var html = '<div class="vbanner">';
+  html += '<div class="vb-title">Visit: ' + visit.label + '</div>';
+  html += '<div class="vb-sub">';
+  if (quarterly.length) html += quarterly.length + ' quarterly unit(s) due this visit. ';
+  if (monthly.length) html += monthly.length + ' monthly tunnel unit(s) due every visit. ';
+  if (annual.length) html += annual.length + ' annual inspection unit(s).';
+  html += '</div>';
+  html += '<div class="vb-tags">';
+  if (quarterly.length) html += '<span class="vb-tag">Q' + visit.quarter + ' Quarterly</span>';
+  if (monthly.length) html += '<span class="vb-tag tunnel">Monthly Tunnel</span>';
+  if (annual.length) html += '<span class="vb-tag" style="background:var(--gn)">Annual</span>';
+  html += '</div></div>';
+  el.innerHTML = html;
+}
+
+function loadEquipmentFromProfile(data, visit) {
+  eqs = [];
+  eid = 1;
+  var units = data.equipment || [];
+  var isMonthly = visit ? (visit.monthInYear % 3 !== 0) : false;
+  // Actually: all units load — quarterly ones just happen quarterly
+  // The banner tells the tech what's due; all are listed so nothing gets missed
+  for (var i = 0; i < units.length; i++) {
+    var u = units[i];
+    var serviceType = mapServiceType(u);
+    eqs.push({
+      id: eid++,
+      tag: u.tag || '',
+      type: u.type || 'RTU',
+      freq: u.frequency || 'quarterly',
+      tunnel: u.tunnel || false,
+      filterQty: u.filter_qty || '',
+      filterSize: u.filter_size || '',
+      beltQty: u.belt_qty || '',
+      beltSize: u.belt_size || '',
+      phase: u.phase || '',
+      area: u.area || '',
+      notes: '',
+      ov: '',
+      wscore: 0,
+      serviceType: serviceType,
+      detail: {}
+    });
+  }
+  renderEqs();
+}
+
+function mapServiceType(u) {
+  var freq = (u.frequency || 'quarterly').toLowerCase();
+  var type = (u.type || '').toLowerCase();
+  if (type.indexOf('vav') > -1) return 'vav-quarterly';
+  if (type.indexOf('exhaust') > -1 || type.indexOf('ef') > -1) {
+    if (type.indexOf('tunnel') > -1) return 'tf-annual';
+    return 'ef-annual';
+  }
+  if (type.indexOf('tunnel fan') > -1) return 'tf-annual';
+  if (type.indexOf('mini split') > -1) return 'ms-annual';
+  if (type.indexOf('ahu') > -1 || type.indexOf('air handler') > -1) return 'ahu-quarterly';
+  if (freq === 'monthly') return 'rtu-monthly';
+  if (freq === 'annual') return 'ef-annual';
+  return 'rtu-quarterly';
+}
+
+// ─── ADD EQUIPMENT MANUALLY ───────────────────────────────────────
+function addEq() {
+  eqs.push({
+    id: eid++,
+    tag: '',
+    type: 'RTU',
+    freq: 'quarterly',
+    tunnel: false,
+    filterQty: '',
+    filterSize: '',
+    beltQty: '',
+    beltSize: '',
+    phase: '',
+    area: '',
+    notes: '',
+    ov: '',
+    wscore: 0,
+    serviceType: 'rtu-quarterly',
+    detail: {}
+  });
+  renderEqs();
+}
+
+// ─── RENDER EQUIPMENT LIST ────────────────────────────────────────
+function renderEqs() {
+  var el = document.getElementById('eql');
+  if (!el) return;
+  if (!eqs.length) {
+    el.innerHTML = '<div class="empty">Load a site profile or add units manually.</div>';
+    return;
+  }
+  var h = '';
+  for (var i = 0; i < eqs.length; i++) {
+    h += eqH(eqs[i], i);
+  }
+  el.innerHTML = h;
+  for (var j = 0; j < eqs.length; j++) {
+    updBdg(eqs[j].id);
+  }
+}
+
+function eqH(eq, idx) {
+  var cb = function(fld) { return mkCB(eq.id, fld, eq.detail[fld] || ''); };
+  var tasks = TASKS[eq.serviceType] || TASKS['general-quarterly'];
+  var freqLabel = eq.freq === 'monthly' ? '<span class="tunnel-flag">MONTHLY</span>'
+    : eq.freq === 'annual' ? '<span class="annual-flag">ANNUAL</span>' : '';
+
+  var h = '<div class="er" id="er-' + eq.id + '">';
+  h += '<div class="eh">';
+  h += '<div class="en">' + (idx+1) + '</div>';
+  h += '<div style="flex:1"><div class="et">' + (eq.tag || 'Unit ' + eq.id) + freqLabel + '</div>';
+  h += '<div class="esub">' + (eq.type || '') + (eq.phase ? ' \u2014 ' + eq.phase : '') + (eq.area ? ' \u2014 ' + eq.area : '') + '</div></div>';
+  h += '<div class="bdg" id="bdg-' + eq.id + '">Not scored</div>';
+  h += '</div>';
+  h += '<div class="eb">';
+
+  // Filter info (pre-filled from profile)
+  h += '<button class="ab" onclick="tacc(' + eq.id + ',\'finfo\')" type="button">Filters &amp; Materials <span id="ar-' + eq.id + '-finfo"></span></button>';
+  h += '<div class="ac" id="ac-' + eq.id + '-finfo">';
+  h += '<div class="sh" style="margin-top:8px">Filter Details</div>';
+  h += '<div class="ir"><span class="il">Filter 1</span>'
+     + '<span style="font-size:11px;color:var(--mu);margin-right:3px">Qty</span>'
+     + '<input type="text" class="qi" value="' + (eq.filterQty || '') + '" placeholder="#" oninput="udf(' + eq.id + ',\'filterQty\',this.value)">'
+     + '<span style="font-size:11px;color:var(--mu);margin:0 3px">Size</span>'
+     + '<input type="text" class="si" value="' + (eq.filterSize || '') + '" placeholder="20x20x2" oninput="udf(' + eq.id + ',\'filterSize\',this.value)">'
+     + cb('filt_chg') + '</div>';
+  h += '<div class="sh">Belts</div>';
+  h += '<div class="ir"><span class="il">Belts / Pulleys</span>'
+     + '<span style="font-size:11px;color:var(--mu);margin-right:3px">Qty</span>'
+     + '<input type="text" class="qi" value="' + (eq.beltQty || '') + '" placeholder="#" oninput="udf(' + eq.id + ',\'beltQty\',this.value)">'
+     + '<span style="font-size:11px;color:var(--mu);margin:0 3px">Size</span>'
+     + '<input type="text" class="si" value="' + (eq.beltSize || '') + '" placeholder="A49" oninput="udf(' + eq.id + ',\'beltSize\',this.value)">'
+     + cb('fan_belt') + '</div>';
+  h += '</div>';
+
+  // Task checklist sections
+  for (var s = 0; s < tasks.sections.length; s++) {
+    var sec = tasks.sections[s];
+    // Skip filter/belt section since we handled it above
+    if (sec.name === 'Filters') continue;
+    var secKey = 'sec' + s;
+    h += '<button class="ab" onclick="tacc(' + eq.id + ',\'' + secKey + '\')" type="button">' + sec.name + ' <span id="ar-' + eq.id + '-' + secKey + '"></span></button>';
+    h += '<div class="ac" id="ac-' + eq.id + '-' + secKey + '">';
+    h += '<div class="sh" style="margin-top:8px">' + sec.name + '</div>';
+    for (var k = 0; k < sec.items.length; k++) {
+      var item = sec.items[k];
+      if (item.key === 'fan_belt') continue; // handled in filters section
+      h += '<div class="ir"><span class="il">' + item.label + '</span>' + cb(item.key) + '</div>';
+    }
+    h += '</div>';
+  }
+
+  // Refrigerant readings (RTU types)
+  if (eq.serviceType === 'rtu-quarterly' || eq.serviceType === 'rtu-monthly') {
+    h += '<button class="ab" onclick="tacc(' + eq.id + ',\'ref\')" type="button">Refrigerant Readings <span id="ar-' + eq.id + '-ref"></span></button>';
+    h += '<div class="ac" id="ac-' + eq.id + '-ref">';
+    h += '<div class="sh" style="margin-top:8px">Readings</div>';
+    h += '<div class="rvr"><label>Ambient Temp</label><input type="text" value="' + (eq.amb||'') + '" placeholder="\u00b0F" oninput="udf(' + eq.id + ',\'amb\',this.value)"><label>\u00b0F</label></div>';
+    h += '<div class="rvr"><label>Stage 1 Suc</label><input type="text" value="' + (eq.s1s||'') + '" placeholder="PSI" oninput="udf(' + eq.id + ',\'s1s\',this.value)"><label>Dis</label><input type="text" value="' + (eq.s1d||'') + '" placeholder="PSI" oninput="udf(' + eq.id + ',\'s1d\',this.value)"></div>';
+    h += '<div class="rvr"><label>Stage 2 Suc</label><input type="text" value="' + (eq.s2s||'') + '" placeholder="PSI" oninput="udf(' + eq.id + ',\'s2s\',this.value)"><label>Dis</label><input type="text" value="' + (eq.s2d||'') + '" placeholder="PSI" oninput="udf(' + eq.id + ',\'s2d\',this.value)"></div>';
+    h += '</div>';
+  }
+
+  // Notes
+  h += '<button class="ab" onclick="tacc(' + eq.id + ',\'notes\')" type="button">Notes / Findings <span id="ar-' + eq.id + '-notes"></span></button>';
+  h += '<div class="ac" id="ac-' + eq.id + '-notes"><div style="padding-top:8px"><div class="fg"><label>Findings / Recommendations</label>';
+  h += '<textarea placeholder="e.g. Belt worn, recommend replacement next visit\u2026" rows="3" oninput="udf(' + eq.id + ',\'notes\',this.value)">' + (eq.notes || '') + '</textarea></div></div></div>';
+  h += '</div></div>';
+  return h;
+}
+
+// ─── G/F/P BUTTONS ───────────────────────────────────────────────
+function mkCB(uid, fld, val) {
+  return '<div style="display:flex;gap:4px">'
+    + '<button class="ib ' + (val==='g'?'g':'') + '" data-val="g" data-uid="' + uid + '" data-fld="' + fld + '" onclick="tcond(this)" type="button">G</button>'
+    + '<button class="ib ' + (val==='f'?'f':'') + '" data-val="f" data-uid="' + uid + '" data-fld="' + fld + '" onclick="tcond(this)" type="button">F</button>'
+    + '<button class="ib ' + (val==='p'?'p':'') + '" data-val="p" data-uid="' + uid + '" data-fld="' + fld + '" onclick="tcond(this)" type="button">P</button>'
+    + '</div>';
+}
+function tcond(btn) {
+  var uid = parseInt(btn.getAttribute('data-uid'));
+  var fld = btn.getAttribute('data-fld');
+  var val = btn.getAttribute('data-val');
+  var eq = eqs.find(function(e) { return e.id === uid; });
+  if (!eq) return;
+  var cur = eq.detail[fld] || '';
+  var sibs = btn.parentNode.querySelectorAll('.ib');
+  for (var i = 0; i < sibs.length; i++) { sibs[i].className = 'ib'; }
+  if (cur === val) {
+    eq.detail[fld] = '';
+  } else {
+    btn.className = 'ib ' + val;
+    eq.detail[fld] = val;
+  }
+  updOv(uid);
+  ua();
+}
+
+// Weighted scoring (same as existing form)
+var W_HIGH=3, W_MED=2, W_LOW=1;
+var WEIGHTS = {
+  cond_comp:W_HIGH, cond_charge:W_HIGH, cond_leak:W_HIGH,
+  heat_burner:W_HIGH, heat_safety:W_HIGH, el_wire:W_HIGH, el_disc:W_HIGH, el_safe:W_HIGH,
+  cond_coil:W_MED, cond_fans:W_MED, cond_drier:W_MED,
+  fan_evap:W_MED, fan_mot:W_MED, fan_blwr:W_MED,
+  heat_ign:W_MED, heat_valves:W_MED, el_op:W_MED, el_tstat:W_MED,
+  roof_curb:W_MED, roof_acr:W_MED, roof_drain:W_MED,
+  filt_chg:W_LOW, fan_belt:W_LOW, fan_dp:W_LOW, fan_duct:W_LOW, roof_debris:W_LOW
+};
+var VAL = {g:1, f:2, p:3};
+function updOv(id) {
+  var eq = eqs.find(function(e) { return e.id === id; });
+  if (!eq) return;
+  var wScore=0, wTotal=0, scored=0;
+  var keys = Object.keys(eq.detail);
+  for (var k = 0; k < keys.length; k++) {
+    var v = eq.detail[keys[k]];
+    if (v!=='g'&&v!=='f'&&v!=='p') continue;
+    var w = WEIGHTS[keys[k]] || W_LOW;
+    wScore += VAL[v]*w; wTotal += 3*w; scored++;
+  }
+  if (!scored) { eq.ov=''; eq.wscore=0; updBdg(id); return; }
+  var ratio = wScore/wTotal;
+  eq.wscore = Math.round(ratio*100);
+  eq.ov = ratio<0.42?'good':ratio<0.67?'fair':'poor';
+  updBdg(id);
+}
+function updBdg(id) {
+  var eq = eqs.find(function(e) { return e.id === id; });
+  if (!eq) return;
+  var b = document.getElementById('bdg-'+id);
+  var r = document.getElementById('er-'+id);
+  if (!b) return;
+  if (!eq.ov) { b.textContent='Not scored'; b.className='bdg'; if(r)r.className='er'; return; }
+  var score = eq.wscore!==undefined?' \u2014 '+eq.wscore+'%':'';
+  if (eq.ov==='good') { b.textContent='Good'+score; b.className='bdg ok'; if(r)r.className='er ok'; }
+  else if (eq.ov==='fair') { b.textContent='Fair'+score; b.className='bdg wn'; if(r)r.className='er wn'; }
+  else { b.textContent='Poor'+score; b.className='bdg hi'; if(r)r.className='er hi'; }
+}
+
+// ─── ACCORDION ───────────────────────────────────────────────────
+function tacc(id, sec) {
+  var body = document.getElementById('ac-'+id+'-'+sec);
+  var arrow = document.getElementById('ar-'+id+'-'+sec);
+  if (body) { var open = body.classList.toggle('on'); if(arrow) arrow.textContent = open?'v':''; }
+}
+
+// ─── FIELD HELPERS ───────────────────────────────────────────────
+function sv(id, val) { var el = document.getElementById(id); if(el) el.value = val; }
+function gv(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
+function udf(id, f, v) {
+  var eq = eqs.find(function(e) { return e.id === id; });
+  if (eq) eq[f] = v;
+  if (f === 'tag') { var r = document.getElementById('er-'+id); if(r) { var et = r.querySelector('.et'); if(et) et.childNodes[0].textContent = v||('Unit '+id); } }
+  ua();
+}
+function ua() {
+  // Update summary stats
+  var good=0, fair=0, poor=0;
+  for (var i=0; i<eqs.length; i++) {
+    if (eqs[i].ov==='good') good++;
+    else if (eqs[i].ov==='fair') fair++;
+    else if (eqs[i].ov==='poor') poor++;
+  }
+  var sg = document.getElementById('sn-good'); if(sg) sg.textContent=good;
+  var sf = document.getElementById('sn-fair'); if(sf) sf.textContent=fair;
+  var sp = document.getElementById('sn-poor'); if(sp) sp.textContent=poor;
+  var gsEl = document.getElementById('sum-grid');
+  if (gsEl) {
+    var stats = gsEl.querySelectorAll('.sum-stat');
+    if (stats[0]) stats[0].className = 'sum-stat' + (good>0?' ok':'');
+    if (stats[1]) stats[1].className = 'sum-stat' + (fair>0?' wn':'');
+    if (stats[2]) stats[2].className = 'sum-stat' + (poor>0?' hi':'');
+  }
+  updSumTable();
+  updFlags();
+}
+function updSumTable() {
+  var el = document.getElementById('sum-tbl');
+  if (!el) return;
+  var scored = eqs.filter(function(e){return e.ov!=='';});
+  if (!scored.length) { el.innerHTML='<div class="empty">Score equipment on the Equipment tab.</div>'; return; }
+  var rp = function(ov){if(!ov)return'-';if(ov==='good')return'<span class="rp rok">Good</span>';if(ov==='fair')return'<span class="rp rw">Fair</span>';return'<span class="rp rh">Poor</span>';};
+  var h = '<table class="at"><thead><tr><th style="width:20%">Tag</th><th style="width:20%">Type</th><th style="width:30%">Service</th><th style="width:30%">Condition</th></tr></thead><tbody>';
+  h += scored.map(function(e){
+    var tasks = TASKS[e.serviceType]||TASKS['general-quarterly'];
+    return '<tr><td><strong>'+(e.tag||'U'+e.id)+'</strong></td><td style="font-size:10px">'+(e.type||'-')+'</td><td style="font-size:10px">'+tasks.label+'</td><td>'+rp(e.ov)+(e.wscore?'<span style="font-size:9px;color:var(--mu);margin-left:4px">'+e.wscore+'%</span>':'')+'</td></tr>';
+  }).join('');
+  h += '</tbody></table>';
+  el.innerHTML = h;
+}
+function updFlags() {
+  var el = document.getElementById('flags-area');
+  if (!el) return;
+  var poor = eqs.filter(function(e){return e.ov==='poor'||e.ov==='fair';});
+  if (!poor.length) { el.innerHTML='<div class="empty">No fair or poor-condition units flagged.</div>'; return; }
+  var h = '';
+  for (var i=0; i<poor.length; i++) {
+    var e = poor[i];
+    var clr = e.ov==='poor'?'#FDEDEC':'#FFF3E0';
+    var bclr = e.ov==='poor'?'#FCA5A5':'#FCD34D';
+    var lclr = e.ov==='poor'?'var(--rd)':'var(--am)';
+    h += '<div style="background:'+clr+';border:1.5px solid '+bclr+';border-radius:10px;padding:10px 12px;margin-bottom:8px">';
+    h += '<div style="font-size:12px;font-weight:700;color:'+lclr+'">'+(e.ov==='poor'?'POOR':'FAIR')+' \u2014 '+(e.tag||'Unit '+e.id)+'</div>';
+    if (e.notes) h += '<div style="font-size:12px;margin-top:4px;line-height:1.4">'+e.notes+'</div>';
+    else h += '<div style="font-size:11px;color:var(--mu);margin-top:4px">No notes added. Tap Notes/Findings on the unit to add details.</div>';
+    h += '</div>';
+  }
+  el.innerHTML = h;
+}
+
+// ─── PIPING SECTION ───────────────────────────────────────────────
+var PIPING = ['Supply Piping','Return Piping','Condensate Lines','Chilled Water Piping','Hot Water Piping','Refrigerant Lines','Insulation Condition','Valves & Isolation'];
+function initPiping() {
+  var el = document.getElementById('pipb');
+  if (!el) return;
+  var h = '';
+  for (var i=0; i<PIPING.length; i++) {
+    h += '<div class="pi"><div class="ph"><div class="pn">'+(i+1)+'</div><div style="font-size:13px;font-weight:500;flex:1;color:var(--tx)">'+PIPING[i]+'</div><div class="bdg" id="pb'+i+'">Not checked</div></div>';
+    h += '<div class="pb"><div class="r2"><div class="fg"><label>Condition</label><div style="display:flex;gap:5px">';
+    h += '<button class="ib" data-val="g" onclick="setPip(this,'+i+',\'g\')" type="button">G \u2014 Good</button>';
+    h += '<button class="ib" data-val="f" onclick="setPip(this,'+i+',\'f\')" type="button">F \u2014 Fair</button>';
+    h += '<button class="ib" data-val="p" onclick="setPip(this,'+i+',\'p\')" type="button">P \u2014 Poor</button>';
+    h += '</div></div><div class="fg"><label>Location / ID</label><input type="text" placeholder="Area or zone"></div></div>';
+    h += '<div class="fg"><label>Observations</label><input type="text" placeholder="Leaks, corrosion, insulation issues\u2026"></div>';
+    h += '<div class="fg"><label>Action</label><input type="text" placeholder="Monitor / Repair / Replace"></div>';
+    h += '</div></div>';
+  }
+  el.innerHTML = h;
+}
+function setPip(btn, i, val) {
+  var sibs = btn.closest('div').querySelectorAll('.ib');
+  for (var j=0; j<sibs.length; j++) { sibs[j].className='ib'; }
+  btn.className = 'ib '+val;
+  var b = document.getElementById('pb'+i);
+  if (!b) return;
+  b.className = 'bdg';
+  b.textContent = val==='g'?'Good':val==='f'?'Fair':'Poor';
+  if (val==='g') b.classList.add('ok');
+  else if (val==='f') b.classList.add('wn');
+  else b.classList.add('hi');
+}
+
+// ─── PDF GENERATION ───────────────────────────────────────────────
+function clabel(v) { return v==='g'?'Good':v==='f'?'Fair':v==='p'?'Poor':'-'; }
+function cclr(v) { return v==='g'?[30,122,62]:v==='f'?[212,130,10]:v==='p'?[192,57,43]:[120,120,120]; }
+var jspdfLoaded = false;
+function loadJsPDF(cb) {
+  if (jspdfLoaded) { cb(); return; }
+  var s = document.createElement('script');
+  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+  s.onload = function() {
+    var s2 = document.createElement('script');
+    s2.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
+    s2.onload = function() { jspdfLoaded = true; cb(); };
+    document.head.appendChild(s2);
+  };
+  document.head.appendChild(s);
+}
+
+function dlEquip() {
+  if (!eqs.length) { alert('No equipment units to export.'); return; }
+  loadJsPDF(function() {
+    var jsPDF = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
+    var doc = new jsPDF({orientation:'portrait',unit:'pt',format:'letter'});
+    var W = doc.internal.pageSize.getWidth();
+
+    for (var idx=0; idx<eqs.length; idx++) {
+      var eq = eqs[idx];
+      if (idx>0) doc.addPage();
+      // Header
+      doc.setFillColor(27,58,107); doc.rect(0,0,W,68,'F');
+      doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(14);
+      doc.text('NTD Mechanical',14,24);
+      doc.setFont('helvetica','normal'); doc.setFontSize(8);
+      doc.text('PM Visit Checklist \u2014 Equipment Report',14,38);
+      doc.text('TACLA65973C  |  2477 Merritt Dr. Garland, TX 75041',14,52);
+      doc.setFillColor(232,83,26); doc.rect(0,68,W,3,'F');
+
+      var y = 80;
+      // Site info row
+      doc.setFillColor(240,244,250); doc.rect(14,y,W-28,40,'F');
+      doc.setDrawColor(180,195,220); doc.rect(14,y,W-28,40,'S');
+      var fields = [
+        ['Customer', gv('sf'), 14],
+        ['Date', gv('sd'), 14+(W-28)*0.5],
+        ['Technician', gv('stch'), 14+(W-28)*0.75]
+      ];
+      for (var fi=0; fi<fields.length; fi++) {
+        doc.setFont('helvetica','bold'); doc.setTextColor(27,58,107); doc.setFontSize(7);
+        doc.text(fields[fi][0].toUpperCase(), fields[fi][2]+4, y+10);
+        doc.setFont('helvetica','normal'); doc.setTextColor(0,0,0); doc.setFontSize(9);
+        doc.text(fields[fi][1]||'-', fields[fi][2]+4, y+24);
+      }
+      y += 44;
+
+      // Unit header
+      var ovc = cclr(eq.ov);
+      doc.setFillColor(27,58,107); doc.rect(14,y,W-28,26,'F');
+      doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(12);
+      doc.text('Unit '+(idx+1)+': '+(eq.tag||'RTU-'+(idx+1)), 20, y+17);
+      if (eq.ov) {
+        doc.setTextColor(ovc[0],ovc[1],ovc[2]); doc.setFontSize(9);
+        doc.text('Condition: '+eq.ov.charAt(0).toUpperCase()+eq.ov.slice(1)+(eq.wscore?' ('+eq.wscore+'%)':''), W-120, y+17);
+      }
+      y += 30;
+
+      // Unit details
+      doc.setFillColor(248,250,252); doc.rect(14,y,W-28,30,'F');
+      doc.setTextColor(100,100,100); doc.setFont('helvetica','bold'); doc.setFontSize(7);
+      var details = [
+        ['Type', eq.type||'-', 18],
+        ['Service', (TASKS[eq.serviceType]||TASKS['general-quarterly']).label, 18+(W-28)*0.25],
+        ['Filters', (eq.filterQty?eq.filterQty+' x ':'')+( eq.filterSize||'-'), 18+(W-28)*0.55],
+        ['Belts', (eq.beltQty?eq.beltQty+' x ':'')+(eq.beltSize||'-'), 18+(W-28)*0.75]
+      ];
+      for (var di=0; di<details.length; di++) {
+        doc.text(details[di][0].toUpperCase(), details[di][2], y+10);
+        doc.setFont('helvetica','normal'); doc.setTextColor(0,0,0); doc.setFontSize(8);
+        doc.text(details[di][1], details[di][2], y+22);
+        doc.setFont('helvetica','bold'); doc.setTextColor(100,100,100); doc.setFontSize(7);
+      }
+      y += 34;
+
+      // Checklist table
+      var tasks = TASKS[eq.serviceType] || TASKS['general-quarterly'];
+      var rows = [];
+      for (var si=0; si<tasks.sections.length; si++) {
+        var sec = tasks.sections[si];
+        rows.push([{content:sec.name.toUpperCase(), colSpan:3, styles:{fillColor:[27,58,107],textColor:[255,255,255],fontStyle:'bold',fontSize:8}}]);
+        for (var ki=0; ki<sec.items.length; ki++) {
+          var item = sec.items[ki];
+          var val = eq.detail[item.key] || '';
+          var clrArr = cclr(val);
+          rows.push([
+            {content:item.label, styles:{fontSize:9}},
+            {content:clabel(val), styles:{textColor:clrArr,fontStyle:'bold',halign:'center',fontSize:9}},
+            {content:'', styles:{fontSize:8}}
+          ]);
+        }
+      }
+      // Readings
+      if (eq.s1s||eq.s1d||eq.s2s||eq.s2d||eq.amb) {
+        rows.push([{content:'REFRIGERANT READINGS', colSpan:3, styles:{fillColor:[27,58,107],textColor:[255,255,255],fontStyle:'bold',fontSize:8}}]);
+        if (eq.amb) rows.push(['Ambient Temp', (eq.amb||'-')+'\u00b0F', '']);
+        if (eq.s1s||eq.s1d) rows.push(['Stage 1 Suction / Discharge', (eq.s1s||'-')+' / '+(eq.s1d||'-')+' PSI', '']);
+        if (eq.s2s||eq.s2d) rows.push(['Stage 2 Suction / Discharge', (eq.s2s||'-')+' / '+(eq.s2d||'-')+' PSI', '']);
+      }
+      if (eq.notes) {
+        rows.push([{content:'NOTES / FINDINGS', colSpan:3, styles:{fillColor:[27,58,107],textColor:[255,255,255],fontStyle:'bold',fontSize:8}}]);
+        rows.push([{content:eq.notes, colSpan:3, styles:{fontSize:9}}]);
+      }
+
+      doc.autoTable({
+        startY: y,
+        margin: {left:14,right:14},
+        body: rows,
+        columnStyles: {0:{cellWidth:'auto'}, 1:{cellWidth:60}, 2:{cellWidth:80}},
+        styles:{fontSize:9,cellPadding:4},
+        alternateRowStyles:{fillColor:[247,248,250]},
+        didDrawPage: function() {}
+      });
+    }
+
+    var blob = doc.output('blob');
+    var burl = URL.createObjectURL(blob);
+    window.open(burl, '_blank');
+    setTimeout(function(){URL.revokeObjectURL(burl);}, 60000);
+  });
+}
+
+function dlSummary() {
+  loadJsPDF(function() {
+    var jsPDF = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
+    var doc = new jsPDF({orientation:'portrait',unit:'pt',format:'letter'});
+    var W = doc.internal.pageSize.getWidth();
+
+    // Header
+    doc.setFillColor(27,58,107); doc.rect(0,0,W,68,'F');
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(15);
+    doc.text('NTD Mechanical',14,26);
+    doc.setFont('helvetica','normal'); doc.setFontSize(8);
+    doc.text('PM Visit Report',14,40);
+    doc.text('TACLA65973C  |  2477 Merritt Dr. Garland, TX 75041  |  (214) 785-2129',14,54);
+    doc.setFillColor(232,83,26); doc.rect(0,68,W,3,'F');
+
+    var y=80;
+    // Site info
+    doc.setFillColor(240,244,250); doc.rect(14,y,W-28,50,'F');
+    doc.setDrawColor(180,195,220); doc.rect(14,y,W-28,50,'S');
+    var row1=[['Customer',gv('sf'),14,(W-28)*0.5],['Date',gv('sd'),14+(W-28)*0.5,(W-28)*0.5]];
+    var row2=[['Address',gv('sa')+' '+gv('sct'),14,(W-28)*0.5],['Technician',gv('stch'),14+(W-28)*0.5,(W-28)*0.25],['Visit',gv('sv'),14+(W-28)*0.75,(W-28)*0.25]];
+    [row1,row2].forEach(function(row,ri){
+      row.forEach(function(f){
+        doc.setFont('helvetica','bold'); doc.setTextColor(27,58,107); doc.setFontSize(7);
+        doc.text(f[0].toUpperCase(),f[2]+4,y+10+(ri*24));
+        doc.setFont('helvetica','normal'); doc.setTextColor(0,0,0); doc.setFontSize(9);
+        doc.text(f[1]||'-',f[2]+4,y+22+(ri*24),{maxWidth:f[3]-8});
+      });
+    });
+    y+=54;
+
+    // Summary stats
+    doc.setFillColor(27,58,107); doc.rect(14,y,(W-28)/3,28,'F');
+    doc.setFillColor(212,130,10); doc.rect(14+(W-28)/3,y,(W-28)/3,28,'F');
+    doc.setFillColor(192,57,43); doc.rect(14+(W-28)*2/3,y,(W-28)/3,28,'F');
+    var good=eqs.filter(function(e){return e.ov==='good';}).length;
+    var fair=eqs.filter(function(e){return e.ov==='fair';}).length;
+    var poor=eqs.filter(function(e){return e.ov==='poor';}).length;
+    [['Good: '+good,14],['Fair: '+fair,14+(W-28)/3],['Poor / Action: '+poor,14+(W-28)*2/3]].forEach(function(x){
+      doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(11);
+      doc.text(x[0],x[1]+8,y+18);
+    });
+    y+=32;
+
+    // Equipment table
+    doc.setFillColor(27,58,107); doc.rect(14,y,W-28,18,'F');
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(9);
+    doc.text('EQUIPMENT SUMMARY',20,y+12);
+    y+=22;
+
+    if (eqs.length) {
+      var rp=function(ov){return ov?ov.charAt(0).toUpperCase()+ov.slice(1):'-';};
+      var clr=function(ov){return ov==='good'?[30,122,62]:ov==='fair'?[212,130,10]:ov==='poor'?[192,57,43]:[100,100,100];};
+      doc.autoTable({
+        startY:y,
+        margin:{left:14,right:14},
+        head:[['Unit','Type','Service Type','Condition','Filters','Notes']],
+        body:eqs.map(function(e){
+          var tasks=TASKS[e.serviceType]||TASKS['general-quarterly'];
+          return [e.tag||'U'+e.id,e.type||'-',tasks.label,rp(e.ov),(e.filterQty||'')+' '+(e.filterSize||''),e.notes||''];
+        }),
+        headStyles:{fillColor:[27,58,107],fontSize:8},
+        bodyStyles:{fontSize:8},
+        alternateRowStyles:{fillColor:[247,248,250]},
+        columnStyles:{3:{fontStyle:'bold'}},
+        didParseCell:function(data){
+          if(data.section==='body'&&data.column.index===3){
+            var eq=eqs[data.row.index];
+            if(eq){var c=clr(eq.ov);data.cell.styles.textColor=c;}
+          }
+        }
+      });
+      y = doc.lastAutoTable.finalY + 14;
+    }
+
+    // Findings
+    var flagged = eqs.filter(function(e){return e.ov==='poor'||e.ov==='fair';});
+    if (flagged.length) {
+      doc.setFillColor(192,57,43); doc.rect(14,y,W-28,18,'F');
+      doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(9);
+      doc.text('FINDINGS & RECOMMENDATIONS',20,y+12);
+      y+=22;
+      for (var fi=0; fi<flagged.length; fi++) {
+        var e=flagged[fi];
+        var bg=e.ov==='poor'?[253,237,236]:[255,243,224];
+        doc.setFillColor(bg[0],bg[1],bg[2]); doc.rect(14,y,W-28,30,'F');
+        var lc=e.ov==='poor'?[192,57,43]:[212,130,10];
+        doc.setTextColor(lc[0],lc[1],lc[2]); doc.setFont('helvetica','bold'); doc.setFontSize(9);
+        doc.text((e.ov==='poor'?'POOR':'FAIR')+' \u2014 '+(e.tag||'Unit '+e.id),20,y+12);
+        doc.setTextColor(0,0,0); doc.setFont('helvetica','normal'); doc.setFontSize(8);
+        doc.text(e.notes||'See equipment report for details.',20,y+24,{maxWidth:W-40});
+        y+=34;
+      }
+    }
+
+    // Overall notes
+    var oNotes = (document.getElementById('overall-notes')||{}).value || '';
+    if (oNotes) {
+      if (y > 650) { doc.addPage(); y=40; }
+      doc.setFillColor(27,58,107); doc.rect(14,y,W-28,18,'F');
+      doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(9);
+      doc.text('OVERALL VISIT NOTES',20,y+12);
+      y+=22;
+      doc.setTextColor(0,0,0); doc.setFont('helvetica','normal'); doc.setFontSize(9);
+      var lines = doc.splitTextToSize(oNotes, W-40);
+      doc.text(lines, 20, y);
+      y += lines.length*13+10;
+    }
+
+    // Signatures
+    if (y > 680) { doc.addPage(); y=40; }
+    y = Math.max(y, 680);
+    doc.setDrawColor(180,180,180);
+    doc.line(14,y,14+(W-28)*0.4,y);
+    doc.line(14+(W-28)*0.55,y,W-14,y);
+    doc.setTextColor(100,100,100); doc.setFontSize(7);
+    doc.text('Technician: '+(gv('tech-sig')||'_________________________'),14,y+10);
+    doc.text('Customer: '+(gv('cust-sig')||'_________________________'),14+(W-28)*0.55,y+10);
+
+    // Footer
+    doc.setFillColor(27,58,107); doc.rect(0,doc.internal.pageSize.getHeight()-24,W,24,'F');
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','normal'); doc.setFontSize(8);
+    doc.text('NTD Mechanical  |  TACLA65973C  |  2477 Merritt Dr. Garland, TX 75041  |  (214) 785-2129  |  www.ntdmechanical.com',W/2,doc.internal.pageSize.getHeight()-8,{align:'center'});
+
+    var blob = doc.output('blob');
+    var burl = URL.createObjectURL(blob);
+    window.open(burl, '_blank');
+    setTimeout(function(){URL.revokeObjectURL(burl);}, 60000);
+  });
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────
+initPiping();
+// Set today's date
+var _now = new Date();
+var _mm = String(_now.getMonth()+1).padStart(2,'0');
+var _dd = String(_now.getDate()).padStart(2,'0');
+var _yy = _now.getFullYear();
+sv('sd', _mm+'/'+_dd+'/'+_yy);
+</script>
+</body>
+</html>
