@@ -1,4 +1,4 @@
-var CACHE='ntd-tools-v16';
+var CACHE='ntd-tools-v17';
 var ASSETS=[
   './',
   './index.html',
@@ -9,6 +9,7 @@ var ASSETS=[
   './equipment-survey.html',
   './equipment-survey-v2.html',
   './ntdStore.js',
+  './ntd-hub.html',
   './pm-quoting.html',
   './project-manager.html',
   './manifest.json',

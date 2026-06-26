@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NTD Hub">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="theme-color" content="#1B3A6B">
+<title>NTD Hub</title>
+<script src="ntdStore.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --nv:#1B3A6B;--nv2:#243F7A;--st:#2E5F8A;
+  --or:#E8531A;--gn:#1E7A3E;--am:#D4820A;--rd:#C0392B;
+  --bd:#DDE2EA;--bd2:#C8D2DF;--of:#F4F6FA;--bg:#EEF1F7;
+  --tx:#1A1A2E;--mu:#6B7280;--wh:#fff;
+  --card-shadow:0 2px 12px rgba(27,58,107,.10);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--tx);font-size:14px;padding-bottom:72px;min-height:100vh}
+
+/* ── HEADER ── */
+.hdr{background:var(--nv);padding:0 16px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:0 2px 12px rgba(0,0,0,.25)}
+.hdr-brand{display:flex;align-items:center;gap:10px}
+.hdr-logo{width:36px;height:36px;background:var(--or);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff;letter-spacing:-1px;flex-shrink:0}
+.hdr-title{font-size:17px;font-weight:700;color:#fff;letter-spacing:-.3px}
+.hdr-sub{font-size:10px;color:rgba(255,255,255,.55);margin-top:1px}
+.hdr-btn{background:rgba(255,255,255,.12);border:none;border-radius:8px;padding:7px 13px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;font-family:inherit;touch-action:manipulation}
+.hdr-btn:active{opacity:.8}
+
+/* ── BOTTOM NAV ── */
+.bnav{position:fixed;bottom:0;left:0;right:0;background:var(--nv);display:flex;border-top:1px solid rgba(255,255,255,.1);z-index:200;padding-bottom:env(safe-area-inset-bottom)}
+.bnav-btn{flex:1;padding:10px 4px 11px;text-align:center;font-size:8.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:rgba(255,255,255,.4);cursor:pointer;border:none;background:none;font-family:inherit;touch-action:manipulation}
+.bnav-btn.on{color:#fff}
+.bnav-btn .bi{font-size:20px;display:block;margin-bottom:3px}
+.bnav-btn.on .bi{filter:drop-shadow(0 0 4px rgba(232,83,26,.7))}
+
+/* ── PAGES ── */
+.pg{display:none;padding:14px;max-width:720px;margin:0 auto}
+.pg.on{display:block}
+
+/* ── SEARCH BAR ── */
+.search-wrap{position:relative;margin-bottom:14px}
+.search-wrap input{width:100%;padding:11px 14px 11px 40px;border:1.5px solid var(--bd);border-radius:12px;font-size:14px;font-family:inherit;background:#fff;color:var(--tx);-webkit-appearance:none}
+.search-wrap input:focus{outline:none;border-color:var(--st)}
+.search-wrap::before{content:"🔍";position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none}
+
+/* ── CARDS ── */
+.card{background:#fff;border-radius:14px;border:1px solid var(--bd);margin-bottom:12px;overflow:hidden;box-shadow:var(--card-shadow)}
+.card-hdr{background:var(--nv);padding:11px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.card-hdr h2{font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.06em}
+.card-hdr .badge{background:rgba(255,255,255,.18);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px}
+.card-body{padding:14px 16px}
+
+/* ── FACILITY LIST ── */
+.fac-row{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--bd);cursor:pointer;touch-action:manipulation;background:#fff;transition:background .15s}
+.fac-row:last-child{border-bottom:none}
+.fac-row:active{background:var(--of)}
+.fac-avatar{width:40px;height:40px;border-radius:10px;background:var(--nv);color:#fff;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.fac-info{flex:1;min-width:0}
+.fac-name{font-size:15px;font-weight:700;color:var(--nv);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fac-addr{font-size:11px;color:var(--mu);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fac-tags{display:flex;gap:4px;margin-top:5px;flex-wrap:wrap}
+.tag{font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px;white-space:nowrap}
+.tag-pm{background:#E8F0FA;color:var(--nv)}
+.tag-startup{background:#E8F5EC;color:var(--gn)}
+.tag-quote{background:#FEF0EA;color:var(--or)}
+.tag-survey{background:#F3F0FA;color:#5B21B6}
+.fac-arrow{color:var(--bd2);font-size:20px;flex-shrink:0}
+
+/* ── EMPTY STATE ── */
+.empty{text-align:center;padding:48px 20px 32px;color:var(--mu)}
+.empty-icon{font-size:48px;margin-bottom:12px}
+.empty h3{font-size:16px;font-weight:700;color:var(--tx);margin-bottom:6px}
+.empty p{font-size:13px;line-height:1.6;max-width:260px;margin:0 auto}
+
+/* ── DETAIL VIEW ── */
+.detail-hero{background:var(--nv);padding:18px 16px 20px;margin:-14px -14px 14px}
+.detail-avatar{width:52px;height:52px;border-radius:13px;background:rgba(255,255,255,.15);color:#fff;font-size:20px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-bottom:10px}
+.detail-name{font-size:20px;font-weight:700;color:#fff;letter-spacing:-.3px}
+.detail-addr{font-size:12px;color:rgba(255,255,255,.65);margin-top:3px}
+.detail-tags{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.detail-tag{font-size:10px;font-weight:700;padding:3px 10px;border-radius:8px;background:rgba(255,255,255,.15);color:#fff}
+.detail-actions{display:flex;gap:8px;margin-top:14px}
+.detail-act-btn{flex:1;padding:9px;border-radius:10px;border:1.5px solid rgba(255,255,255,.3);background:transparent;color:#fff;font-size:11px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;text-align:center}
+.detail-act-btn.primary{background:var(--or);border-color:var(--or)}
+
+/* ── SECTION TABS ── */
+.sec-tabs{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.sec-tabs::-webkit-scrollbar{display:none}
+.sec-tab{padding:7px 14px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;cursor:pointer;border:1.5px solid var(--bd);background:#fff;color:var(--mu);touch-action:manipulation;font-family:inherit}
+.sec-tab.on{background:var(--nv);color:#fff;border-color:var(--nv)}
+
+/* ── RECORD ROWS ── */
+.rec-row{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--bd)}
+.rec-row:last-child{border-bottom:none}
+.rec-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;margin-top:1px}
+.rec-icon.nv{background:#EEF3FB}
+.rec-icon.gn{background:#E8F5EC}
+.rec-icon.or{background:#FEF0EA}
+.rec-icon.am{background:#FFF3E0}
+.rec-icon.pu{background:#F3F0FA}
+.rec-body{flex:1;min-width:0}
+.rec-title{font-size:14px;font-weight:700;color:var(--tx)}
+.rec-sub{font-size:11px;color:var(--mu);margin-top:2px;line-height:1.5}
+.rec-meta{font-size:10px;color:var(--mu);margin-top:4px}
+.cond-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:middle}
+.cond-good{background:var(--gn)}.cond-fair{background:var(--am)}.cond-poor{background:var(--rd)}.cond-none{background:var(--bd2)}
+
+/* ── FORM ── */
+.fg{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.fg:last-child{margin-bottom:0}
+.fg label{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mu)}
+.fg input,.fg select,.fg textarea{width:100%;padding:10px 12px;border:1.5px solid var(--bd);border-radius:10px;font-family:inherit;font-size:14px;color:var(--tx);background:var(--of);-webkit-appearance:none}
+.fg input:focus,.fg select:focus,.fg textarea:focus{outline:none;border-color:var(--st);background:#fff}
+.fg textarea{resize:vertical;min-height:72px}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* ── BUTTONS ── */
+.btn{display:block;width:100%;padding:13px;border-radius:11px;font-size:14px;font-weight:700;border:none;font-family:inherit;cursor:pointer;touch-action:manipulation;text-align:center;margin-top:8px}
+.btn:active{opacity:.85}
+.btn-or{background:var(--or);color:#fff}
+.btn-nv{background:var(--nv);color:#fff}
+.btn-outline{background:#fff;color:var(--nv);border:1.5px solid var(--nv)}
+.btn-red{background:#fff;color:var(--rd);border:1.5px solid var(--rd)}
+.btn-sm{padding:8px 14px;font-size:12px;border-radius:9px;width:auto;display:inline-block;margin-top:0}
+
+/* ── STAT PILLS ── */
+.stats-row{display:flex;gap:8px;margin-bottom:14px}
+.stat-pill{flex:1;background:#fff;border:1px solid var(--bd);border-radius:11px;padding:10px 8px;text-align:center;box-shadow:var(--card-shadow)}
+.stat-num{font-size:22px;font-weight:800;color:var(--nv);line-height:1}
+.stat-lbl{font-size:9px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.05em;margin-top:3px}
+
+/* ── PROJECT STATUS BADGES ── */
+.status-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:8px;display:inline-block}
+.status-bidding{background:#FFF3E0;color:var(--am)}
+.status-awarded{background:#E8F5EC;color:var(--gn)}
+.status-progress{background:#EEF3FB;color:var(--nv)}
+.status-complete{background:#F0F0F0;color:var(--mu)}
+.status-lost{background:#FDEDEC;color:var(--rd)}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:84px;left:50%;transform:translateX(-50%) translateY(20px);background:#1A1A2E;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;opacity:0;transition:all .3s;z-index:500;white-space:nowrap;pointer-events:none}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── MODAL ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;-webkit-overflow-scrolling:touch}
+.modal-overlay.on{display:block}
+.modal-sheet{position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;padding:20px 16px 32px;max-height:85vh;overflow-y:auto}
+.modal-handle{width:40px;height:4px;background:var(--bd2);border-radius:2px;margin:0 auto 16px}
+.modal-title{font-size:17px;font-weight:700;color:var(--tx);margin-bottom:16px}
+
+/* ── MISC ── */
+.divider{height:1px;background:var(--bd);margin:14px 0}
+.section-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--mu);margin:16px 0 8px 2px}
+.section-label:first-child{margin-top:0}
+.sp-link{color:var(--st);text-decoration:none;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:4px}
+.sp-link::after{content:"↗";font-size:11px}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-brand">
+    <div class="hdr-logo">N</div>
+    <div>
+      <div class="hdr-title">NTD Hub</div>
+      <div class="hdr-sub">NTD Mechanical · Garland TX</div>
+    </div>
+  </div>
+  <button class="hdr-btn" id="hdr-action-btn" onclick="hdrAction()">+ Facility</button>
+</div>
+
+<!-- PAGES -->
+
+<!-- ① FACILITIES LIST -->
+<div class="pg on" id="pg-facilities">
+  <div class="search-wrap">
+    <input type="text" id="fac-search" placeholder="Search facilities…" oninput="renderFacilityList()" autocomplete="off" autocorrect="off" spellcheck="false">
+  </div>
+  <div id="fac-list-wrap"></div>
+</div>
+
+<!-- ② FACILITY DETAIL -->
+<div class="pg" id="pg-detail">
+  <div class="detail-hero" id="detail-hero"></div>
+  <div class="sec-tabs" id="detail-tabs"></div>
+  <div id="detail-content"></div>
+</div>
+
+<!-- ③ PROJECTS -->
+<div class="pg" id="pg-projects">
+  <div class="search-wrap">
+    <input type="text" id="proj-search" placeholder="Search projects…" oninput="renderProjectList()" autocomplete="off">
+  </div>
+  <div id="proj-list-wrap"></div>
+</div>
+
+<!-- ④ SETTINGS -->
+<div class="pg" id="pg-settings">
+  <div class="section-label">Data</div>
+  <div class="card">
+    <div class="card-body">
+      <div class="fg">
+        <label>Store Status</label>
+        <div id="settings-status" style="font-size:13px;color:var(--mu);padding:6px 0">Loading…</div>
+      </div>
+      <button class="btn btn-outline" onclick="exportData()">⬇ Export All Data (JSON)</button>
+      <button class="btn btn-red" onclick="clearAllData()" style="margin-top:6px">✕ Clear All Store Data</button>
+    </div>
+  </div>
+  <div class="section-label">About</div>
+  <div class="card">
+    <div class="card-body">
+      <div style="font-size:13px;color:var(--mu);line-height:1.8">
+        <div><strong style="color:var(--tx)">NTD Hub</strong> v1.0</div>
+        <div>NTD Mechanical — TACLA65973C</div>
+        <div>2477 Merritt Dr, Garland TX 75041</div>
+        <div style="margin-top:8px">Connected tools: Equipment Survey · Startup Checklist · PM Checklist · HVAC Asset Survey</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bnav">
+  <button class="bnav-btn on" id="bnav-facilities" onclick="goPage('facilities')">
+    <span class="bi">🏢</span>Facilities
+  </button>
+  <button class="bnav-btn" id="bnav-projects" onclick="goPage('projects')">
+    <span class="bi">📁</span>Projects
+  </button>
+  <button class="bnav-btn" id="bnav-settings" onclick="goPage('settings')">
+    <span class="bi">⚙️</span>Settings
+  </button>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- ADD/EDIT FACILITY MODAL -->
+<div class="modal-overlay" id="fac-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="fac-modal-title">Add Facility</div>
+    <div class="fg"><label>Customer / Facility Name *</label><input type="text" id="fm-name" placeholder="e.g. ILS Gummies"></div>
+    <div class="fg"><label>Address</label><input type="text" id="fm-addr" placeholder="123 Main St"></div>
+    <div class="fg"><label>City, State</label><input type="text" id="fm-city" placeholder="Grand Prairie, TX"></div>
+    <div class="fg"><label>Primary Contact</label><input type="text" id="fm-contact" placeholder="Name · Phone · Email"></div>
+    <div class="fg">
+      <label>Type</label>
+      <select id="fm-type">
+        <option value="">— Select —</option>
+        <option value="pm_customer">PM Customer</option>
+        <option value="service_customer">Service Customer</option>
+        <option value="prospect">Prospect</option>
+        <option value="project">Project / New Construction</option>
+      </select>
+    </div>
+    <div class="fg"><label>Notes</label><textarea id="fm-notes" placeholder="Any relevant notes…"></textarea></div>
+    <button class="btn btn-nv" onclick="saveFacility()">Save Facility</button>
+    <button class="btn btn-outline" onclick="closeModal('fac-modal')" style="margin-top:6px">Cancel</button>
+  </div>
+</div>
+
+<!-- ADD/EDIT PROJECT MODAL -->
+<div class="modal-overlay" id="proj-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="proj-modal-title">Add Project</div>
+    <div class="fg"><label>Project Name *</label><input type="text" id="pm-name" placeholder="e.g. RTU Replacement Phase 2"></div>
+    <div class="fg">
+      <label>Status</label>
+      <select id="pm-status">
+        <option value="bidding">Bidding</option>
+        <option value="awarded">Awarded</option>
+        <option value="progress">In Progress</option>
+        <option value="complete">Complete</option>
+        <option value="lost">Lost</option>
+      </select>
+    </div>
+    <div class="r2">
+      <div class="fg"><label>Contract Value</label><input type="text" id="pm-value" placeholder="$0"></div>
+      <div class="fg"><label>PO / WO #</label><input type="text" id="pm-po" placeholder=""></div>
+    </div>
+    <div class="r2">
+      <div class="fg"><label>Start Date</label><input type="text" id="pm-start" placeholder="MM/DD/YYYY"></div>
+      <div class="fg"><label>Target Completion</label><input type="text" id="pm-end" placeholder="MM/DD/YYYY"></div>
+    </div>
+    <div class="fg"><label>SharePoint Folder URL</label><input type="text" id="pm-sp" placeholder="https://…"></div>
+    <div class="fg"><label>Description / Notes</label><textarea id="pm-notes" placeholder="Scope, key contacts, special requirements…"></textarea></div>
+    <button class="btn btn-nv" onclick="saveProject()">Save Project</button>
+    <button class="btn btn-outline" onclick="closeModal('proj-modal')" style="margin-top:6px">Cancel</button>
+  </div>
+</div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────────────────
+var currentPage = 'facilities';
+var currentFacilityId = null;
+var currentDetailTab = 'equipment';
+var editingFacilityId = null;
+var editingProjectId = null;
+var editingProjectFacilityId = null;
+
+// ── NAV ───────────────────────────────────────────────────────────────────
+function goPage(page) {
+  currentPage = page;
+  document.querySelectorAll('.pg').forEach(function(p){ p.classList.remove('on'); });
+  document.querySelectorAll('.bnav-btn').forEach(function(b){ b.classList.remove('on'); });
+  var pg = document.getElementById('pg-' + page);
+  var bn = document.getElementById('bnav-' + page);
+  if (pg) pg.classList.add('on');
+  if (bn) bn.classList.add('on');
+
+  var hdrBtn = document.getElementById('hdr-action-btn');
+  if (page === 'facilities') {
+    hdrBtn.textContent = '+ Facility';
+    hdrBtn.style.display = 'block';
+    renderFacilityList();
+  } else if (page === 'projects') {
+    hdrBtn.textContent = '+ Project';
+    hdrBtn.style.display = 'block';
+    renderProjectList();
+  } else if (page === 'settings') {
+    hdrBtn.style.display = 'none';
+    renderSettings();
+  }
+}
+
+function goDetail(facilityId) {
+  currentFacilityId = facilityId;
+  currentDetailTab = 'equipment';
+  document.querySelectorAll('.pg').forEach(function(p){ p.classList.remove('on'); });
+  document.getElementById('pg-detail').classList.add('on');
+  document.getElementById('hdr-action-btn').textContent = '← Back';
+  renderDetail();
+}
+
+function hdrAction() {
+  if (currentPage === 'detail' || document.getElementById('pg-detail').classList.contains('on')) {
+    // Back button
+    document.getElementById('pg-detail').classList.remove('on');
+    goPage(currentPage === 'detail' ? 'facilities' : currentPage);
+    currentPage = 'facilities';
+    goPage('facilities');
+    return;
+  }
+  if (currentPage === 'facilities') openAddFacility();
+  else if (currentPage === 'projects') openAddProject(null);
+}
+
+// ── FACILITY LIST ─────────────────────────────────────────────────────────
+function renderFacilityList() {
+  var wrap = document.getElementById('fac-list-wrap');
+  var q = (document.getElementById('fac-search').value || '').toLowerCase().trim();
+  if (typeof ntdStore === 'undefined') {
+    wrap.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><h3>Store unavailable</h3><p>ntdStore.js could not be loaded.</p></div>';
+    return;
+  }
+  ntdStore.facilities.list().then(function(facilities) {
+    var filtered = facilities.filter(function(f) {
+      if (!q) return true;
+      return (f.name||'').toLowerCase().indexOf(q) > -1 ||
+             (f.address||'').toLowerCase().indexOf(q) > -1;
+    }).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
+
+    if (!filtered.length) {
+      wrap.innerHTML = '<div class="empty"><div class="empty-icon">🏢</div><h3>' +
+        (q ? 'No results for "'+q+'"' : 'No facilities yet') + '</h3><p>' +
+        (q ? 'Try a different search.' : 'Add your first facility or submit data from any NTD tool.') +
+        '</p></div>';
+      return;
+    }
+
+    // Load counts for tags
+    Promise.all([
+      ntdStore.startup_records.list(),
+      ntdStore.pm_records.list(),
+      ntdStore.pm_quotes.list(),
+      ntdStore.equipment.list()
+    ]).then(function(results) {
+      var startups = results[0], pmRecs = results[1], pmQuotes = results[2], equip = results[3];
+      var html = '<div class="card" style="padding:0;overflow:hidden">';
+      filtered.forEach(function(f, idx) {
+        var initials = (f.name||'?').split(' ').map(function(w){ return w[0]; }).join('').substring(0,2).toUpperCase();
+        var hasPM    = pmRecs.some(function(r){ return r.facility_id === f.id; });
+        var hasStart = startups.some(function(r){ return r.facility_id === f.id; });
+        var hasQuote = pmQuotes.some(function(r){ return r.facility_id === f.id; });
+        var eqCount  = equip.filter(function(e){ return e.facility_id === f.id; }).length;
+        var tags = '';
+        if (f.pm_contract) tags += '<span class="tag tag-pm">PM Contract</span>';
+        if (hasPM)    tags += '<span class="tag tag-pm">PM History</span>';
+        if (hasStart) tags += '<span class="tag tag-startup">Startup</span>';
+        if (hasQuote) tags += '<span class="tag tag-quote">Quoted</span>';
+        if (eqCount)  tags += '<span class="tag tag-survey">'+eqCount+' Units</span>';
+        html += '<div class="fac-row" onclick="goDetail(\''+f.id+'\')">' +
+          '<div class="fac-avatar">'+initials+'</div>' +
+          '<div class="fac-info">' +
+            '<div class="fac-name">'+esc(f.name||'Unnamed')+'</div>' +
+            '<div class="fac-addr">'+esc([f.address, f.address2].filter(Boolean).join(', ') || f.city || 'No address')+'</div>' +
+            (tags ? '<div class="fac-tags">'+tags+'</div>' : '') +
+          '</div>' +
+          '<div class="fac-arrow">›</div>' +
+        '</div>';
+      });
+      html += '</div>';
+      wrap.innerHTML = html;
+    });
+  }).catch(function(e) {
+    wrap.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><h3>Load error</h3><p>'+e.message+'</p></div>';
+  });
+}
+
+// ── FACILITY DETAIL ───────────────────────────────────────────────────────
+function renderDetail() {
+  if (!currentFacilityId) return;
+  ntdStore.facilities.get(currentFacilityId).then(function(f) {
+    if (!f) { goPage('facilities'); return; }
+    // Hero
+    var initials = (f.name||'?').split(' ').map(function(w){ return w[0]; }).join('').substring(0,2).toUpperCase();
+    var typeLabel = {pm_customer:'PM Customer',service_customer:'Service Customer',prospect:'Prospect',project:'Project'}[f.type] || '';
+    document.getElementById('detail-hero').innerHTML =
+      '<div class="detail-avatar">'+initials+'</div>' +
+      '<div class="detail-name">'+esc(f.name||'Unnamed')+'</div>' +
+      '<div class="detail-addr">'+esc([f.address, f.city].filter(Boolean).join(' · ') || 'No address on file')+'</div>' +
+      (f.contact ? '<div class="detail-addr" style="margin-top:4px">'+esc(f.contact)+'</div>' : '') +
+      '<div class="detail-tags">' +
+        (typeLabel ? '<span class="detail-tag">'+typeLabel+'</span>' : '') +
+        (f.pm_contract ? '<span class="detail-tag">PM Contract</span>' : '') +
+      '</div>' +
+      '<div class="detail-actions">' +
+        '<button class="detail-act-btn" onclick="openEditFacility(\''+f.id+'\')">✏️ Edit</button>' +
+        '<button class="detail-act-btn" onclick="openAddProject(\''+f.id+'\')">+ Project</button>' +
+        '<button class="detail-act-btn primary" onclick="confirmDeleteFacility(\''+f.id+'\')">Delete</button>' +
+      '</div>';
+
+    // Tabs
+    var tabs = ['equipment','startups','pm','quotes','projects','notes'];
+    var tabLabels = {equipment:'🔧 Units',startups:'✅ Startups',pm:'📋 PM Visits',quotes:'💲 Quotes',projects:'📁 Projects',notes:'📝 Notes'};
+    var tabsHtml = tabs.map(function(t) {
+      return '<button class="sec-tab'+(t===currentDetailTab?' on':'')+'" onclick="switchDetailTab(\''+t+'\')">'+tabLabels[t]+'</button>';
+    }).join('');
+    document.getElementById('detail-tabs').innerHTML = tabsHtml;
+
+    renderDetailTab(f);
+  });
+}
+
+function switchDetailTab(tab) {
+  currentDetailTab = tab;
+  document.querySelectorAll('.sec-tab').forEach(function(t){ t.classList.remove('on'); });
+  var btns = document.querySelectorAll('.sec-tab');
+  btns.forEach(function(b){ if(b.textContent.toLowerCase().indexOf(tab.substring(0,3))>-1 || b.getAttribute('onclick').indexOf(tab)>-1) b.classList.add('on'); });
+  ntdStore.facilities.get(currentFacilityId).then(renderDetailTab);
+}
+
+function renderDetailTab(f) {
+  var content = document.getElementById('detail-content');
+  var fid = f.id;
+
+  if (currentDetailTab === 'equipment') {
+    ntdStore.equipment.list(function(e){ return e.facility_id === fid; }).then(function(equip) {
+      if (!equip.length) { content.innerHTML = emptyState('🔧','No units on file','Units appear here after an Equipment Survey or Asset Survey is submitted for this facility.'); return; }
+      var html = '<div class="card"><div class="card-body">';
+      equip.forEach(function(e) {
+        var cond = e.condition || '';
+        var condColor = cond==='good'?'cond-good':cond==='fair'?'cond-fair':cond==='poor'?'cond-poor':'cond-none';
+        html += '<div class="rec-row">' +
+          '<div class="rec-icon nv">🔧</div>' +
+          '<div class="rec-body">' +
+            '<div class="rec-title">'+esc(e.tag||'Unit')+(e.type?' <span style="font-weight:400;color:var(--mu)">· '+esc(e.type)+'</span>':'')+'</div>' +
+            '<div class="rec-sub">' +
+              (cond ? '<span class="cond-dot '+condColor+'"></span>'+cond.charAt(0).toUpperCase()+cond.slice(1)+' condition' : 'No condition recorded') +
+              (e.install_year ? ' · Installed '+e.install_year : '') +
+            '</div>' +
+            (e.repl_cost ? '<div class="rec-meta">Est. replacement: $'+Math.round(e.repl_cost).toLocaleString()+(e.repl_year?' · Year '+e.repl_year:'')+'</div>' : '') +
+            (e.notes ? '<div class="rec-meta" style="margin-top:3px">'+esc(e.notes)+'</div>' : '') +
+          '</div></div>';
+      });
+      html += '</div></div>';
+      content.innerHTML = html;
+    });
+  }
+
+  else if (currentDetailTab === 'startups') {
+    ntdStore.startup_records.list(function(r){ return r.facility_id === fid; }).then(function(recs) {
+      if (!recs.length) { content.innerHTML = emptyState('✅','No startup records','Startup records appear here after a technician submits a startup checklist for this facility.'); return; }
+      var sorted = recs.sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
+      var html = '<div class="card"><div class="card-body">';
+      sorted.forEach(function(r) {
+        html += '<div class="rec-row">' +
+          '<div class="rec-icon gn">✅</div>' +
+          '<div class="rec-body">' +
+            '<div class="rec-title">'+esc(r.unit_num||'Unit')+'</div>' +
+            '<div class="rec-sub">'+esc(r.eq_type||'')+(r.tech?' · '+esc(r.tech):'')+'</div>' +
+            (r.sig_name ? '<div class="rec-meta">Signed: '+esc(r.sig_name)+(r.sig_date?' · '+esc(r.sig_date):'')+'</div>' : '') +
+            (r.followup ? '<div class="rec-meta" style="color:var(--am)">⚠ Follow-up: '+esc(r.followup)+'</div>' : '') +
+          '</div></div>';
+      });
+      html += '</div></div>';
+      content.innerHTML = html;
+    });
+  }
+
+  else if (currentDetailTab === 'pm') {
+    ntdStore.pm_records.list(function(r){ return r.facility_id === fid; }).then(function(recs) {
+      if (!recs.length) { content.innerHTML = emptyState('📋','No PM visit records','PM visit records appear here after a technician submits a PM checklist for this facility.'); return; }
+      var sorted = recs.sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
+      var html = '<div class="card"><div class="card-body">';
+      sorted.forEach(function(r) {
+        var good=r.good_count||0, fair=r.fair_count||0, poor=r.poor_count||0;
+        html += '<div class="rec-row">' +
+          '<div class="rec-icon nv">📋</div>' +
+          '<div class="rec-body">' +
+            '<div class="rec-title">'+esc(r.visit_label||'PM Visit')+'</div>' +
+            '<div class="rec-sub">'+esc(r.date||'')+(r.tech?' · '+esc(r.tech):'')+'</div>' +
+            '<div class="rec-meta">' +
+              (r.unit_count ? r.unit_count+' units · ' : '') +
+              '<span style="color:var(--gn)">'+good+' Good</span> · ' +
+              '<span style="color:var(--am)">'+fair+' Fair</span> · ' +
+              '<span style="color:var(--rd)">'+poor+' Poor</span>' +
+            '</div>' +
+            (r.notes ? '<div class="rec-meta" style="margin-top:3px">'+esc(r.notes)+'</div>' : '') +
+          '</div></div>';
+      });
+      html += '</div></div>';
+      content.innerHTML = html;
+    });
+  }
+
+  else if (currentDetailTab === 'quotes') {
+    Promise.all([
+      ntdStore.pm_quotes.list(function(r){ return r.facility_id === fid; }),
+      ntdStore.service_quotes.list(function(r){ return r.facility_id === fid; })
+    ]).then(function(results) {
+      var pmQ = results[0], svcQ = results[1];
+      if (!pmQ.length && !svcQ.length) { content.innerHTML = emptyState('💲','No quotes on file','PM proposals and service quotes submitted from the HVAC Asset Survey appear here.'); return; }
+      var html = '';
+      if (pmQ.length) {
+        html += '<div class="section-label">PM Proposals</div><div class="card"><div class="card-body">';
+        pmQ.sort(function(a,b){return (b.ts||0)-(a.ts||0);}).forEach(function(q) {
+          html += '<div class="rec-row">' +
+            '<div class="rec-icon or">📄</div>' +
+            '<div class="rec-body">' +
+              '<div class="rec-title">'+esc(q.frequency||'PM')+ ' Proposal</div>' +
+              '<div class="rec-sub">'+esc(q.date||'')+(q.unit_count?' · '+q.unit_count+' units':'')+'</div>' +
+              '<div class="rec-meta">Annual: <strong>'+esc(q.annual_total||'—')+'</strong> · Quarterly: '+esc(q.quarterly_rate||'—')+'</div>' +
+            '</div></div>';
+        });
+        html += '</div></div>';
+      }
+      if (svcQ.length) {
+        html += '<div class="section-label">Service Quotes</div><div class="card"><div class="card-body">';
+        svcQ.sort(function(a,b){return (b.ts||0)-(a.ts||0);}).forEach(function(q) {
+          html += '<div class="rec-row">' +
+            '<div class="rec-icon am">🔨</div>' +
+            '<div class="rec-body">' +
+              '<div class="rec-title">Service Quote</div>' +
+              '<div class="rec-sub">'+esc(q.date||'')+(q.items?' · '+(q.items.length)+' line items':'')+'</div>' +
+              '<div class="rec-meta">Total: <strong>'+esc(q.grand_total||'—')+'</strong></div>' +
+            '</div></div>';
+        });
+        html += '</div></div>';
+      }
+      content.innerHTML = html;
+    });
+  }
+
+  else if (currentDetailTab === 'projects') {
+    ntdStore.jobs.list(function(j){ return j.facility_id === fid && j.type === 'project'; }).then(function(projs) {
+      var addBtn = '<button class="btn btn-nv" onclick="openAddProject(\''+fid+'\')" style="margin-bottom:14px">+ Add Project</button>';
+      if (!projs.length) { content.innerHTML = addBtn + emptyState('📁','No projects yet','Add a project to track bids, contracts, and SharePoint documents for this facility.'); return; }
+      var html = addBtn;
+      var statusClass = {bidding:'status-bidding',awarded:'status-awarded',progress:'status-progress',complete:'status-complete',lost:'status-lost'};
+      var statusLabel = {bidding:'Bidding',awarded:'Awarded',progress:'In Progress',complete:'Complete',lost:'Lost'};
+      projs.sort(function(a,b){return (b.ts||0)-(a.ts||0);}).forEach(function(p) {
+        html += '<div class="card">' +
+          '<div class="card-body">' +
+            '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">' +
+              '<div style="font-size:15px;font-weight:700;color:var(--nv);flex:1">'+esc(p.name||'Project')+'</div>' +
+              '<span class="status-badge '+(statusClass[p.status]||'status-bidding')+'">'+(statusLabel[p.status]||'Bidding')+'</span>' +
+            '</div>' +
+            (p.wo_number ? '<div style="font-size:11px;color:var(--mu);margin-bottom:4px">PO/WO: '+esc(p.wo_number)+'</div>' : '') +
+            (p.value ? '<div style="font-size:13px;font-weight:700;color:var(--gn);margin-bottom:4px">'+esc(p.value)+'</div>' : '') +
+            (p.start_date||p.end_date ? '<div style="font-size:11px;color:var(--mu);margin-bottom:8px">'+(p.start_date?'Start: '+esc(p.start_date):'')+(p.start_date&&p.end_date?' · ':'')+(p.end_date?'Target: '+esc(p.end_date):'')+'</div>' : '') +
+            (p.sp_url ? '<a href="'+esc(p.sp_url)+'" target="_blank" class="sp-link" style="margin-bottom:8px;display:inline-flex">SharePoint Folder</a>' : '') +
+            (p.notes ? '<div style="font-size:12px;color:var(--mu);line-height:1.5;margin-top:6px;padding-top:8px;border-top:1px solid var(--bd)">'+esc(p.notes)+'</div>' : '') +
+            '<div style="display:flex;gap:6px;margin-top:10px">' +
+              '<button class="btn btn-outline btn-sm" onclick="openEditProject(\''+p.id+'\',\''+fid+'\')">✏️ Edit</button>' +
+              '<button class="btn btn-red btn-sm" onclick="deleteProject(\''+p.id+'\')">Delete</button>' +
+            '</div>' +
+          '</div></div>';
+      });
+      content.innerHTML = html;
+    });
+  }
+
+  else if (currentDetailTab === 'notes') {
+    content.innerHTML = '<div class="card"><div class="card-body">' +
+      '<div class="fg"><label>Facility Notes</label>' +
+      '<textarea id="notes-ta" style="min-height:180px" placeholder="Internal notes about this facility…">'+esc(f.notes||'')+'</textarea></div>' +
+      '<button class="btn btn-nv" onclick="saveNotes()">Save Notes</button>' +
+      '</div></div>';
+  }
+}
+
+function saveNotes() {
+  var notes = (document.getElementById('notes-ta')||{}).value || '';
+  ntdStore.facilities.get(currentFacilityId).then(function(f) {
+    f.notes = notes;
+    return ntdStore.facilities.upsert(f);
+  }).then(function(){ showToast('Notes saved'); });
+}
+
+// ── ADD / EDIT FACILITY ───────────────────────────────────────────────────
+function openAddFacility() {
+  editingFacilityId = null;
+  document.getElementById('fac-modal-title').textContent = 'Add Facility';
+  ['fm-name','fm-addr','fm-city','fm-contact','fm-notes'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('fm-type').value = '';
+  openModal('fac-modal');
+}
+
+function openEditFacility(id) {
+  editingFacilityId = id;
+  ntdStore.facilities.get(id).then(function(f) {
+    document.getElementById('fac-modal-title').textContent = 'Edit Facility';
+    document.getElementById('fm-name').value    = f.name    || '';
+    document.getElementById('fm-addr').value    = f.address || '';
+    document.getElementById('fm-city').value    = f.city    || f.address2 || '';
+    document.getElementById('fm-contact').value = f.contact || '';
+    document.getElementById('fm-type').value    = f.type    || '';
+    document.getElementById('fm-notes').value   = f.notes   || '';
+    openModal('fac-modal');
+  });
+}
+
+function saveFacility() {
+  var name = document.getElementById('fm-name').value.trim();
+  if (!name) { alert('Facility name is required.'); return; }
+  var data = {
+    name:    name,
+    address: document.getElementById('fm-addr').value.trim(),
+    city:    document.getElementById('fm-city').value.trim(),
+    contact: document.getElementById('fm-contact').value.trim(),
+    type:    document.getElementById('fm-type').value,
+    notes:   document.getElementById('fm-notes').value.trim()
+  };
+  if (data.type === 'pm_customer') data.pm_contract = true;
+  if (editingFacilityId) data.id = editingFacilityId;
+  ntdStore.facilities.upsert(data).then(function(f) {
+    closeModal('fac-modal');
+    showToast(editingFacilityId ? 'Facility updated' : 'Facility added');
+    renderFacilityList();
+    if (editingFacilityId && currentFacilityId === editingFacilityId) renderDetail();
+  });
+}
+
+function confirmDeleteFacility(id) {
+  ntdStore.facilities.get(id).then(function(f) {
+    if (!confirm('Delete ' + (f.name||'this facility') + '? This cannot be undone.')) return;
+    ntdStore.facilities.delete(id).then(function() {
+      showToast('Facility deleted');
+      goPage('facilities');
+    });
+  });
+}
+
+// ── ADD / EDIT PROJECT ────────────────────────────────────────────────────
+function openAddProject(facilityId) {
+  editingProjectId = null;
+  editingProjectFacilityId = facilityId;
+  document.getElementById('proj-modal-title').textContent = 'Add Project';
+  ['pm-name','pm-value','pm-po','pm-start','pm-end','pm-sp','pm-notes'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('pm-status').value = 'bidding';
+  openModal('proj-modal');
+}
+
+function openEditProject(id, facilityId) {
+  editingProjectId = id;
+  editingProjectFacilityId = facilityId;
+  ntdStore.jobs.get(id).then(function(p) {
+    document.getElementById('proj-modal-title').textContent = 'Edit Project';
+    document.getElementById('pm-name').value   = p.name       || '';
+    document.getElementById('pm-status').value = p.status     || 'bidding';
+    document.getElementById('pm-value').value  = p.value      || '';
+    document.getElementById('pm-po').value     = p.wo_number  || '';
+    document.getElementById('pm-start').value  = p.start_date || '';
+    document.getElementById('pm-end').value    = p.end_date   || '';
+    document.getElementById('pm-sp').value     = p.sp_url     || '';
+    document.getElementById('pm-notes').value  = p.notes      || '';
+    openModal('proj-modal');
+  });
+}
+
+function saveProject() {
+  var name = document.getElementById('pm-name').value.trim();
+  if (!name) { alert('Project name is required.'); return; }
+  var data = {
+    facility_id: editingProjectFacilityId,
+    type:        'project',
+    name:        name,
+    status:      document.getElementById('pm-status').value,
+    value:       document.getElementById('pm-value').value.trim(),
+    wo_number:   document.getElementById('pm-po').value.trim(),
+    start_date:  document.getElementById('pm-start').value.trim(),
+    end_date:    document.getElementById('pm-end').value.trim(),
+    sp_url:      document.getElementById('pm-sp').value.trim(),
+    notes:       document.getElementById('pm-notes').value.trim()
+  };
+  if (editingProjectId) data.id = editingProjectId;
+  ntdStore.jobs.upsert(data).then(function() {
+    closeModal('proj-modal');
+    showToast(editingProjectId ? 'Project updated' : 'Project added');
+    if (currentDetailTab === 'projects') ntdStore.facilities.get(currentFacilityId).then(renderDetailTab);
+    renderProjectList();
+  });
+}
+
+function deleteProject(id) {
+  if (!confirm('Delete this project? This cannot be undone.')) return;
+  ntdStore.jobs.delete(id).then(function() {
+    showToast('Project deleted');
+    ntdStore.facilities.get(currentFacilityId).then(renderDetailTab);
+    renderProjectList();
+  });
+}
+
+// ── PROJECTS PAGE ─────────────────────────────────────────────────────────
+function renderProjectList() {
+  var wrap = document.getElementById('proj-list-wrap');
+  var q = (document.getElementById('proj-search').value || '').toLowerCase().trim();
+  ntdStore.jobs.list(function(j){ return j.type === 'project'; }).then(function(projs) {
+    var filtered = projs.filter(function(p) {
+      if (!q) return true;
+      return (p.name||'').toLowerCase().indexOf(q) > -1 ||
+             (p.notes||'').toLowerCase().indexOf(q) > -1 ||
+             (p.status||'').toLowerCase().indexOf(q) > -1;
+    }).sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
+
+    if (!filtered.length) {
+      wrap.innerHTML = '<div class="empty"><div class="empty-icon">📁</div><h3>'+(q?'No results':'No projects yet')+'</h3><p>'+(q?'Try a different search.':'Add projects from a facility detail page or tap + Project above.')+'</p></div>';
+      return;
+    }
+
+    // Get facility names
+    ntdStore.facilities.list().then(function(facs) {
+      var facMap = {};
+      facs.forEach(function(f){ facMap[f.id] = f.name; });
+      var statusClass = {bidding:'status-bidding',awarded:'status-awarded',progress:'status-progress',complete:'status-complete',lost:'status-lost'};
+      var statusLabel = {bidding:'Bidding',awarded:'Awarded',progress:'In Progress',complete:'Complete',lost:'Lost'};
+      var html = '';
+      filtered.forEach(function(p) {
+        html += '<div class="card" onclick="goDetail(\''+p.facility_id+'\')" style="cursor:pointer">' +
+          '<div class="card-body">' +
+            '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px">' +
+              '<div style="font-size:15px;font-weight:700;color:var(--nv);flex:1">'+esc(p.name||'Project')+'</div>' +
+              '<span class="status-badge '+(statusClass[p.status]||'status-bidding')+'">'+(statusLabel[p.status]||'Bidding')+'</span>' +
+            '</div>' +
+            '<div style="font-size:12px;color:var(--mu)">'+esc(facMap[p.facility_id]||'Unknown facility')+(p.value?' · <strong style="color:var(--gn)">'+esc(p.value)+'</strong>':'')+'</div>' +
+            (p.start_date||p.end_date ? '<div style="font-size:11px;color:var(--mu);margin-top:4px">'+(p.start_date?esc(p.start_date):'')+(p.start_date&&p.end_date?' → ':'')+(p.end_date?esc(p.end_date):'')+'</div>' : '') +
+          '</div></div>';
+      });
+      wrap.innerHTML = html;
+    });
+  });
+}
+
+// ── SETTINGS ─────────────────────────────────────────────────────────────
+function renderSettings() {
+  Promise.all([
+    ntdStore.facilities.list(),
+    ntdStore.equipment.list(),
+    ntdStore.startup_records.list(),
+    ntdStore.pm_records.list(),
+    ntdStore.pm_quotes.list(),
+    ntdStore.service_quotes.list(),
+    ntdStore.jobs.list()
+  ]).then(function(r) {
+    document.getElementById('settings-status').innerHTML =
+      r[0].length+' facilities · '+r[1].length+' units · '+r[2].length+' startups · '+
+      r[3].length+' PM visits · '+r[4].length+' PM quotes · '+r[5].length+' service quotes · '+
+      r[6].filter(function(j){return j.type==='project';}).length+' projects';
+  });
+}
+
+function exportData() {
+  ntdStore.exportAll().then(function(data) {
+    var blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+    var url  = URL.createObjectURL(blob);
+    var a    = document.createElement('a');
+    a.href   = url;
+    a.download = 'ntd-hub-export-' + new Date().toISOString().substring(0,10) + '.json';
+    a.click();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 5000);
+    showToast('Export downloaded');
+  });
+}
+
+function clearAllData() {
+  if (!confirm('Clear ALL store data? This deletes every facility, unit, record, and quote. This cannot be undone.')) return;
+  if (!confirm('Are you absolutely sure? All data will be permanently deleted.')) return;
+  ntdStore.clearAll().then(function() {
+    showToast('All data cleared');
+    renderSettings();
+  });
+}
+
+// ── MODAL HELPERS ─────────────────────────────────────────────────────────
+function openModal(id) {
+  document.getElementById(id).classList.add('on');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('on');
+}
+// Close on overlay tap
+document.querySelectorAll('.modal-overlay').forEach(function(el) {
+  el.addEventListener('click', function(e) {
+    if (e.target === el) el.classList.remove('on');
+  });
+});
+
+// ── UTILITIES ─────────────────────────────────────────────────────────────
+function esc(str) {
+  return (str||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function emptyState(icon, title, msg) {
+  return '<div class="empty"><div class="empty-icon">'+icon+'</div><h3>'+title+'</h3><p>'+msg+'</p></div>';
+}
+
+function showToast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 2500);
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+window.addEventListener('load', function() {
+  renderFacilityList();
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  }
+});
+</script>
+</body>
+</html>
