@@ -13,6 +13,7 @@
 <meta name="apple-mobile-web-app-title" content="NTD Startup">
 <meta name="theme-color" content="#1B3A6B">
 <title>NTD Mechanical - Equipment Startup Form</title>
+<script src="ntdStore.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -266,7 +267,10 @@ textarea{resize:vertical;min-height:70px}
     <button class="sb" id="save_unit_btn" style="border-color:var(--gn);color:var(--gn);font-weight:700">&#10003; Save Unit &amp; Start Next</button>
     <button class="sb" id="dup_btn" style="border-color:var(--am);color:var(--am)">&#10063; Duplicate for Next Unit</button>
   </div>
-  <button class="sb" id="finish_job_btn" style="margin-top:8px;border-color:var(--nv);color:var(--nv);display:none">&#9660; Finish Job &amp; Download All PDFs</button>
+  <div class="g2" style="margin-top:8px">
+    <button class="sb" id="finish_job_btn" style="border-color:var(--nv);color:var(--nv);display:none">&#9660; Finish Job &amp; Download All PDFs</button>
+    <button class="sb" id="clear_all_btn" style="border-color:var(--rd);color:var(--rd);display:none" ontouchend="clearSession()" onclick="clearSession()">&#10005; Clear All Units</button>
+  </div>
 </div>
 
 <!-- COMPLETED UNITS LOG -->
@@ -1737,6 +1741,9 @@ function saveUnitToSession(){
   persistSession();
   renderSessionLog();
 
+  // Also save to ntdStore
+  ntdSaveStartupRecord(snap);
+
   // Reset edit state
   editingIndex = -1;
 
@@ -1759,6 +1766,24 @@ function saveUnitToSession(){
   // Show finish job button
   var finBtn = document.getElementById('finish_job_btn');
   if(finBtn) finBtn.style.display='block';
+  var clrBtn = document.getElementById('clear_all_btn');
+  if(clrBtn) clrBtn.style.display='block';
+
+  // If a job is loaded, auto-show the unit picker for the next unit
+  if(ljCurrentJob && ljCurrentJob.units && ljCurrentJob.units.length > 1){
+    var body = document.getElementById('lj_body');
+    var btn = document.getElementById('lj_toggle_btn');
+    if(body){ body.classList.remove('hidden'); }
+    if(btn){ btn.textContent = 'Hide'; }
+    ljOpen = true;
+    // Go back to unit list (step2)
+    document.getElementById('lj_step1').classList.add('hidden');
+    var step2 = document.getElementById('lj_step2');
+    if(step2) step2.classList.remove('hidden');
+    // Scroll up to job loader
+    var ljCard = document.getElementById('lj_card');
+    if(ljCard) setTimeout(function(){ ljCard.scrollIntoView({behavior:'smooth', block:'start'}); }, 350);
+  }
 }
 
 function persistSession(){
@@ -1800,8 +1825,22 @@ function clearSession(){
   if(!confirm('Clear all ' + sessionUnits.length + ' saved units from this session? This cannot be undone.')) return;
   sessionUnits = [];
   localStorage.removeItem(SESSION_KEY);
+  // Also reset ntdStore session refs
+  _ntdFacilityId = null;
+  _ntdJobId = null;
   renderSessionLog();
   var finBtn=document.getElementById('finish_job_btn'); if(finBtn)finBtn.style.display='none';
+  var clrBtn=document.getElementById('clear_all_btn'); if(clrBtn)clrBtn.style.display='none';
+  // Reset the form
+  switchType();
+  var ljPre = document.getElementById('lj_preloaded');
+  if(ljPre){ ljPre.textContent=''; ljPre.classList.remove('on'); ljPre.style.display='none'; }
+  ljCurrentJob = null;
+  ljOpen = false;
+  var ljBody = document.getElementById('lj_body');
+  var ljBtn = document.getElementById('lj_toggle_btn');
+  if(ljBody) ljBody.classList.add('hidden');
+  if(ljBtn) ljBtn.textContent = 'Show';
 }
 
 function renderSessionLog(){
@@ -2183,6 +2222,8 @@ function downloadAllPDFs(){
     + '<div><div style="font-size:15px;font-weight:700;color:var(--nv)">Download Unit PDFs</div>'
     + '<div style="font-size:11px;color:var(--mu);margin-top:2px">Tap each unit to open its PDF</div></div>'
     + '<button id="dl_panel_close" style="background:none;border:1.5px solid var(--bd);border-radius:8px;padding:6px 12px;font-size:13px;font-weight:700;color:var(--mu);cursor:pointer;font-family:inherit">Done</button>'
+    + '</div>'
+    + '<button id="ntd_submit_btn" ontouchend="ntdSubmitSession()" onclick="ntdSubmitSession()" style="display:block;width:100%;background:var(--nv);color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;margin-bottom:12px">&#10003; Submit All Units to Store</button>'
     + '</div>';
 
   var rows = '';
@@ -2250,6 +2291,155 @@ function downloadAllPDFs(){
   }
 }
 
+
+
+
+// ── NTDSTORE INTEGRATION ─────────────────────────────────────────────────────
+// Tracks the current facility_id for this session (set when a job is loaded)
+var _ntdFacilityId = null;
+var _ntdJobId = null;
+
+/**
+ * Find or create a facility in ntdStore by name.
+ * Tries case-insensitive match first, creates if not found.
+ */
+function ntdUpsertFacility(name, address, callback) {
+  if (typeof ntdStore === 'undefined') { if(callback) callback(null); return; }
+  var nameLower = (name || '').toLowerCase().trim();
+  ntdStore.facilities.list(function(f) {
+    return (f.name || '').toLowerCase().trim() === nameLower;
+  }).then(function(matches) {
+    if (matches.length > 0) {
+      // Found existing facility
+      _ntdFacilityId = matches[0].id;
+      if (callback) callback(matches[0]);
+    } else {
+      // Create new facility
+      ntdStore.facilities.upsert({
+        name: name || '',
+        address: address || ''
+      }).then(function(fac) {
+        _ntdFacilityId = fac.id;
+        if (callback) callback(fac);
+      }).catch(function() { if(callback) callback(null); });
+    }
+  }).catch(function() { if(callback) callback(null); });
+}
+
+/**
+ * Save a single unit snapshot to ntdStore.startup_records.
+ * Called alongside the existing sessionUnits save.
+ */
+function ntdSaveStartupRecord(snap) {
+  if (typeof ntdStore === 'undefined') return;
+  try {
+    var fields = snap.fields || {};
+    ntdStore.startup_records.upsert({
+      facility_id:  _ntdFacilityId || null,
+      job_id:       _ntdJobId || null,
+      unit_num:     fields.unit_num || snap.label || '',
+      eq_type:      snap.type || '',
+      snapshot:     snap,
+      notes:        snap.notes || fields.notes || '',
+      followup:     snap.followup || fields.followup || '',
+      sig_name:     (snap.sig && snap.sig.name) || '',
+      sig_date:     (snap.sig && snap.sig.date) || ''
+    }).catch(function(e) { console.warn('[NTD] startup_record save failed:', e); });
+  } catch(e) { console.warn('[NTD] ntdSaveStartupRecord error:', e); }
+}
+
+/**
+ * Called when a job-prep job+unit is loaded.
+ * Migrates job into ntdStore and sets _ntdFacilityId / _ntdJobId.
+ */
+function ntdOnJobLoaded(jobData) {
+  if (typeof ntdStore === 'undefined' || !jobData) return;
+  ntdStore.migrate.fromJobPrep(jobData).then(function(result) {
+    _ntdFacilityId = result.facility.id;
+    _ntdJobId = result.job.id;
+    console.log('[NTD] Job loaded into store. Facility:', result.facility.name, '| Job:', result.job.id);
+  }).catch(function(e) { console.warn('[NTD] fromJobPrep failed:', e); });
+}
+
+/**
+ * Submit all session units to ntdStore at end of job.
+ * Called from the "Submit to Store" button in the PDF panel.
+ */
+function ntdSubmitSession() {
+  if (typeof ntdStore === 'undefined') {
+    alert('ntdStore not available.');
+    return;
+  }
+  if (!sessionUnits.length) {
+    alert('No saved units to submit.');
+    return;
+  }
+
+  // If no facility yet, try to create one from the form
+  var facName = gv('facility');
+  var facAddr = [gv('address'), gv('city_state')].filter(Boolean).join(', ');
+
+  var doSubmit = function() {
+    // Create a job record for this startup session if we don't have one
+    var jobPromise = _ntdJobId
+      ? Promise.resolve({ id: _ntdJobId })
+      : ntdStore.jobs.upsert({
+          facility_id: _ntdFacilityId,
+          type: 'startup',
+          wo_number: gv('job_po') || '',
+          date: gv('u_date') || '',
+          tech: gv('tech') || '',
+          status: 'complete'
+        });
+
+    jobPromise.then(function(job) {
+      _ntdJobId = job.id;
+      // Save each unit
+      var saves = sessionUnits.map(function(snap) {
+        return ntdStore.startup_records.upsert({
+          facility_id:  _ntdFacilityId,
+          job_id:       _ntdJobId,
+          unit_num:     (snap.fields && snap.fields.unit_num) || snap.label || '',
+          eq_type:      snap.type || '',
+          snapshot:     snap,
+          notes:        snap.notes || (snap.fields && snap.fields.notes) || '',
+          followup:     snap.followup || (snap.fields && snap.fields.followup) || '',
+          sig_name:     (snap.sig && snap.sig.name) || '',
+          sig_date:     (snap.sig && snap.sig.date) || ''
+        });
+      });
+      return Promise.all(saves);
+    }).then(function(records) {
+      // Clear session from localStorage since it's now in the store
+      localStorage.removeItem(SESSION_KEY);
+      alert('\u2713 ' + records.length + ' unit' + (records.length===1?'':'s') + ' submitted to store for ' + (facName||'this facility') + '.');
+      // Reset session
+      sessionUnits = [];
+      _ntdFacilityId = null;
+      _ntdJobId = null;
+      ljCurrentJob = null;
+      renderSessionLog();
+      var finBtn2 = document.getElementById('finish_job_btn'); if(finBtn2) finBtn2.style.display='none';
+      var clrBtn2 = document.getElementById('clear_all_btn'); if(clrBtn2) clrBtn2.style.display='none';
+      switchType();
+      var ljPre2 = document.getElementById('lj_preloaded');
+      if(ljPre2){ ljPre2.textContent=''; ljPre2.classList.remove('on'); ljPre2.style.display='none'; }
+    }).catch(function(e) {
+      console.error('[NTD] Submit session error:', e);
+      alert('Submit failed. Your PDFs are still saved.');
+    });
+  };
+
+  if (_ntdFacilityId) {
+    doSubmit();
+  } else {
+    ntdUpsertFacility(facName, facAddr, function(fac) {
+      if (!fac) { alert('Could not create facility record. PDFs still saved.'); return; }
+      doSubmit();
+    });
+  }
+}
+// ── END NTDSTORE INTEGRATION ──────────────────────────────────────────────────
 
 
 // ── LOAD JOB SYSTEM ──────────────────────────────────────
@@ -2370,35 +2560,31 @@ function ljBack(){
 }
 
 function ljApplyUnit(job, unit){
-  // Fill job-level fields
+  // Fill job-level fields — always overwrite from job data
   var fac = document.getElementById('facility');
-  if(fac && !fac.value) fac.value = job.job_name || '';
+  if(fac) fac.value = job.job_name || '';
 
+  var addrParts = (job.address||'').split(',');
   var addr = document.getElementById('address');
-  if(addr && !addr.value){
-    var addrParts = (job.address||'').split(',');
-    addr.value = addrParts[0] ? addrParts[0].trim() : (job.address||'');
-  }
+  if(addr) addr.value = addrParts[0] ? addrParts[0].trim() : (job.address||'');
 
   var cityState = document.getElementById('city_state');
-  if(cityState && !cityState.value){
-    var parts = (job.address||'').split(',');
-    if(parts.length >= 2) cityState.value = parts.slice(1).join(',').trim();
-  }
+  if(cityState) cityState.value = addrParts.length >= 2 ? addrParts.slice(1).join(',').trim() : '';
 
   var jobPo = document.getElementById('job_po');
-  if(jobPo && !jobPo.value) jobPo.value = job.project_number || '';
+  if(jobPo) jobPo.value = job.project_number || '';
 
   // Fill unit fields
   var unitNum = document.getElementById('unit_num');
   if(unitNum) unitNum.value = unit.tag || '';
 
-  // Build model string: Manufacturer + model
-  var modelStr = '';
-  if(job.manufacturer) modelStr = job.manufacturer + ' ';
-  if(unit.model) modelStr += unit.model;
+  // Model: unit model only
   var modelEl = document.getElementById('model');
-  if(modelEl) modelEl.value = modelStr.trim();
+  if(modelEl) modelEl.value = unit.model || '';
+
+  // Serial: map from unit if present
+  var serialEl = document.getElementById('serial');
+  if(serialEl) serialEl.value = unit.serial || '';
 
   // Auto-select equipment type
   var eqMap = {
@@ -2457,6 +2643,9 @@ function ljApplyUnit(job, unit){
   var unitCard = document.getElementById('unit_num');
   if(unitCard) unitCard.scrollIntoView({behavior:'smooth', block:'center'});
   if(unitCard) unitCard.focus();
+
+  // Migrate job into ntdStore and capture facility_id/job_id for linking
+  ntdOnJobLoaded(job);
 }
 
 </script>
