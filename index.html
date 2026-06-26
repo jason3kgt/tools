@@ -21,9 +21,9 @@
     .section-label:first-of-type{margin-top:0}
     .card{background:#fff;border-radius:16px;padding:18px 20px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);border:1px solid #E2E8F0;text-decoration:none;display:block;color:inherit}
     .card:active{opacity:.85}
-    .card-top{display:flex;align-items:flex-start;gap:14px}
+    .card-top{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-align-items:flex-start;align-items:flex-start;gap:14px}
     .card-icon{font-size:32px;flex-shrink:0;margin-top:2px}
-    .card-text{flex:1}
+    .card-text{-webkit-box-flex:1;flex:1}
     .card h2{font-size:17px;color:#1B3A6B;font-weight:700;margin-bottom:4px}
     .card p{font-size:12px;color:#64748B;line-height:1.5}
     .arrow{color:#CBD5E1;font-size:22px;flex-shrink:0;margin-top:4px}
@@ -35,6 +35,10 @@
     .install-banner{background:#FFF3E0;border:1.5px solid #F59E0B;border-radius:12px;padding:14px 16px;margin-bottom:20px;font-size:13px;color:#92400E;line-height:1.6}
     .install-banner strong{display:block;margin-bottom:4px;color:#78350F;font-size:14px}
     .footer{text-align:center;padding:24px 16px 32px;color:#94A3B8;font-size:11px;line-height:1.8}
+    #update_banner{display:none;background:#1B3A6B;color:#fff;padding:14px 16px;margin-bottom:16px;border-radius:12px}
+    #update_banner.visible{display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-align:center;-webkit-align-items:center;align-items:center;-webkit-box-pack:justify;-webkit-justify-content:space-between;justify-content:space-between;gap:10px}
+    #update_banner span{font-size:13px;font-weight:600;-webkit-box-flex:1;flex:1}
+    #update_banner button{background:#E8531A;color:#fff;border:none;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:700;font-family:inherit;-webkit-appearance:none;touch-action:manipulation;cursor:pointer;flex-shrink:0}
   </style>
 </head>
 <body>
@@ -44,9 +48,9 @@
 </div>
 <div class="wrap">
 
-  <div id="update_banner" style="display:none;background:#1B3A6B;color:#fff;padding:14px 16px;margin-bottom:16px;border-radius:12px;align-items:center;justify-content:space-between;gap:10px">
-    <span style="font-size:13px;font-weight:600">&#128260; New version available</span>
-    <button style="background:#E8531A;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Update Now</button>
+  <div id="update_banner">
+    <span>&#128260; New version available</span>
+    <button ontouchend="doUpdate()" onclick="doUpdate()">Update Now</button>
   </div>
 
   <div class="install-banner">
@@ -69,7 +73,6 @@
       <div class="arrow">›</div>
     </div>
   </a>
-
 
   <!-- FIELD / TECH TOOLS -->
   <div class="section-label">Field &amp; Tech Tools</div>
@@ -131,6 +134,8 @@
   2477 Merritt Dr, Garland TX 75041 &mdash; 214-785-2129
 </div>
 <script>
+var _pendingSW = null;
+
 if('serviceWorker' in navigator){
   window.addEventListener('load', function(){
     navigator.serviceWorker.register('sw.js').then(function(reg){
@@ -151,17 +156,17 @@ if('serviceWorker' in navigator){
     });
   });
 }
+
 function showUpdateBanner(sw){
+  _pendingSW = sw;
   var banner = document.getElementById('update_banner');
   if(!banner) return;
-  banner.style.display = 'flex';
-  var btn = banner.querySelector('button');
-  if(btn){
-    btn.addEventListener('click', function(){
-      sw.postMessage('skipWaiting');
-      setTimeout(function(){ window.location.reload(); }, 2000);
-    });
-  }
+  banner.className = 'visible';
+}
+
+function doUpdate(){
+  if(_pendingSW){ _pendingSW.postMessage('skipWaiting'); }
+  setTimeout(function(){ window.location.reload(); }, 500);
 }
 </script>
 </body>
