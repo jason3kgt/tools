@@ -178,13 +178,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="hdr-sub">NTD Mechanical · Garland TX</div>
     </div>
   </div>
-  <button class="hdr-btn" id="hdr-action-btn" onclick="hdrAction()">+ Facility</button>
+  <button class="hdr-btn" id="hdr-action-btn" onclick="hdrAction()" style="display:none">+ Facility</button>
 </div>
 
 <!-- PAGES -->
 
-<!-- ① FACILITIES LIST -->
-<div class="pg on" id="pg-facilities">
+<!-- ① DASHBOARD -->
+<div class="pg on" id="pg-dashboard">
+  <div id="dashboard-content">
+    <div style="text-align:center;padding:32px;color:var(--mu);font-size:13px">Loading…</div>
+  </div>
+</div>
+
+<!-- ② FACILITIES LIST -->
+<div class="pg" id="pg-facilities">
   <div class="search-wrap">
     <input type="text" id="fac-search" placeholder="Search facilities…" oninput="renderFacilityList()" autocomplete="off" autocorrect="off" spellcheck="false">
   </div>
@@ -251,7 +258,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <!-- BOTTOM NAV -->
 <div class="bnav">
-  <button class="bnav-btn on" id="bnav-facilities" onclick="goPage('facilities')">
+  <button class="bnav-btn on" id="bnav-dashboard" onclick="goPage('dashboard')">
+    <span class="bi">📊</span>Dashboard
+  </button>
+  <button class="bnav-btn" id="bnav-facilities" onclick="goPage('facilities')">
     <span class="bi">🏢</span>Facilities
   </button>
   <button class="bnav-btn" id="bnav-projects" onclick="goPage('projects')">
@@ -276,7 +286,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="fg"><label>Customer / Facility Name *</label><input type="text" id="fm-name" placeholder="e.g. ILS Gummies"></div>
     <div class="fg"><label>Address</label><input type="text" id="fm-addr" placeholder="123 Main St"></div>
     <div class="fg"><label>City, State</label><input type="text" id="fm-city" placeholder="Grand Prairie, TX"></div>
-    <div class="fg"><label>Primary Contact</label><input type="text" id="fm-contact" placeholder="Name · Phone · Email"></div>
+    <div class="fg"><label>Primary Contact Name</label><input type="text" id="fm-contact" placeholder="e.g. John Smith · Facility Manager"></div>
+    <div class="r2">
+      <div class="fg"><label>Phone</label><input type="tel" id="fm-phone" placeholder="214-555-0100"></div>
+      <div class="fg"><label>Email</label><input type="email" id="fm-email" placeholder="john@company.com"></div>
+    </div>
+    <div class="fg"><label>Secondary Contact</label><input type="text" id="fm-contact2" placeholder="Name · Role"></div>
+    <div class="r2">
+      <div class="fg"><label>Phone</label><input type="tel" id="fm-phone2" placeholder="214-555-0101"></div>
+      <div class="fg"><label>Email</label><input type="email" id="fm-email2" placeholder=""></div>
+    </div>
     <div class="fg">
       <label>Type</label>
       <select id="fm-type">
@@ -344,7 +363,10 @@ function goPage(page) {
   if (bn) bn.classList.add('on');
 
   var hdrBtn = document.getElementById('hdr-action-btn');
-  if (page === 'facilities') {
+  if (page === 'dashboard') {
+    hdrBtn.style.display = 'none';
+    renderDashboard();
+  } else if (page === 'facilities') {
     hdrBtn.textContent = '+ Facility';
     hdrBtn.style.display = 'block';
     renderFacilityList();
@@ -361,9 +383,9 @@ function goPage(page) {
   }
 }
 
-function goDetail(facilityId) {
+function goDetail(facilityId, tab) {
   currentFacilityId = facilityId;
-  currentDetailTab = 'timeline';
+  currentDetailTab = tab || 'timeline';
   document.querySelectorAll('.pg').forEach(function(p){ p.classList.remove('on'); });
   document.getElementById('pg-detail').classList.add('on');
   document.getElementById('hdr-action-btn').textContent = '← Back';
@@ -371,12 +393,11 @@ function goDetail(facilityId) {
 }
 
 function hdrAction() {
-  if (currentPage === 'detail' || document.getElementById('pg-detail').classList.contains('on')) {
-    // Back button
+  if (document.getElementById('pg-detail').classList.contains('on')) {
     document.getElementById('pg-detail').classList.remove('on');
-    goPage(currentPage === 'detail' ? 'facilities' : currentPage);
-    currentPage = 'facilities';
-    goPage('facilities');
+    var returnPage = currentPage === 'detail' ? 'dashboard' : currentPage;
+    currentPage = returnPage;
+    goPage(returnPage);
     return;
   }
   if (currentPage === 'facilities') openAddFacility();
@@ -461,6 +482,15 @@ function renderDetail() {
       '<div class="detail-name">'+esc(f.name||'Unnamed')+'</div>' +
       '<div class="detail-addr">'+esc([f.address, f.city].filter(Boolean).join(' · ') || 'No address on file')+'</div>' +
       (f.contact ? '<div class="detail-addr" style="margin-top:4px">'+esc(f.contact)+'</div>' : '') +
+      (f.phone || f.email ? '<div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap">' +
+        (f.phone ? '<a href="tel:'+esc(f.phone)+'" style="color:rgba(255,255,255,.85);font-size:12px;font-weight:600;text-decoration:none;background:rgba(255,255,255,.12);padding:5px 12px;border-radius:20px">📞 '+esc(f.phone)+'</a>' : '') +
+        (f.email ? '<a href="mailto:'+esc(f.email)+'" style="color:rgba(255,255,255,.85);font-size:12px;font-weight:600;text-decoration:none;background:rgba(255,255,255,.12);padding:5px 12px;border-radius:20px">✉ '+esc(f.email)+'</a>' : '') +
+      '</div>' : '') +
+      (f.contact2 ? '<div class="detail-addr" style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.15)">'+esc(f.contact2)+'</div>' : '') +
+      (f.phone2 || f.email2 ? '<div style="display:flex;gap:10px;margin-top:4px;flex-wrap:wrap">' +
+        (f.phone2 ? '<a href="tel:'+esc(f.phone2)+'" style="color:rgba(255,255,255,.7);font-size:11px;font-weight:600;text-decoration:none;background:rgba(255,255,255,.08);padding:4px 10px;border-radius:16px">📞 '+esc(f.phone2)+'</a>' : '') +
+        (f.email2 ? '<a href="mailto:'+esc(f.email2)+'" style="color:rgba(255,255,255,.7);font-size:11px;font-weight:600;text-decoration:none;background:rgba(255,255,255,.08);padding:4px 10px;border-radius:16px">✉ '+esc(f.email2)+'</a>' : '') +
+      '</div>' : '') +
       '<div class="detail-tags">' +
         (typeLabel ? '<span class="detail-tag">'+typeLabel+'</span>' : '') +
         (f.pm_contract ? '<span class="detail-tag">PM Contract</span>' : '') +
@@ -890,7 +920,7 @@ function saveNotes() {
 function openAddFacility() {
   editingFacilityId = null;
   document.getElementById('fac-modal-title').textContent = 'Add Facility';
-  ['fm-name','fm-addr','fm-city','fm-contact','fm-notes'].forEach(function(id){ document.getElementById(id).value=''; });
+  ['fm-name','fm-addr','fm-city','fm-contact','fm-phone','fm-email','fm-contact2','fm-phone2','fm-email2','fm-notes'].forEach(function(id){ document.getElementById(id).value=''; });
   document.getElementById('fm-type').value = '';
   openModal('fac-modal');
 }
@@ -899,12 +929,17 @@ function openEditFacility(id) {
   editingFacilityId = id;
   ntdStore.facilities.get(id).then(function(f) {
     document.getElementById('fac-modal-title').textContent = 'Edit Facility';
-    document.getElementById('fm-name').value    = f.name    || '';
-    document.getElementById('fm-addr').value    = f.address || '';
-    document.getElementById('fm-city').value    = f.city    || f.address2 || '';
-    document.getElementById('fm-contact').value = f.contact || '';
-    document.getElementById('fm-type').value    = f.type    || '';
-    document.getElementById('fm-notes').value   = f.notes   || '';
+    document.getElementById('fm-name').value     = f.name     || '';
+    document.getElementById('fm-addr').value     = f.address  || '';
+    document.getElementById('fm-city').value     = f.city     || f.address2 || '';
+    document.getElementById('fm-contact').value  = f.contact  || '';
+    document.getElementById('fm-phone').value    = f.phone    || '';
+    document.getElementById('fm-email').value    = f.email    || '';
+    document.getElementById('fm-contact2').value = f.contact2 || '';
+    document.getElementById('fm-phone2').value   = f.phone2   || '';
+    document.getElementById('fm-email2').value   = f.email2   || '';
+    document.getElementById('fm-type').value     = f.type     || '';
+    document.getElementById('fm-notes').value    = f.notes    || '';
     openModal('fac-modal');
   });
 }
@@ -913,12 +948,17 @@ function saveFacility() {
   var name = document.getElementById('fm-name').value.trim();
   if (!name) { alert('Facility name is required.'); return; }
   var data = {
-    name:    name,
-    address: document.getElementById('fm-addr').value.trim(),
-    city:    document.getElementById('fm-city').value.trim(),
-    contact: document.getElementById('fm-contact').value.trim(),
-    type:    document.getElementById('fm-type').value,
-    notes:   document.getElementById('fm-notes').value.trim()
+    name:     name,
+    address:  document.getElementById('fm-addr').value.trim(),
+    city:     document.getElementById('fm-city').value.trim(),
+    contact:  document.getElementById('fm-contact').value.trim(),
+    phone:    document.getElementById('fm-phone').value.trim(),
+    email:    document.getElementById('fm-email').value.trim(),
+    contact2: document.getElementById('fm-contact2').value.trim(),
+    phone2:   document.getElementById('fm-phone2').value.trim(),
+    email2:   document.getElementById('fm-email2').value.trim(),
+    type:     document.getElementById('fm-type').value,
+    notes:    document.getElementById('fm-notes').value.trim()
   };
   if (data.type === 'pm_customer') data.pm_contract = true;
   if (editingFacilityId) data.id = editingFacilityId;
@@ -1025,7 +1065,7 @@ function renderProjectList() {
       var statusLabel = {bidding:'Bidding',awarded:'Awarded',progress:'In Progress',complete:'Complete',lost:'Lost'};
       var html = '';
       filtered.forEach(function(p) {
-        html += '<div class="card" onclick="goDetail(\''+p.facility_id+'\')" style="cursor:pointer">' +
+        html += '<div class="card" onclick="goDetail(\''+p.facility_id+'\', \'projects\')'  style="cursor:pointer">' +
           '<div class="card-body">' +
             '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px">' +
               '<div style="font-size:15px;font-weight:700;color:var(--nv);flex:1">'+esc(p.name||'Project')+'</div>' +
@@ -1177,6 +1217,155 @@ function showToast(msg) {
 }
 
 
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────
+function renderDashboard() {
+  var wrap = document.getElementById('dashboard-content');
+  wrap.innerHTML = '<div style="text-align:center;padding:32px;color:var(--mu);font-size:13px">Loading…</div>';
+
+  Promise.all([
+    ntdStore.facilities.list(),
+    ntdStore.startup_records.list(),
+    ntdStore.pm_records.list(),
+    ntdStore.pm_quotes.list(),
+    ntdStore.service_quotes.list(),
+    ntdStore.jobs.list()
+  ]).then(function(results) {
+    var facilities = results[0];
+    var startups   = results[1];
+    var pmRecs     = results[2];
+    var pmQuotes   = results[3];
+    var svcQuotes  = results[4];
+    var jobs       = results[5];
+
+    // ── Metrics ──
+    var openFollowups = startups.filter(function(r){ return r.followup && r.followup.trim(); });
+    var activeProjects = jobs.filter(function(j){ return j.type==='project' && (j.status==='bidding'||j.status==='awarded'||j.status==='progress'); });
+    var recentQuotes = pmQuotes.concat(svcQuotes).sort(function(a,b){ return (b.ts||0)-(a.ts||0); }).slice(0,5);
+
+    // Expiring contracts (within 90 days)
+    var now = new Date();
+    var expiringContracts = facilities.filter(function(f) {
+      if (!f.pm_contract || !f.contract || !f.contract.renewal_date) return false;
+      var rd = new Date(f.contract.renewal_date);
+      var days = Math.floor((rd - now) / (1000*60*60*24));
+      return days >= 0 && days <= 90;
+    });
+
+    // Recent activity (all records sorted by ts, last 5)
+    var allActivity = [];
+    startups.forEach(function(r){ allActivity.push({ts:r.ts||0, icon:'✅', label:'Startup — '+esc(r.unit_num||'Unit'), fid:r.facility_id}); });
+    pmRecs.forEach(function(r){ allActivity.push({ts:r.ts||0, icon:'📋', label:'PM Visit — '+esc(r.visit_label||'Visit'), fid:r.facility_id}); });
+    pmQuotes.forEach(function(r){ allActivity.push({ts:r.ts||0, icon:'📄', label:'PM Proposal — '+esc(r.frequency||'PM'), fid:r.facility_id}); });
+    svcQuotes.forEach(function(r){ allActivity.push({ts:r.ts||0, icon:'🔨', label:'Service Quote', fid:r.facility_id}); });
+    jobs.filter(function(j){return j.type==='project';}).forEach(function(p){ allActivity.push({ts:p.ts||0, icon:'📁', label:'Project — '+esc(p.name||'Project'), fid:p.facility_id}); });
+    allActivity.sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
+    var recentActivity = allActivity.slice(0, 6);
+
+    // Facility name lookup
+    var facMap = {};
+    facilities.forEach(function(f){ facMap[f.id] = f.name||'Unknown'; });
+
+    var html = '';
+
+    // ── Stats row ──
+    html += '<div class="stats-row">' +
+      statPill(facilities.length, 'Facilities') +
+      statPill(openFollowups.length, 'Follow-ups', openFollowups.length ? 'var(--am)' : null) +
+      statPill(activeProjects.length, 'Active Jobs') +
+      statPill(expiringContracts.length, 'Renewing', expiringContracts.length ? 'var(--rd)' : null) +
+    '</div>';
+
+    // ── Open Follow-ups ──
+    if (openFollowups.length) {
+      html += '<div class="section-label">⚠ Open Follow-ups</div>';
+      html += '<div class="followup-card">';
+      openFollowups.slice(0,5).forEach(function(r) {
+        html += '<div class="followup-item" style="cursor:pointer" onclick="goDetail(''+r.facility_id+'')">' +
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
+            '<div style="font-size:13px;font-weight:700;color:var(--tx)">'+esc(r.unit_num||'Unit')+'</div>' +
+            '<div style="font-size:11px;color:var(--mu)">'+esc(facMap[r.facility_id]||'')+'</div>' +
+          '</div>' +
+          '<div style="font-size:12px;color:var(--am);margin-top:3px;line-height:1.5">'+esc(r.followup)+'</div>' +
+        '</div>';
+      });
+      if (openFollowups.length > 5) html += '<div style="font-size:11px;color:var(--mu);padding-top:8px;text-align:center">+ '+(openFollowups.length-5)+' more — use Search to find all</div>';
+      html += '</div>';
+    }
+
+    // ── Expiring Contracts ──
+    if (expiringContracts.length) {
+      html += '<div class="section-label">📋 Contracts Renewing Within 90 Days</div>';
+      html += '<div class="card"><div class="card-body">';
+      expiringContracts.forEach(function(f) {
+        var rd = new Date(f.contract.renewal_date);
+        var days = Math.floor((rd - now) / (1000*60*60*24));
+        html += '<div class="rec-row" style="cursor:pointer" onclick="goDetail(''+f.id+'','contract')">' +
+          '<div class="rec-icon or">📋</div>' +
+          '<div class="rec-body">' +
+            '<div class="rec-title">'+esc(f.name)+'</div>' +
+            '<div class="rec-sub">'+(f.contract.annual_value?esc(f.contract.annual_value)+'/yr · ':'')+'Renews '+esc(f.contract.renewal_date)+'</div>' +
+            '<div class="rec-meta" style="color:var(--rd)">'+days+' days remaining</div>' +
+          '</div></div>';
+      });
+      html += '</div></div>';
+    }
+
+    // ── Active Projects ──
+    if (activeProjects.length) {
+      var statusLabel = {bidding:'Bidding',awarded:'Awarded',progress:'In Progress'};
+      var statusClass = {bidding:'status-bidding',awarded:'status-awarded',progress:'status-progress'};
+      html += '<div class="section-label">📁 Active Projects</div>';
+      html += '<div class="card"><div class="card-body">';
+      activeProjects.slice(0,5).forEach(function(p) {
+        html += '<div class="rec-row" style="cursor:pointer" onclick="goDetail(''+p.facility_id+'','projects')">' +
+          '<div class="rec-icon pu">📁</div>' +
+          '<div class="rec-body">' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px">' +
+              '<div class="rec-title">'+esc(p.name||'Project')+'</div>' +
+              '<span class="status-badge '+(statusClass[p.status]||'status-bidding')+'">'+((statusLabel[p.status]||p.status))+'</span>' +
+            '</div>' +
+            '<div class="rec-sub">'+esc(facMap[p.facility_id]||'')+(p.value?' · '+esc(p.value):'')+'</div>' +
+          '</div></div>';
+      });
+      if (activeProjects.length > 5) html += '<div style="font-size:11px;color:var(--mu);padding-top:8px;text-align:center;cursor:pointer" onclick="goPage('projects')">View all '+activeProjects.length+' projects →</div>';
+      html += '</div></div>';
+    }
+
+    // ── Recent Activity ──
+    if (recentActivity.length) {
+      html += '<div class="section-label">🕐 Recent Activity</div>';
+      html += '<div class="card"><div class="card-body">';
+      recentActivity.forEach(function(ev) {
+        var d = ev.ts ? new Date(ev.ts) : null;
+        var dateStr = d ? (d.getMonth()+1)+'/'+(d.getDate())+'/'+d.getFullYear() : '';
+        html += '<div class="rec-row" style="cursor:pointer" onclick="goDetail(''+ev.fid+'')">' +
+          '<div style="font-size:22px;width:36px;text-align:center;flex-shrink:0">'+ev.icon+'</div>' +
+          '<div class="rec-body">' +
+            '<div class="rec-title" style="font-size:13px">'+ev.label+'</div>' +
+            '<div class="rec-sub">'+esc(facMap[ev.fid]||'')+(dateStr?' · '+dateStr:'')+'</div>' +
+          '</div></div>';
+      });
+      html += '</div></div>';
+    }
+
+    // ── Empty state ──
+    if (!facilities.length) {
+      html = emptyState('📊','Welcome to NTD Hub','Submit data from any NTD tool to see your dashboard. Start by adding a facility or running an equipment survey.');
+      html += '<button class="btn btn-nv" onclick="openAddFacility()" style="margin-top:0">+ Add First Facility</button>';
+    }
+
+    wrap.innerHTML = html;
+  });
+}
+
+function statPill(num, label, color) {
+  return '<div class="stat-pill">' +
+    '<div class="stat-num"'+(color?' style="color:'+color+'"':'')+'>'+num+'</div>' +
+    '<div class="stat-lbl">'+label+'</div>' +
+  '</div>';
+}
+// ── END DASHBOARD ──────────────────────────────────────────────────────────
 // ── GLOBAL SEARCH ─────────────────────────────────────────────────────────
 var _searchTimer = null;
 
@@ -1288,7 +1477,8 @@ function runGlobalSearch() {
           title: p.name || 'Project',
           sub: facMap[p.facility_id] || 'Unknown facility',
           meta: [p.status || '', p.value || ''].filter(Boolean).join(' · '),
-          facility_id: p.facility_id
+          facility_id: p.facility_id,
+          tab: 'projects'
         };})
       });
 
@@ -1305,7 +1495,7 @@ function runGlobalSearch() {
         html += '<div class="section-label">'+g.label+'</div>';
         html += '<div class="card"><div class="card-body">';
         g.items.forEach(function(item) {
-          html += '<div class="rec-row" style="cursor:pointer" onclick="goDetail(''+item.facility_id+'')">' +
+          html += '<div class="rec-row" style="cursor:pointer" onclick="goDetail(''+item.facility_id+'', item.tab)">' +
             '<div class="rec-icon '+item.color+'">'+item.icon+'</div>' +
             '<div class="rec-body">' +
               '<div class="rec-title">'+esc(item.title)+'</div>' +
@@ -1331,7 +1521,7 @@ function matches(q) {
 // ── END GLOBAL SEARCH ──────────────────────────────────────────────────────
 // ── INIT ──────────────────────────────────────────────────────────────────
 window.addEventListener('load', function() {
-  renderFacilityList();
+  renderDashboard();
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(function(){});
   }
