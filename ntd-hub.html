@@ -210,6 +210,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div id="settings-status" style="font-size:13px;color:var(--mu);padding:6px 0">Loading…</div>
       </div>
       <button class="btn btn-outline" onclick="exportData()">⬇ Export All Data (JSON)</button>
+      <button class="btn btn-outline" onclick="triggerImport()" style="margin-top:6px">⬆ Import Data (JSON)</button>
+      <input type="file" id="import-file-input" accept=".json" style="display:none" onchange="importData(this)">
+      <div id="import-status" style="display:none;margin-top:8px;padding:10px 12px;border-radius:10px;font-size:13px;line-height:1.5"></div>
       <button class="btn btn-red" onclick="clearAllData()" style="margin-top:6px">✕ Clear All Store Data</button>
     </div>
   </div>
@@ -800,6 +803,72 @@ function exportData() {
     setTimeout(function(){ URL.revokeObjectURL(url); }, 5000);
     showToast('Export downloaded');
   });
+}
+
+function triggerImport() {
+  document.getElementById('import-file-input').click();
+}
+
+function importData(input) {
+  var file = input.files[0];
+  if (!file) return;
+  var statusEl = document.getElementById('import-status');
+  statusEl.style.display = 'block';
+  statusEl.style.background = '#EEF1F7';
+  statusEl.style.color = 'var(--mu)';
+  statusEl.textContent = 'Reading file…';
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var blob = JSON.parse(e.target.result);
+      if (!blob || typeof blob !== 'object') throw new Error('Invalid file format');
+
+      // Count incoming records
+      var stores = ['facilities','equipment','jobs','job_units','startup_records','pm_records','pm_unit_results','pm_quotes','service_quotes','settings'];
+      var total = 0;
+      stores.forEach(function(s){ if(Array.isArray(blob[s])) total += blob[s].length; });
+
+      statusEl.textContent = 'Merging ' + total + ' records…';
+
+      ntdStore.importAll(blob).then(function() {
+        // Count results
+        var counts = [];
+        var promises = stores.map(function(s){ return ntdStore[s] ? ntdStore[s].list() : Promise.resolve([]); });
+        Promise.all(promises).then(function(results) {
+          statusEl.style.background = '#E8F5EC';
+          statusEl.style.color = 'var(--gn)';
+          statusEl.innerHTML = '✓ Import complete. ' + total + ' records merged.<br>' +
+            results[0].length + ' facilities · ' +
+            results[1].length + ' units · ' +
+            results[2].length + ' jobs · ' +
+            results[4].length + ' startups · ' +
+            results[5].length + ' PM visits';
+          renderSettings();
+          // Reset file input so same file can be re-imported if needed
+          input.value = '';
+          showToast('Import complete');
+        });
+      }).catch(function(err) {
+        statusEl.style.background = '#FDEDEC';
+        statusEl.style.color = 'var(--rd)';
+        statusEl.textContent = '✕ Import failed: ' + (err.message || 'Unknown error');
+        input.value = '';
+      });
+    } catch(err) {
+      statusEl.style.background = '#FDEDEC';
+      statusEl.style.color = 'var(--rd)';
+      statusEl.textContent = '✕ Could not read file. Make sure it is a valid NTD Hub export.';
+      input.value = '';
+    }
+  };
+  reader.onerror = function() {
+    statusEl.style.background = '#FDEDEC';
+    statusEl.style.color = 'var(--rd)';
+    statusEl.textContent = '✕ File read error. Please try again.';
+    input.value = '';
+  };
+  reader.readAsText(file);
 }
 
 function clearAllData() {

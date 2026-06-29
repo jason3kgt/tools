@@ -615,11 +615,15 @@
      */
     importAll: function (blob) {
       return Promise.resolve().then(function () {
-        if (!blob || blob._schema_version !== SCHEMA_VERSION) {
-          throw new Error('Incompatible backup version: ' + (blob && blob._schema_version));
+        if (!blob || typeof blob !== 'object') {
+          throw new Error('Invalid export file.');
+        }
+        // Warn on schema mismatch but don't block — merge what we can
+        if (blob._schema_version && blob._schema_version !== SCHEMA_VERSION) {
+          console.warn('[NTD] Schema version mismatch — importing anyway. Export:', blob._schema_version, 'Current:', SCHEMA_VERSION);
         }
         Object.keys(KEYS).forEach(function (k) {
-          if (blob[k]) {
+          if (blob[k] && typeof blob[k] === 'object') {
             var existing = readCollection(KEYS[k]);
             var merged = Object.assign({}, existing, blob[k]);
             writeCollection(KEYS[k], merged);
