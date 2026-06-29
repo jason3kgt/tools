@@ -414,6 +414,7 @@ function renderFacilityList() {
           '<div class="fac-info">' +
             '<div class="fac-name">'+esc(f.name||'Unnamed')+'</div>' +
             '<div class="fac-addr">'+esc([f.address, f.address2].filter(Boolean).join(', ') || f.city || 'No address')+'</div>' +
+            (f.pm_contract && f.contract && f.contract.annual_value ? '<div class="fac-addr" style="color:var(--gn);font-weight:600;margin-top:1px">'+esc(f.contract.annual_value)+'/yr'+(f.contract.renewal_date?' · Renews '+esc(f.contract.renewal_date):'')+'</div>' : '') +
             (tags ? '<div class="fac-tags">'+tags+'</div>' : '') +
           '</div>' +
           '<div class="fac-arrow">›</div>' +
@@ -451,8 +452,8 @@ function renderDetail() {
       '</div>';
 
     // Tabs
-    var tabs = ['timeline','equipment','startups','pm','quotes','projects','notes'];
-    var tabLabels = {timeline:'📅 Timeline',equipment:'🔧 Units',startups:'✅ Startups',pm:'📋 PM Visits',quotes:'💲 Quotes',projects:'📁 Projects',notes:'📝 Notes'};
+    var tabs = ['timeline','equipment','startups','pm','quotes','projects','contract','notes'];
+    var tabLabels = {timeline:'📅 Timeline',equipment:'🔧 Units',startups:'✅ Startups',pm:'📋 PM Visits',quotes:'💲 Quotes',projects:'📁 Projects',contract:'📋 Contract',notes:'📝 Notes'};
     var tabsHtml = tabs.map(function(t) {
       return '<button class="sec-tab'+(t===currentDetailTab?' on':'')+'" onclick="switchDetailTab(\''+t+'\')">'+tabLabels[t]+'</button>';
     }).join('');
@@ -762,6 +763,73 @@ function renderDetailTab(f) {
     });
   }
 
+  else if (currentDetailTab === 'contract') {
+    ntdStore.facilities.get(currentFacilityId).then(function(f) {
+      var c = f.contract || {};
+      var hasContract = f.pm_contract;
+      var renewalDate = c.renewal_date || '';
+      var isExpiringSoon = false;
+      if (renewalDate) {
+        var rd = new Date(renewalDate);
+        var now = new Date();
+        var daysUntil = Math.floor((rd - now) / (1000*60*60*24));
+        isExpiringSoon = daysUntil >= 0 && daysUntil <= 90;
+      }
+
+      var html = '';
+
+      // Expiry warning
+      if (isExpiringSoon) {
+        html += '<div style="background:#FFF3E0;border:1.5px solid #F59E0B;border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--am);font-weight:600">⚠ Contract renewal coming up: ' + esc(renewalDate) + '</div>';
+      }
+
+      // Contract summary card (read view)
+      if (hasContract && (c.annual_value || c.frequency || c.renewal_date)) {
+        html += '<div class="card" style="margin-bottom:14px"><div class="card-hdr"><h2>PM Contract</h2>' +
+          (c.agreement_num ? '<span class="badge">#'+esc(c.agreement_num)+'</span>' : '') +
+          '</div><div class="card-body">';
+
+        if (c.annual_value) html += '<div style="font-size:26px;font-weight:800;color:var(--gn);margin-bottom:4px">'+esc(c.annual_value)+'<span style="font-size:13px;font-weight:600;color:var(--mu)">/year</span></div>';
+
+        var details = [];
+        if (c.frequency) details.push(esc(c.frequency));
+        if (c.visits_per_year) details.push(esc(c.visits_per_year)+' visits/year');
+        if (details.length) html += '<div style="font-size:13px;color:var(--mu);margin-bottom:8px">'+details.join(' · ')+'</div>';
+
+        if (c.start_date || c.renewal_date) {
+          html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
+          if (c.start_date) html += '<div style="background:var(--of);border-radius:8px;padding:8px 10px"><div style="font-size:9px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.05em">Start Date</div><div style="font-size:13px;font-weight:700;color:var(--tx);margin-top:2px">'+esc(c.start_date)+'</div></div>';
+          if (c.renewal_date) html += '<div style="background:'+(isExpiringSoon?'#FFF3E0':'var(--of)')+';border-radius:8px;padding:8px 10px"><div style="font-size:9px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.05em">Renewal Date</div><div style="font-size:13px;font-weight:700;color:'+(isExpiringSoon?'var(--am)':'var(--tx)')+';margin-top:2px">'+esc(c.renewal_date)+'</div></div>';
+          html += '</div>';
+        }
+
+        if (c.scope) html += '<div style="font-size:12px;color:var(--mu);line-height:1.5;padding-top:8px;border-top:1px solid var(--bd)">'+esc(c.scope)+'</div>';
+        html += '</div></div>';
+      }
+
+      // Edit form
+      html += '<div class="card"><div class="card-hdr"><h2>'+(hasContract && c.annual_value ? 'Edit Contract' : 'Add PM Contract')+'</h2></div><div class="card-body">' +
+        '<div class="fg"><label>Agreement / Contract #</label><input type="text" id="c-agr" value="'+esc(c.agreement_num||'')+'" placeholder="e.g. PM-2025-001"></div>' +
+        '<div class="fg"><label>Annual Value</label><input type="text" id="c-val" value="'+esc(c.annual_value||'')+'" placeholder="e.g. $24,800"></div>' +
+        '<div class="fg"><label>Visit Frequency</label><select id="c-freq">' +
+          '<option value="">— Select —</option>' +
+          ['Monthly','Quarterly','Semi-Annual','Annual','Custom'].map(function(o){
+            return '<option value="'+o+'"'+(c.frequency===o?' selected':'')+'>'+o+'</option>';
+          }).join('') +
+        '</select></div>' +
+        '<div class="fg"><label>Visits Per Year</label><input type="text" id="c-vis" value="'+esc(c.visits_per_year||'')+'" placeholder="e.g. 4"></div>' +
+        '<div class="r2">' +
+          '<div class="fg"><label>Contract Start</label><input type="text" id="c-start" value="'+esc(c.start_date||'')+'" placeholder="MM/DD/YYYY"></div>' +
+          '<div class="fg"><label>Renewal Date</label><input type="text" id="c-renew" value="'+esc(c.renewal_date||'')+'" placeholder="MM/DD/YYYY"></div>' +
+        '</div>' +
+        '<div class="fg"><label>Scope / Inclusions</label><textarea id="c-scope" placeholder="e.g. 35 RTUs, 2 AHUs, monthly tunnel units…">'+esc(c.scope||'')+'</textarea></div>' +
+        '<button class="btn btn-nv" onclick="saveContract()">Save Contract</button>' +
+        '</div></div>';
+
+      content.innerHTML = html;
+    });
+  }
+
   else if (currentDetailTab === 'notes') {
     content.innerHTML = '<div class="card"><div class="card-body">' +
       '<div class="fg"><label>Facility Notes</label>' +
@@ -769,6 +837,25 @@ function renderDetailTab(f) {
       '<button class="btn btn-nv" onclick="saveNotes()">Save Notes</button>' +
       '</div></div>';
   }
+}
+
+function saveContract() {
+  ntdStore.facilities.get(currentFacilityId).then(function(f) {
+    f.pm_contract = true;
+    f.contract = {
+      agreement_num:  (document.getElementById('c-agr')||{}).value  || '',
+      annual_value:   (document.getElementById('c-val')||{}).value  || '',
+      frequency:      (document.getElementById('c-freq')||{}).value || '',
+      visits_per_year:(document.getElementById('c-vis')||{}).value  || '',
+      start_date:     (document.getElementById('c-start')||{}).value || '',
+      renewal_date:   (document.getElementById('c-renew')||{}).value || '',
+      scope:          (document.getElementById('c-scope')||{}).value || ''
+    };
+    return ntdStore.facilities.upsert(f);
+  }).then(function() {
+    showToast('Contract saved');
+    ntdStore.facilities.get(currentFacilityId).then(renderDetailTab);
+  });
 }
 
 function saveNotes() {
