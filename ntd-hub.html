@@ -206,6 +206,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div id="proj-list-wrap"></div>
 </div>
 
+<!-- ③ SEARCH -->
+<div class="pg" id="pg-search">
+  <div class="search-wrap">
+    <input type="text" id="global-search" placeholder="Search everything…" oninput="runGlobalSearch()" autocomplete="off" autocorrect="off" spellcheck="false">
+  </div>
+  <div id="global-search-results">
+    <div class="empty" style="padding-top:32px">
+      <div class="empty-icon">🔍</div>
+      <h3>Search everything</h3>
+      <p>Search across facilities, equipment, startups, PM visits, quotes, and projects.</p>
+    </div>
+  </div>
+</div>
+
 <!-- ④ SETTINGS -->
 <div class="pg" id="pg-settings">
   <div class="section-label">Data</div>
@@ -242,6 +256,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </button>
   <button class="bnav-btn" id="bnav-projects" onclick="goPage('projects')">
     <span class="bi">📁</span>Projects
+  </button>
+  <button class="bnav-btn" id="bnav-search" onclick="goPage('search')">
+    <span class="bi">🔍</span>Search
   </button>
   <button class="bnav-btn" id="bnav-settings" onclick="goPage('settings')">
     <span class="bi">⚙️</span>Settings
@@ -335,6 +352,9 @@ function goPage(page) {
     hdrBtn.textContent = '+ Project';
     hdrBtn.style.display = 'block';
     renderProjectList();
+  } else if (page === 'search') {
+    hdrBtn.style.display = 'none';
+    setTimeout(function(){ var el = document.getElementById('global-search'); if(el) el.focus(); }, 100);
   } else if (page === 'settings') {
     hdrBtn.style.display = 'none';
     renderSettings();
@@ -1156,6 +1176,159 @@ function showToast(msg) {
   setTimeout(function(){ t.classList.remove('show'); }, 2500);
 }
 
+
+// ── GLOBAL SEARCH ─────────────────────────────────────────────────────────
+var _searchTimer = null;
+
+function runGlobalSearch() {
+  var q = (document.getElementById('global-search').value || '').toLowerCase().trim();
+  var wrap = document.getElementById('global-search-results');
+
+  if (!q || q.length < 2) {
+    wrap.innerHTML = '<div class="empty" style="padding-top:32px"><div class="empty-icon">🔍</div><h3>Search everything</h3><p>Search across facilities, equipment, startups, PM visits, quotes, and projects.</p></div>';
+    return;
+  }
+
+  wrap.innerHTML = '<div style="text-align:center;padding:32px;color:var(--mu);font-size:13px">Searching…</div>';
+
+  clearTimeout(_searchTimer);
+  _searchTimer = setTimeout(function() {
+    Promise.all([
+      ntdStore.facilities.list(),
+      ntdStore.equipment.list(),
+      ntdStore.startup_records.list(),
+      ntdStore.pm_records.list(),
+      ntdStore.pm_quotes.list(),
+      ntdStore.service_quotes.list(),
+      ntdStore.jobs.list()
+    ]).then(function(results) {
+      var facilities = results[0];
+      var equipment  = results[1];
+      var startups   = results[2];
+      var pmRecs     = results[3];
+      var pmQuotes   = results[4];
+      var svcQuotes  = results[5];
+      var jobs       = results[6];
+
+      // Build facility name lookup
+      var facMap = {};
+      facilities.forEach(function(f){ facMap[f.id] = f.name || 'Unknown'; });
+
+      var groups = [];
+
+      // Search facilities
+      var facHits = facilities.filter(function(f) {
+        return matches(q, f.name, f.address, f.city, f.contact, f.notes);
+      });
+      if (facHits.length) groups.push({
+        label: '🏢 Facilities',
+        items: facHits.map(function(f) { return {
+          icon: '🏢', color: 'nv',
+          title: f.name || 'Unnamed',
+          sub: [f.address, f.city].filter(Boolean).join(', ') || 'No address',
+          meta: f.pm_contract ? 'PM Customer' : (f.type || ''),
+          facility_id: f.id
+        };})
+      });
+
+      // Search equipment
+      var eqHits = equipment.filter(function(e) {
+        return matches(q, e.tag, e.type, e.notes, e.condition, e.install_year);
+      });
+      if (eqHits.length) groups.push({
+        label: '🔧 Equipment',
+        items: eqHits.map(function(e) { return {
+          icon: '🔧', color: 'nv',
+          title: (e.tag || 'Unit') + (e.type ? ' · ' + e.type : ''),
+          sub: facMap[e.facility_id] || 'Unknown facility',
+          meta: e.condition ? e.condition.charAt(0).toUpperCase()+e.condition.slice(1)+' condition' : '',
+          facility_id: e.facility_id
+        };})
+      });
+
+      // Search startups
+      var startHits = startups.filter(function(r) {
+        return matches(q, r.unit_num, r.eq_type, r.tech, r.notes, r.followup, r.sig_name);
+      });
+      if (startHits.length) groups.push({
+        label: '✅ Startups',
+        items: startHits.map(function(r) { return {
+          icon: '✅', color: 'gn',
+          title: r.unit_num || 'Unit',
+          sub: facMap[r.facility_id] || 'Unknown facility',
+          meta: [r.tech ? 'Tech: '+r.tech : '', r.sig_date || ''].filter(Boolean).join(' · '),
+          extra: r.followup ? '⚠ ' + r.followup : '',
+          facility_id: r.facility_id
+        };})
+      });
+
+      // Search PM visits
+      var pmHits = pmRecs.filter(function(r) {
+        return matches(q, r.visit_label, r.tech, r.notes, r.date);
+      });
+      if (pmHits.length) groups.push({
+        label: '📋 PM Visits',
+        items: pmHits.map(function(r) { return {
+          icon: '📋', color: 'nv',
+          title: r.visit_label || 'PM Visit',
+          sub: facMap[r.facility_id] || 'Unknown facility',
+          meta: [r.date, r.tech ? 'Tech: '+r.tech : ''].filter(Boolean).join(' · '),
+          facility_id: r.facility_id
+        };})
+      });
+
+      // Search projects
+      var projHits = jobs.filter(function(j) {
+        return j.type === 'project' && matches(q, j.name, j.status, j.notes, j.wo_number, j.value);
+      });
+      if (projHits.length) groups.push({
+        label: '📁 Projects',
+        items: projHits.map(function(p) { return {
+          icon: '📁', color: 'pu',
+          title: p.name || 'Project',
+          sub: facMap[p.facility_id] || 'Unknown facility',
+          meta: [p.status || '', p.value || ''].filter(Boolean).join(' · '),
+          facility_id: p.facility_id
+        };})
+      });
+
+      // Render results
+      if (!groups.length) {
+        wrap.innerHTML = '<div class="empty" style="padding-top:32px"><div class="empty-icon">🔍</div><h3>No results for "'+esc(q)+'"</h3><p>Try a different search term.</p></div>';
+        return;
+      }
+
+      var total = groups.reduce(function(sum, g){ return sum + g.items.length; }, 0);
+      var html = '<div style="font-size:11px;color:var(--mu);margin-bottom:10px;padding:0 2px">'+total+' result'+(total===1?'':'s')+' for "'+esc(q)+'"</div>';
+
+      groups.forEach(function(g) {
+        html += '<div class="section-label">'+g.label+'</div>';
+        html += '<div class="card"><div class="card-body">';
+        g.items.forEach(function(item) {
+          html += '<div class="rec-row" style="cursor:pointer" onclick="goDetail(''+item.facility_id+'')">' +
+            '<div class="rec-icon '+item.color+'">'+item.icon+'</div>' +
+            '<div class="rec-body">' +
+              '<div class="rec-title">'+esc(item.title)+'</div>' +
+              (item.sub  ? '<div class="rec-sub">'+esc(item.sub)+'</div>' : '') +
+              (item.meta ? '<div class="rec-meta">'+esc(item.meta)+'</div>' : '') +
+              (item.extra ? '<div class="rec-meta" style="color:var(--am)">'+esc(item.extra)+'</div>' : '') +
+            '</div>' +
+            '<div class="fac-arrow">›</div>' +
+          '</div>';
+        });
+        html += '</div></div>';
+      });
+
+      wrap.innerHTML = html;
+    });
+  }, 300);
+}
+
+function matches(q) {
+  var fields = Array.prototype.slice.call(arguments, 1);
+  return fields.some(function(f){ return f && f.toString().toLowerCase().indexOf(q) > -1; });
+}
+// ── END GLOBAL SEARCH ──────────────────────────────────────────────────────
 // ── INIT ──────────────────────────────────────────────────────────────────
 window.addEventListener('load', function() {
   renderFacilityList();
