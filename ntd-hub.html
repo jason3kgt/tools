@@ -70,6 +70,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .tag-quote{background:#FEF0EA;color:var(--or)}
 .tag-survey{background:#F3F0FA;color:#5B21B6}
 .fac-arrow{color:var(--bd2);font-size:20px;flex-shrink:0}
+.followup-badge{display:inline-flex;align-items:center;gap:4px;background:#FFF3E0;color:var(--am);font-size:10px;font-weight:700;padding:3px 8px;border-radius:8px;border:1px solid #F59E0B}
+.followup-card{background:#FFF8EC;border:1.5px solid #F59E0B;border-radius:12px;padding:14px 16px;margin-bottom:14px}
+.followup-card-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.followup-card-hdr span{font-size:13px;font-weight:700;color:var(--am)}
+.followup-item{padding:10px 0;border-bottom:1px solid #FDDBA0}
+.followup-item:last-child{border-bottom:none}
 
 /* ── EMPTY STATE ── */
 .empty{text-align:center;padding:48px 20px 32px;color:var(--mu)}
@@ -395,14 +401,16 @@ function renderFacilityList() {
         var hasStart = startups.some(function(r){ return r.facility_id === f.id; });
         var hasQuote = pmQuotes.some(function(r){ return r.facility_id === f.id; });
         var eqCount  = equip.filter(function(e){ return e.facility_id === f.id; }).length;
+        var followups = startups.filter(function(r){ return r.facility_id === f.id && r.followup && r.followup.trim(); }).length;
         var tags = '';
         if (f.pm_contract) tags += '<span class="tag tag-pm">PM Contract</span>';
         if (hasPM)    tags += '<span class="tag tag-pm">PM History</span>';
         if (hasStart) tags += '<span class="tag tag-startup">Startup</span>';
         if (hasQuote) tags += '<span class="tag tag-quote">Quoted</span>';
         if (eqCount)  tags += '<span class="tag tag-survey">'+eqCount+' Units</span>';
+        if (followups) tags += '<span class="tag" style="background:#FFF3E0;color:var(--am)">⚠ '+followups+' Follow-up'+(followups>1?'s':'')+' </span>';
         html += '<div class="fac-row" onclick="goDetail(\''+f.id+'\')">' +
-          '<div class="fac-avatar">'+initials+'</div>' +
+          '<div class="fac-avatar" style="'+(followups?'background:var(--am)':'')+'">'+initials+'</div>' +
           '<div class="fac-info">' +
             '<div class="fac-name">'+esc(f.name||'Unnamed')+'</div>' +
             '<div class="fac-addr">'+esc([f.address, f.address2].filter(Boolean).join(', ') || f.city || 'No address')+'</div>' +
@@ -569,7 +577,10 @@ function renderDetailTab(f) {
         });
       });
 
-      if (!events.length) {
+      // Collect open follow-ups
+      var openFollowups = startups.filter(function(r){ return r.facility_id === fid && r.followup && r.followup.trim(); });
+
+      if (!events.length && !openFollowups.length) {
         content.innerHTML = emptyState('📅','No activity yet','Activity from all NTD tools will appear here as data is submitted for this facility.');
         return;
       }
@@ -577,7 +588,25 @@ function renderDetailTab(f) {
       // Sort newest first
       events.sort(function(a,b){ return (b.ts||0) - (a.ts||0); });
 
-      var html = '<div class="card"><div class="card-body">';
+      var html = '';
+
+      // Follow-up alert card at top if any exist
+      if (openFollowups.length) {
+        html += '<div class="followup-card">' +
+          '<div class="followup-card-hdr">' +
+            '<span>⚠ ' + openFollowups.length + ' Open Follow-up' + (openFollowups.length>1?'s':'') + '</span>' +
+          '</div>';
+        openFollowups.forEach(function(r) {
+          html += '<div class="followup-item">' +
+            '<div style="font-size:13px;font-weight:700;color:var(--tx)">' + esc(r.unit_num||'Unit') + (r.eq_type?' <span style="font-weight:400;color:var(--mu)">· '+esc(r.eq_type)+'</span>':'') + '</div>' +
+            (r.tech ? '<div style="font-size:11px;color:var(--mu);margin-top:2px">Tech: '+esc(r.tech)+(r.sig_date?' · '+esc(r.sig_date):'')+'</div>' : '') +
+            '<div style="font-size:12px;color:var(--am);margin-top:4px;line-height:1.5">'+esc(r.followup)+'</div>' +
+          '</div>';
+        });
+        html += '</div>';
+      }
+
+      html += '<div class="card"><div class="card-body">';
       events.forEach(function(ev) {
         html += '<div class="rec-row">' +
           '<div class="rec-icon '+ev.color+'">'+ev.icon+'</div>' +
