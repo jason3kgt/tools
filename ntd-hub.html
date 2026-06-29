@@ -305,7 +305,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 // ── STATE ──────────────────────────────────────────────────────────────────
 var currentPage = 'facilities';
 var currentFacilityId = null;
-var currentDetailTab = 'equipment';
+var currentDetailTab = 'timeline';
 var editingFacilityId = null;
 var editingProjectId = null;
 var editingProjectFacilityId = null;
@@ -337,7 +337,7 @@ function goPage(page) {
 
 function goDetail(facilityId) {
   currentFacilityId = facilityId;
-  currentDetailTab = 'equipment';
+  currentDetailTab = 'timeline';
   document.querySelectorAll('.pg').forEach(function(p){ p.classList.remove('on'); });
   document.getElementById('pg-detail').classList.add('on');
   document.getElementById('hdr-action-btn').textContent = '← Back';
@@ -443,8 +443,8 @@ function renderDetail() {
       '</div>';
 
     // Tabs
-    var tabs = ['equipment','startups','pm','quotes','projects','notes'];
-    var tabLabels = {equipment:'🔧 Units',startups:'✅ Startups',pm:'📋 PM Visits',quotes:'💲 Quotes',projects:'📁 Projects',notes:'📝 Notes'};
+    var tabs = ['timeline','equipment','startups','pm','quotes','projects','notes'];
+    var tabLabels = {timeline:'📅 Timeline',equipment:'🔧 Units',startups:'✅ Startups',pm:'📋 PM Visits',quotes:'💲 Quotes',projects:'📁 Projects',notes:'📝 Notes'};
     var tabsHtml = tabs.map(function(t) {
       return '<button class="sec-tab'+(t===currentDetailTab?' on':'')+'" onclick="switchDetailTab(\''+t+'\')">'+tabLabels[t]+'</button>';
     }).join('');
@@ -457,14 +457,144 @@ function renderDetail() {
 function switchDetailTab(tab) {
   currentDetailTab = tab;
   document.querySelectorAll('.sec-tab').forEach(function(t){ t.classList.remove('on'); });
-  var btns = document.querySelectorAll('.sec-tab');
-  btns.forEach(function(b){ if(b.textContent.toLowerCase().indexOf(tab.substring(0,3))>-1 || b.getAttribute('onclick').indexOf(tab)>-1) b.classList.add('on'); });
+  document.querySelectorAll('.sec-tab').forEach(function(b){
+    if(b.getAttribute('onclick') && b.getAttribute('onclick').indexOf("'"+tab+"'") > -1) b.classList.add('on');
+  });
   ntdStore.facilities.get(currentFacilityId).then(renderDetailTab);
 }
 
 function renderDetailTab(f) {
   var content = document.getElementById('detail-content');
   var fid = f.id;
+
+  if (currentDetailTab === 'timeline') {
+    var fid = f.id;
+    Promise.all([
+      ntdStore.startup_records.list(function(r){ return r.facility_id === fid; }),
+      ntdStore.pm_records.list(function(r){ return r.facility_id === fid; }),
+      ntdStore.pm_quotes.list(function(r){ return r.facility_id === fid; }),
+      ntdStore.service_quotes.list(function(r){ return r.facility_id === fid; }),
+      ntdStore.jobs.list(function(j){ return j.facility_id === fid; }),
+      ntdStore.equipment.list(function(e){ return e.facility_id === fid; })
+    ]).then(function(results) {
+      var startups  = results[0];
+      var pmRecs    = results[1];
+      var pmQuotes  = results[2];
+      var svcQuotes = results[3];
+      var jobs      = results[4];
+      var equip     = results[5];
+
+      var events = [];
+
+      // Startup records
+      startups.forEach(function(r) {
+        events.push({
+          ts:    r.ts || 0,
+          icon:  '✅',
+          color: 'gn',
+          title: 'Startup — ' + esc(r.unit_num || 'Unit'),
+          sub:   [r.eq_type, r.tech ? 'Tech: '+r.tech : ''].filter(Boolean).join(' · '),
+          meta:  r.followup ? '⚠ Follow-up: ' + esc(r.followup) : '',
+          meta_color: r.followup ? 'var(--am)' : '',
+          date:  r.sig_date || ''
+        });
+      });
+
+      // PM visit records
+      pmRecs.forEach(function(r) {
+        var good=r.good_count||0, fair=r.fair_count||0, poor=r.poor_count||0;
+        events.push({
+          ts:    r.ts || 0,
+          icon:  '📋',
+          color: 'nv',
+          title: 'PM Visit — ' + esc(r.visit_label || 'Visit'),
+          sub:   [r.date, r.tech ? 'Tech: '+r.tech : '', r.unit_count ? r.unit_count+' units' : ''].filter(Boolean).join(' · '),
+          meta:  good+'G · '+fair+'F · '+poor+'P' + (r.notes ? ' · '+esc(r.notes) : ''),
+          date:  r.date || ''
+        });
+      });
+
+      // PM quotes
+      pmQuotes.forEach(function(q) {
+        events.push({
+          ts:    q.ts || 0,
+          icon:  '📄',
+          color: 'or',
+          title: 'PM Proposal — ' + esc(q.frequency || 'PM'),
+          sub:   [q.date, q.unit_count ? q.unit_count+' units' : ''].filter(Boolean).join(' · '),
+          meta:  q.annual_total ? 'Annual: ' + esc(q.annual_total) : '',
+          date:  q.date || ''
+        });
+      });
+
+      // Service quotes
+      svcQuotes.forEach(function(q) {
+        events.push({
+          ts:    q.ts || 0,
+          icon:  '🔨',
+          color: 'am',
+          title: 'Service Quote',
+          sub:   q.date || '',
+          meta:  q.grand_total ? 'Total: ' + esc(q.grand_total) : '',
+          date:  q.date || ''
+        });
+      });
+
+      // Projects
+      jobs.filter(function(j){ return j.type === 'project'; }).forEach(function(p) {
+        var statusLabel = {bidding:'Bidding',awarded:'Awarded',progress:'In Progress',complete:'Complete',lost:'Lost'}[p.status] || '';
+        events.push({
+          ts:    p.ts || 0,
+          icon:  '📁',
+          color: 'pu',
+          title: 'Project — ' + esc(p.name || 'Project'),
+          sub:   [statusLabel, p.value || ''].filter(Boolean).join(' · '),
+          meta:  p.notes ? esc(p.notes) : '',
+          date:  p.start_date || ''
+        });
+      });
+
+      // Equipment survey (grouped — one event per job type 'survey')
+      var surveyJobs = jobs.filter(function(j){ return j.type === 'survey'; });
+      surveyJobs.forEach(function(j) {
+        var unitCount = equip.filter(function(e){ return e.job_id === j.id; }).length || equip.length;
+        events.push({
+          ts:    j.ts || 0,
+          icon:  '🔧',
+          color: 'pu',
+          title: 'Equipment Survey',
+          sub:   j.date || '',
+          meta:  unitCount ? unitCount + ' units captured' : '',
+          date:  j.date || ''
+        });
+      });
+
+      if (!events.length) {
+        content.innerHTML = emptyState('📅','No activity yet','Activity from all NTD tools will appear here as data is submitted for this facility.');
+        return;
+      }
+
+      // Sort newest first
+      events.sort(function(a,b){ return (b.ts||0) - (a.ts||0); });
+
+      var html = '<div class="card"><div class="card-body">';
+      events.forEach(function(ev) {
+        html += '<div class="rec-row">' +
+          '<div class="rec-icon '+ev.color+'">'+ev.icon+'</div>' +
+          '<div class="rec-body">' +
+            '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">' +
+              '<div class="rec-title">'+ev.title+'</div>' +
+              (ev.date ? '<div style="font-size:10px;color:var(--mu);white-space:nowrap;margin-top:2px">'+esc(ev.date)+'</div>' : '') +
+            '</div>' +
+            (ev.sub  ? '<div class="rec-sub">'+ev.sub+'</div>' : '') +
+            (ev.meta ? '<div class="rec-meta" '+(ev.meta_color?'style="color:'+ev.meta_color+'"':'')+'>'+ev.meta+'</div>' : '') +
+          '</div></div>';
+      });
+      html += '</div></div>';
+      content.innerHTML = html;
+    });
+    return;
+  }
 
   if (currentDetailTab === 'equipment') {
     ntdStore.equipment.list(function(e){ return e.facility_id === fid; }).then(function(equip) {
