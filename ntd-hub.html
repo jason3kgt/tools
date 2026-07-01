@@ -1065,7 +1065,7 @@ function renderProjectList() {
       var statusLabel = {bidding:'Bidding',awarded:'Awarded',progress:'In Progress',complete:'Complete',lost:'Lost'};
       var html = '';
       filtered.forEach(function(p) {
-        html += '<div class="card" onclick="goDetail(\''+p.facility_id+'\', \'projects\')'  style="cursor:pointer">' +
+        html += '<div class="card ntd-goto" data-fid="'+p.facility_id+'" data-tab="projects" style="cursor:pointer">' +
           '<div class="card-body">' +
             '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px">' +
               '<div style="font-size:15px;font-weight:700;color:var(--nv);flex:1">'+esc(p.name||'Project')+'</div>' +
@@ -1281,7 +1281,7 @@ function renderDashboard() {
       html += '<div class="section-label">⚠ Open Follow-ups</div>';
       html += '<div class="followup-card">';
       openFollowups.slice(0,5).forEach(function(r) {
-        html += '<div class="followup-item" style="cursor:pointer" onclick="goDetail(''+r.facility_id+'')">' +
+        html += '<div class="followup-item ntd-goto" data-fid="'+r.facility_id+'" style="cursor:pointer">'+
           '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
             '<div style="font-size:13px;font-weight:700;color:var(--tx)">'+esc(r.unit_num||'Unit')+'</div>' +
             '<div style="font-size:11px;color:var(--mu)">'+esc(facMap[r.facility_id]||'')+'</div>' +
@@ -1300,7 +1300,7 @@ function renderDashboard() {
       expiringContracts.forEach(function(f) {
         var rd = new Date(f.contract.renewal_date);
         var days = Math.floor((rd - now) / (1000*60*60*24));
-        html += '<div class="rec-row" style="cursor:pointer" onclick="goDetail(''+f.id+'','contract')">' +
+        html += '<div class="rec-row ntd-goto" data-fid="'+f.id+'" data-tab="contract" style="cursor:pointer">'+
           '<div class="rec-icon or">📋</div>' +
           '<div class="rec-body">' +
             '<div class="rec-title">'+esc(f.name)+'</div>' +
@@ -1318,7 +1318,7 @@ function renderDashboard() {
       html += '<div class="section-label">📁 Active Projects</div>';
       html += '<div class="card"><div class="card-body">';
       activeProjects.slice(0,5).forEach(function(p) {
-        html += '<div class="rec-row" style="cursor:pointer" onclick="goDetail(''+p.facility_id+'','projects')">' +
+        html += '<div class="rec-row ntd-goto" data-fid="'+p.facility_id+'" data-tab="projects" style="cursor:pointer">'+
           '<div class="rec-icon pu">📁</div>' +
           '<div class="rec-body">' +
             '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px">' +
@@ -1328,7 +1328,7 @@ function renderDashboard() {
             '<div class="rec-sub">'+esc(facMap[p.facility_id]||'')+(p.value?' · '+esc(p.value):'')+'</div>' +
           '</div></div>';
       });
-      if (activeProjects.length > 5) html += '<div style="font-size:11px;color:var(--mu);padding-top:8px;text-align:center;cursor:pointer" onclick="goPage('projects')">View all '+activeProjects.length+' projects →</div>';
+      if (activeProjects.length > 5) html += '<div class="ntd-goto-projects" style="font-size:11px;color:var(--mu);padding-top:8px;text-align:center;cursor:pointer">View all '+activeProjects.length+' projects →</div>';
       html += '</div></div>';
     }
 
@@ -1339,7 +1339,7 @@ function renderDashboard() {
       recentActivity.forEach(function(ev) {
         var d = ev.ts ? new Date(ev.ts) : null;
         var dateStr = d ? (d.getMonth()+1)+'/'+(d.getDate())+'/'+d.getFullYear() : '';
-        html += '<div class="rec-row" style="cursor:pointer" onclick="goDetail(''+ev.fid+'')">' +
+        html += '<div class="rec-row ntd-goto" data-fid="'+ev.fid+'" style="cursor:pointer">'+
           '<div style="font-size:22px;width:36px;text-align:center;flex-shrink:0">'+ev.icon+'</div>' +
           '<div class="rec-body">' +
             '<div class="rec-title" style="font-size:13px">'+ev.label+'</div>' +
@@ -1495,7 +1495,7 @@ function runGlobalSearch() {
         html += '<div class="section-label">'+g.label+'</div>';
         html += '<div class="card"><div class="card-body">';
         g.items.forEach(function(item) {
-          html += '<div class="rec-row" style="cursor:pointer" onclick="goDetail(''+item.facility_id+'', item.tab)">' +
+          html += '<div class="rec-row ntd-goto" data-fid="'+item.facility_id+'"'+(item.tab?' data-tab="'+item.tab+'"':'')+' style="cursor:pointer">' +
             '<div class="rec-icon '+item.color+'">'+item.icon+'</div>' +
             '<div class="rec-body">' +
               '<div class="rec-title">'+esc(item.title)+'</div>' +
@@ -1520,7 +1520,29 @@ function matches(q) {
 }
 // ── END GLOBAL SEARCH ──────────────────────────────────────────────────────
 // ── INIT ──────────────────────────────────────────────────────────────────
+// Delegated click handler for ntd-goto elements
+document.addEventListener('click', function(e) {
+  // Navigate to projects page
+  if (e.target.closest('.ntd-goto-projects')) { goPage('projects'); return; }
+  // Navigate to facility detail
+  var el = e.target.closest('.ntd-goto');
+  if (!el) return;
+  var fid = el.getAttribute('data-fid');
+  var tab = el.getAttribute('data-tab');
+  if (fid) goDetail(fid, tab || null);
+});
+
 window.addEventListener('load', function() {
+  // Safety check — if ntdStore didn't load, show error instead of hanging
+  if (typeof ntdStore === 'undefined') {
+    document.getElementById('dashboard-content').innerHTML =
+      '<div class="empty" style="padding-top:48px">' +
+        '<div class="empty-icon">⚠️</div>' +
+        '<h3>Store unavailable</h3>' +
+        '<p>ntdStore.js could not be loaded. Make sure it is uploaded to your GitHub repo alongside ntd-hub.html.</p>' +
+      '</div>';
+    return;
+  }
   renderDashboard();
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(function(){});
