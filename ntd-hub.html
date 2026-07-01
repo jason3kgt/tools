@@ -288,44 +288,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <!-- TOAST -->
 <div id="toast"></div>
 
-<!-- ADD/EDIT AGREEMENT MODAL -->
-<div class="modal-overlay" id="agr-modal">
-  <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="agr-modal-title">Add Agreement</div>
-    <div class="fg">
-      <label>Agreement Type</label>
-      <select id="agr-type">
-        <option value="construction">Construction / Install Contract</option>
-        <option value="service">Service Agreement</option>
-        <option value="maintenance">Maintenance Agreement</option>
-        <option value="other">Other</option>
-      </select>
-    </div>
-    <div class="fg"><label>Agreement / Contract #</label><input type="text" id="agr-num" placeholder="e.g. CTR-2025-042"></div>
-    <div class="fg"><label>Description / Scope</label><textarea id="agr-desc" placeholder="Brief description of scope…"></textarea></div>
-    <div class="r2">
-      <div class="fg"><label>Contract Value</label><input type="text" id="agr-value" placeholder="$0"></div>
-      <div class="fg"><label>Status</label>
-        <select id="agr-status">
-          <option value="draft">Draft</option>
-          <option value="sent">Sent</option>
-          <option value="signed">Signed</option>
-          <option value="complete">Complete</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
-      </div>
-    </div>
-    <div class="r2">
-      <div class="fg"><label>Start Date</label><input type="text" id="agr-start" placeholder="MM/DD/YYYY"></div>
-      <div class="fg"><label>End / Expiry Date</label><input type="text" id="agr-end" placeholder="MM/DD/YYYY"></div>
-    </div>
-    <div class="fg"><label>SharePoint / Document URL</label><input type="text" id="agr-url" placeholder="https://…"></div>
-    <div class="fg"><label>Notes</label><textarea id="agr-notes" placeholder="Any relevant notes…"></textarea></div>
-    <button class="btn btn-nv" onclick="saveAgreement()">Save Agreement</button>
-    <button class="btn btn-outline" onclick="closeModal('agr-modal')" style="margin-top:6px">Cancel</button>
-  </div>
-</div>
 
 <!-- ADD/EDIT FACILITY MODAL -->
 <div class="modal-overlay" id="fac-modal">
@@ -387,6 +349,34 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
     <div class="fg"><label>SharePoint Folder URL</label><input type="text" id="pm-sp" placeholder="https://…"></div>
     <div class="fg"><label>Description / Notes</label><textarea id="pm-notes" placeholder="Scope, key contacts, special requirements…"></textarea></div>
+    <div class="divider"></div>
+    <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mu);margin-bottom:10px">Agreement / Contract</div>
+    <div class="r2">
+      <div class="fg"><label>Contract Type</label>
+        <select id="pm-agr-type">
+          <option value="">— None —</option>
+          <option value="construction">Construction / Install</option>
+          <option value="service">Service Agreement</option>
+          <option value="maintenance">Maintenance</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="fg"><label>Contract #</label><input type="text" id="pm-agr-num" placeholder="e.g. CTR-2025-042"></div>
+    </div>
+    <div class="r2">
+      <div class="fg"><label>Signed Date</label><input type="text" id="pm-agr-signed" placeholder="MM/DD/YYYY"></div>
+      <div class="fg"><label>Contract Status</label>
+        <select id="pm-agr-status">
+          <option value="">— None —</option>
+          <option value="draft">Draft</option>
+          <option value="sent">Sent</option>
+          <option value="signed">Signed</option>
+          <option value="complete">Complete</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label>Contract Document URL (SharePoint)</label><input type="text" id="pm-agr-url" placeholder="https://…"></div>
     <button class="btn btn-nv" onclick="saveProject()">Save Project</button>
     <button class="btn btn-outline" onclick="closeModal('proj-modal')" style="margin-top:6px">Cancel</button>
   </div>
@@ -561,8 +551,8 @@ function renderDetail() {
       '</div>';
 
     // Tabs
-    var tabs = ['timeline','equipment','startups','pm','quotes','projects','agreements','notes'];
-    var tabLabels = {timeline:'📅 Timeline',equipment:'🔧 Units',startups:'✅ Startups',pm:'📋 PM',quotes:'💲 Quotes',projects:'📁 Projects',agreements:'📄 Agreements',notes:'📝 Notes'};
+    var tabs = ['timeline','equipment','startups','pm','quotes','projects','notes'];
+    var tabLabels = {timeline:'📅 Timeline',equipment:'🔧 Units',startups:'✅ Startups',pm:'📋 PM',quotes:'💲 Quotes',projects:'📁 Projects',notes:'📝 Notes'};
     var tabsHtml = tabs.map(function(t) {
       return '<button class="sec-tab'+(t===currentDetailTab?' on':'')+'" onclick="switchDetailTab(\''+t+'\')">'+tabLabels[t]+'</button>';
     }).join('');
@@ -980,6 +970,16 @@ function renderDetailTab(f) {
             (p.start_date||p.end_date ? '<div style="font-size:11px;color:var(--mu);margin-bottom:8px">'+(p.start_date?'Start: '+esc(p.start_date):'')+(p.start_date&&p.end_date?' · ':'')+(p.end_date?'Target: '+esc(p.end_date):'')+'</div>' : '') +
             (p.sp_url ? '<a href="'+esc(p.sp_url)+'" target="_blank" class="sp-link" style="margin-bottom:8px;display:inline-flex">SharePoint Folder</a>' : '') +
             (p.notes ? '<div style="font-size:12px;color:var(--mu);line-height:1.5;margin-top:6px;padding-top:8px;border-top:1px solid var(--bd)">'+esc(p.notes)+'</div>' : '') +
+            (p.agr_type || p.agr_num ? (function(){
+                var agrStatusClass = {draft:'status-bidding',sent:'status-bidding',signed:'status-awarded',complete:'status-complete',cancelled:'status-lost'};
+                var agrStatusLabel = {draft:'Draft',sent:'Sent',signed:'Signed',complete:'Complete',cancelled:'Cancelled'};
+                return '<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--bd);display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
+                  '<span style="font-size:10px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.05em">Agreement</span>' +
+                  (p.agr_num ? '<span style="font-size:11px;color:var(--tx);font-weight:600">#'+esc(p.agr_num)+'</span>' : '') +
+                  (p.agr_status ? '<span class="status-badge '+(agrStatusClass[p.agr_status]||'status-bidding')+'">'+(agrStatusLabel[p.agr_status]||p.agr_status)+'</span>' : '') +
+                  (p.agr_url ? '<a href="'+esc(p.agr_url)+'" target="_blank" class="sp-link" style="font-size:11px">Document</a>' : '') +
+                '</div>';
+              })() : '') +
             '<div style="display:flex;gap:6px;margin-top:10px">' +
               '<button class="btn btn-outline btn-sm" onclick="openEditProject(\''+p.id+'\',\''+fid+'\')">✏️ Edit</button>' +
               '<button class="btn btn-red btn-sm" onclick="deleteProject(\''+p.id+'\')">Delete</button>' +
@@ -990,40 +990,6 @@ function renderDetailTab(f) {
     });
   }
 
-  else if (currentDetailTab === 'agreements') {
-    var fid = f.id;
-    ntdStore.jobs.list(function(j){ return j.facility_id === fid && j.type === 'agreement'; }).then(function(agrs) {
-      var typeLabel = {construction:'Construction / Install',service:'Service Agreement',maintenance:'Maintenance Agreement',other:'Other'};
-      var statusClass = {draft:'status-bidding',sent:'status-bidding',signed:'status-awarded',complete:'status-complete',cancelled:'status-lost'};
-      var statusLabel = {draft:'Draft',sent:'Sent',signed:'Signed',complete:'Complete',cancelled:'Cancelled'};
-      var addBtn = '<button class="btn btn-nv" onclick="openAddAgreement(\'' + fid + '\')" style="margin-bottom:14px">+ Add Agreement</button>';
-      if (!agrs.length) {
-        content.innerHTML = addBtn + emptyState('📄','No agreements yet','Add construction contracts, service agreements, or other documents for this facility.');
-        return;
-      }
-      var html = addBtn;
-      agrs.sort(function(a,b){ return (b.ts||0)-(a.ts||0); }).forEach(function(a) {
-        html += '<div class="card" style="margin-bottom:12px"><div class="card-body">' +
-          '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px">' +
-            '<div>' +
-              '<div style="font-size:15px;font-weight:700;color:var(--nv)">' + esc(a.name||typeLabel[a.agr_type]||'Agreement') + '</div>' +
-              (a.agr_num ? '<div style="font-size:11px;color:var(--mu);margin-top:2px">#' + esc(a.agr_num) + '</div>' : '') +
-            '</div>' +
-            '<span class="status-badge ' + (statusClass[a.status]||'status-bidding') + '">' + (statusLabel[a.status]||'Draft') + '</span>' +
-          '</div>' +
-          (a.value ? '<div style="font-size:16px;font-weight:800;color:var(--gn);margin-bottom:4px">' + esc(a.value) + '</div>' : '') +
-          (a.notes ? '<div style="font-size:12px;color:var(--mu);line-height:1.5;margin-bottom:8px">' + esc(a.notes) + '</div>' : '') +
-          (a.start_date||a.end_date ? '<div style="font-size:11px;color:var(--mu);margin-bottom:8px">' + (a.start_date?'Start: '+esc(a.start_date):'') + (a.start_date&&a.end_date?' · ':'') + (a.end_date?'Expires: '+esc(a.end_date):'') + '</div>' : '') +
-          (a.sp_url ? '<a href="' + esc(a.sp_url) + '" target="_blank" class="sp-link" style="margin-bottom:8px;display:inline-flex">View Document</a>' : '') +
-          '<div style="display:flex;gap:6px;margin-top:10px">' +
-            '<button class="btn btn-outline btn-sm" onclick="openEditAgreement(\'' + a.id + '\',\'' + fid + '\')">✏️ Edit</button>' +
-            '<button class="btn btn-red btn-sm" onclick="deleteAgreement(\'' + a.id + '\')">Delete</button>' +
-          '</div>' +
-        '</div></div>';
-      });
-      content.innerHTML = html;
-    });
-  }
 
     else if (currentDetailTab === 'notes') {
     var pinned = f.pinned_note || '';
@@ -1152,7 +1118,9 @@ function openAddProject(facilityId) {
   editingProjectId = null;
   editingProjectFacilityId = facilityId;
   document.getElementById('proj-modal-title').textContent = 'Add Project';
-  ['pm-name','pm-value','pm-po','pm-start','pm-end','pm-sp','pm-notes'].forEach(function(id){ document.getElementById(id).value=''; });
+  ['pm-name','pm-value','pm-po','pm-start','pm-end','pm-sp','pm-notes','pm-agr-num','pm-agr-signed','pm-agr-url'].forEach(function(id){ document.getElementById(id).value=''; });
+  document.getElementById('pm-agr-type').value = '';
+  document.getElementById('pm-agr-status').value = '';
   document.getElementById('pm-status').value = 'bidding';
   openModal('proj-modal');
 }
@@ -1169,7 +1137,12 @@ function openEditProject(id, facilityId) {
     document.getElementById('pm-start').value  = p.start_date || '';
     document.getElementById('pm-end').value    = p.end_date   || '';
     document.getElementById('pm-sp').value     = p.sp_url     || '';
-    document.getElementById('pm-notes').value  = p.notes      || '';
+    document.getElementById('pm-notes').value      = p.notes       || '';
+    document.getElementById('pm-agr-type').value   = p.agr_type   || '';
+    document.getElementById('pm-agr-num').value    = p.agr_num    || '';
+    document.getElementById('pm-agr-signed').value = p.agr_signed || '';
+    document.getElementById('pm-agr-status').value = p.agr_status || '';
+    document.getElementById('pm-agr-url').value    = p.agr_url    || '';
     openModal('proj-modal');
   });
 }
@@ -1187,7 +1160,12 @@ function saveProject() {
     start_date:  document.getElementById('pm-start').value.trim(),
     end_date:    document.getElementById('pm-end').value.trim(),
     sp_url:      document.getElementById('pm-sp').value.trim(),
-    notes:       document.getElementById('pm-notes').value.trim()
+    notes:       document.getElementById('pm-notes').value.trim(),
+    agr_type:    document.getElementById('pm-agr-type').value,
+    agr_num:     document.getElementById('pm-agr-num').value.trim(),
+    agr_signed:  document.getElementById('pm-agr-signed').value.trim(),
+    agr_status:  document.getElementById('pm-agr-status').value,
+    agr_url:     document.getElementById('pm-agr-url').value.trim()
   };
   if (editingProjectId) data.id = editingProjectId;
   ntdStore.jobs.upsert(data).then(function() {
@@ -1387,96 +1365,6 @@ function showToast(msg) {
 
 
 
-// ── AGREEMENTS ────────────────────────────────────────────────────────────
-var editingAgreementId = null;
-var editingAgreementFacilityId = null;
-
-function openAddAgreement(facilityId) {
-  editingAgreementId = null;
-  editingAgreementFacilityId = facilityId;
-  document.getElementById('agr-modal-title').textContent = 'Add Agreement';
-  ['agr-num','agr-desc','agr-value','agr-start','agr-end','agr-url','agr-notes'].forEach(function(id){ document.getElementById(id).value=''; });
-  document.getElementById('agr-type').value = 'construction';
-  document.getElementById('agr-status').value = 'draft';
-  openModal('agr-modal');
-}
-
-function openEditAgreement(id, facilityId) {
-  editingAgreementId = id;
-  editingAgreementFacilityId = facilityId;
-  ntdStore.jobs.get(id).then(function(a) {
-    document.getElementById('agr-modal-title').textContent = 'Edit Agreement';
-    document.getElementById('agr-type').value   = a.agr_type  || 'construction';
-    document.getElementById('agr-num').value    = a.agr_num   || '';
-    document.getElementById('agr-desc').value   = a.notes     || '';
-    document.getElementById('agr-value').value  = a.value     || '';
-    document.getElementById('agr-status').value = a.status    || 'draft';
-    document.getElementById('agr-start').value  = a.start_date|| '';
-    document.getElementById('agr-end').value    = a.end_date  || '';
-    document.getElementById('agr-url').value    = a.sp_url    || '';
-    document.getElementById('agr-notes').value  = a.notes     || '';
-    openModal('agr-modal');
-  });
-}
-
-function saveAgreement() {
-  var typeLabel = {construction:'Construction / Install',service:'Service Agreement',maintenance:'Maintenance Agreement',other:'Agreement'};
-  var aType = document.getElementById('agr-type').value;
-  var data = {
-    facility_id: editingAgreementFacilityId,
-    type:        'agreement',
-    agr_type:    aType,
-    name:        typeLabel[aType] || 'Agreement',
-    agr_num:     document.getElementById('agr-num').value.trim(),
-    value:       document.getElementById('agr-value').value.trim(),
-    status:      document.getElementById('agr-status').value,
-    start_date:  document.getElementById('agr-start').value.trim(),
-    end_date:    document.getElementById('agr-end').value.trim(),
-    sp_url:      document.getElementById('agr-url').value.trim(),
-    notes:       document.getElementById('agr-desc').value.trim()
-  };
-  if (editingAgreementId) data.id = editingAgreementId;
-  ntdStore.jobs.upsert(data).then(function() {
-    closeModal('agr-modal');
-    showToast(editingAgreementId ? 'Agreement updated' : 'Agreement added');
-    ntdStore.facilities.get(currentFacilityId).then(renderDetailTab);
-  });
-}
-
-function deleteAgreement(id) {
-  if (!confirm('Delete this agreement? This cannot be undone.')) return;
-  ntdStore.jobs.delete(id).then(function() {
-    showToast('Agreement deleted');
-    ntdStore.facilities.get(currentFacilityId).then(renderDetailTab);
-  });
-}
-
-// ── CONVERT QUOTE TO PROJECT ───────────────────────────────────────────────
-function convertQuoteToProject(quoteId, quoteType) {
-  var store = quoteType === 'pm' ? ntdStore.pm_quotes : ntdStore.service_quotes;
-  store.get(quoteId).then(function(q) {
-    if (!q) { alert('Quote not found.'); return; }
-    // Pre-fill project modal with quote data
-    editingProjectId = null;
-    editingProjectFacilityId = q.facility_id || currentFacilityId;
-    document.getElementById('proj-modal-title').textContent = 'Convert Quote to Project';
-    document.getElementById('pm-name').value   = quoteType === 'pm'
-      ? ((q.frequency||'PM') + ' Contract — ' + (q.date||''))
-      : ('Service Work — ' + (q.date||''));
-    document.getElementById('pm-status').value = 'bidding';
-    document.getElementById('pm-value').value  = quoteType === 'pm' ? (q.annual_total||'') : (q.grand_total||'');
-    document.getElementById('pm-po').value     = '';
-    document.getElementById('pm-start').value  = q.date || '';
-    document.getElementById('pm-end').value    = '';
-    document.getElementById('pm-sp').value     = '';
-    document.getElementById('pm-notes').value  = quoteType === 'pm'
-      ? ('Converted from PM proposal. Frequency: ' + (q.frequency||'') + '. Units: ' + (q.unit_count||''))
-      : ('Converted from service quote. ' + (q.items ? q.items.length + ' line items.' : ''));
-    openModal('proj-modal');
-    showToast('Quote data loaded — review and save as project');
-  });
-}
-// ── END AGREEMENTS ─────────────────────────────────────────────────────────
 // ── PM VISIT SCHEDULER ───────────────────────────────────────────────────
 function parseDate(str) {
   if (!str) return null;
