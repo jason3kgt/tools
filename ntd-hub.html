@@ -561,8 +561,8 @@ function renderDetail() {
       '</div>';
 
     // Tabs
-    var tabs = ['timeline','equipment','startups','pm','quotes','projects','contract','agreements','notes'];
-    var tabLabels = {timeline:'📅 Timeline',equipment:'🔧 Units',startups:'✅ Startups',pm:'📋 PM',quotes:'💲 Quotes',projects:'📁 Projects',contract:'📋 Contract',agreements:'📄 Agreements',notes:'📝 Notes'};
+    var tabs = ['timeline','equipment','startups','pm','quotes','projects','agreements','notes'];
+    var tabLabels = {timeline:'📅 Timeline',equipment:'🔧 Units',startups:'✅ Startups',pm:'📋 PM',quotes:'💲 Quotes',projects:'📁 Projects',agreements:'📄 Agreements',notes:'📝 Notes'};
     var tabsHtml = tabs.map(function(t) {
       return '<button class="sec-tab'+(t===currentDetailTab?' on':'')+'" onclick="switchDetailTab(\''+t+'\')">'+tabLabels[t]+'</button>';
     }).join('');
@@ -809,27 +809,114 @@ function renderDetailTab(f) {
   }
 
   else if (currentDetailTab === 'pm') {
-    ntdStore.pm_records.list(function(r){ return r.facility_id === fid; }).then(function(recs) {
-      if (!recs.length) { content.innerHTML = emptyState('📋','No PM visit records','PM visit records appear here after a technician submits a PM checklist for this facility.'); return; }
-      var sorted = recs.sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
-      var html = '<div class="card"><div class="card-body">';
-      sorted.forEach(function(r) {
-        var good=r.good_count||0, fair=r.fair_count||0, poor=r.poor_count||0;
-        html += '<div class="rec-row">' +
-          '<div class="rec-icon nv">📋</div>' +
-          '<div class="rec-body">' +
-            '<div class="rec-title">'+esc(r.visit_label||'PM Visit')+'</div>' +
-            '<div class="rec-sub">'+esc(r.date||'')+(r.tech?' · '+esc(r.tech):'')+'</div>' +
-            '<div class="rec-meta">' +
-              (r.unit_count ? r.unit_count+' units · ' : '') +
-              '<span style="color:var(--gn)">'+good+' Good</span> · ' +
-              '<span style="color:var(--am)">'+fair+' Fair</span> · ' +
-              '<span style="color:var(--rd)">'+poor+' Poor</span>' +
-            '</div>' +
-            (r.notes ? '<div class="rec-meta" style="margin-top:3px">'+esc(r.notes)+'</div>' : '') +
-          '</div></div>';
-      });
+    var fid = f.id;
+    Promise.all([
+      ntdStore.pm_records.list(function(r){ return r.facility_id === fid; }),
+      ntdStore.facilities.get(fid)
+    ]).then(function(results) {
+      var recs = results[0];
+      var fac  = results[1];
+      var c    = (fac && fac.contract) || {};
+      var html = '';
+
+      // ── PM Contract Card ──
+      var hasContract = fac && fac.pm_contract;
+      var isExpiringSoon = false;
+      if (c.renewal_date) {
+        var rd = parseDate(c.renewal_date);
+        if (rd) {
+          var daysUntil = Math.floor((rd - new Date()) / (1000*60*60*24));
+          isExpiringSoon = daysUntil >= 0 && daysUntil <= 90;
+        }
+      }
+
+      // Visit schedule
+      var lastV = recs.sort(function(a,b){ return (b.ts||0)-(a.ts||0); })[0];
+      var lastDate = lastV ? lastV.date : (c.start_date || null);
+      var nextVisit = calcNextVisit(lastDate, c.frequency);
+      var schedStatus = pmScheduleStatus(nextVisit);
+
+      html += '<div class="card" style="margin-bottom:14px">';
+      html += '<div class="card-hdr" style="cursor:pointer" onclick="switchDetailTab(\'pm_contract\')">';
+      html += '<h2>PM Contract</h2>';
+      html += '<span class="badge" style="cursor:pointer">✏️ Edit</span>';
+      html += '</div>';
+      html += '<div class="card-body">';
+
+      if (hasContract && (c.annual_value || c.frequency)) {
+        if (c.annual_value) html += '<div style="font-size:24px;font-weight:800;color:var(--gn);margin-bottom:6px">'+esc(c.annual_value)+'<span style="font-size:12px;font-weight:600;color:var(--mu)">/year</span></div>';
+        var details = [];
+        if (c.frequency) details.push(esc(c.frequency));
+        if (c.visits_per_year) details.push(esc(c.visits_per_year)+' visits/yr');
+        if (c.agreement_num) details.push('#'+esc(c.agreement_num));
+        if (details.length) html += '<div style="font-size:12px;color:var(--mu);margin-bottom:8px">'+details.join(' · ')+'</div>';
+        html += '<div style="display:grid;grid-template-columns:1fr 1fr'+(schedStatus?' 1fr':'')+ ';gap:6px;margin-bottom:6px">';
+        if (c.start_date) html += '<div style="background:var(--of);border-radius:8px;padding:7px 9px"><div style="font-size:9px;font-weight:700;color:var(--mu);text-transform:uppercase">Start</div><div style="font-size:12px;font-weight:700;color:var(--tx);margin-top:1px">'+esc(c.start_date)+'</div></div>';
+        if (c.renewal_date) html += '<div style="background:'+(isExpiringSoon?'#FFF3E0':'var(--of)')+';border-radius:8px;padding:7px 9px"><div style="font-size:9px;font-weight:700;color:var(--mu);text-transform:uppercase">Renewal</div><div style="font-size:12px;font-weight:700;color:'+(isExpiringSoon?'var(--am)':'var(--tx)')+';margin-top:1px">'+esc(c.renewal_date)+'</div></div>';
+        if (schedStatus) html += '<div style="background:'+(schedStatus.urgent?'#FDEDEC':'var(--of)')+';border-radius:8px;padding:7px 9px"><div style="font-size:9px;font-weight:700;color:var(--mu);text-transform:uppercase">Next Due</div><div style="font-size:12px;font-weight:700;color:'+schedStatus.color+';margin-top:1px">'+schedStatus.label+'</div></div>';
+        html += '</div>';
+        if (c.scope) html += '<div style="font-size:11px;color:var(--mu);line-height:1.5;padding-top:6px;border-top:1px solid var(--bd)">'+esc(c.scope)+'</div>';
+      } else {
+        html += '<div style="font-size:13px;color:var(--mu)">No contract details yet. <span style="color:var(--st);cursor:pointer;font-weight:600" onclick="switchDetailTab(\'pm_contract\')">Add contract details →</span></div>';
+      }
       html += '</div></div>';
+
+      // ── PM Visit History ──
+      if (!recs.length) {
+        html += emptyState('📋','No visits yet','PM visit records appear here after a technician submits a PM checklist for this facility.');
+      } else {
+        html += '<div class="section-label">Visit History</div>';
+        html += '<div class="card"><div class="card-body">';
+        recs.forEach(function(r) {
+          var good=r.good_count||0, fair=r.fair_count||0, poor=r.poor_count||0;
+          html += '<div class="rec-row">' +
+            '<div class="rec-icon nv">📋</div>' +
+            '<div class="rec-body">' +
+              '<div class="rec-title">'+esc(r.visit_label||'PM Visit')+'</div>' +
+              '<div class="rec-sub">'+esc(r.date||'')+(r.tech?' · '+esc(r.tech):'')+'</div>' +
+              '<div class="rec-meta">' +
+                (r.unit_count ? r.unit_count+' units · ' : '') +
+                '<span style="color:var(--gn)">'+good+' Good</span> · ' +
+                '<span style="color:var(--am)">'+fair+' Fair</span> · ' +
+                '<span style="color:var(--rd)">'+poor+' Poor</span>' +
+              '</div>' +
+              (r.notes ? '<div class="rec-meta" style="margin-top:3px">'+esc(r.notes)+'</div>' : '') +
+            '</div></div>';
+        });
+        html += '</div></div>';
+      }
+      content.innerHTML = html;
+    });
+  }
+
+  else if (currentDetailTab === 'pm_contract') {
+    var fid = f.id;
+    ntdStore.facilities.get(currentFacilityId).then(function(fac) {
+      var c = fac.contract || {};
+      var hasContract = fac.pm_contract;
+      var isExpiringSoon = false;
+      if (c.renewal_date) {
+        var rd2 = parseDate(c.renewal_date);
+        if (rd2) { var d2 = Math.floor((rd2 - new Date()) / (1000*60*60*24)); isExpiringSoon = d2 >= 0 && d2 <= 90; }
+      }
+      var html = '<button class="btn btn-outline" onclick="switchDetailTab(\'pm\')" style="margin-bottom:14px">← Back to PM Visits</button>';
+      if (isExpiringSoon) html += '<div style="background:#FFF3E0;border:1.5px solid #F59E0B;border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--am);font-weight:600">⚠ Contract renewal coming up: ' + esc(c.renewal_date) + '</div>';
+      html += '<div class="card"><div class="card-hdr"><h2>'+(hasContract && c.annual_value ? 'Edit PM Contract' : 'Add PM Contract')+'</h2>'+(c.agreement_num?'<span class="badge">#'+esc(c.agreement_num)+'</span>':'')+'</div><div class="card-body">' +
+        '<div class="fg"><label>Agreement / Contract #</label><input type="text" id="c-agr" value="'+esc(c.agreement_num||'')+'" placeholder="e.g. PM-2025-001"></div>' +
+        '<div class="fg"><label>Annual Value</label><input type="text" id="c-val" value="'+esc(c.annual_value||'')+'" placeholder="e.g. $24,800"></div>' +
+        '<div class="fg"><label>Visit Frequency</label><select id="c-freq">' +
+          ['','Monthly','Quarterly','Semi-Annual','Annual','Custom'].map(function(o){
+            return '<option value="'+o+'"'+(c.frequency===o?' selected':'')+'>'+o+'</option>';
+          }).join('') +
+        '</select></div>' +
+        '<div class="fg"><label>Visits Per Year</label><input type="text" id="c-vis" value="'+esc(c.visits_per_year||'')+'" placeholder="e.g. 4"></div>' +
+        '<div class="r2">' +
+          '<div class="fg"><label>Contract Start</label><input type="text" id="c-start" value="'+esc(c.start_date||'')+'" placeholder="MM/DD/YYYY"></div>' +
+          '<div class="fg"><label>Renewal Date</label><input type="text" id="c-renew" value="'+esc(c.renewal_date||'')+'" placeholder="MM/DD/YYYY"></div>' +
+        '</div>' +
+        '<div class="fg"><label>Scope / Inclusions</label><textarea id="c-scope" placeholder="e.g. 35 RTUs, 2 AHUs…">'+esc(c.scope||'')+'</textarea></div>' +
+        '<button class="btn btn-nv" onclick="saveContract()">Save Contract</button>' +
+        '</div></div>';
       content.innerHTML = html;
     });
   }
@@ -903,96 +990,6 @@ function renderDetailTab(f) {
     });
   }
 
-  else if (currentDetailTab === 'contract') {
-    var fid = f.id;
-    ntdStore.facilities.get(currentFacilityId).then(function(f) {
-      var c = f.contract || {};
-      var hasContract = f.pm_contract;
-      var renewalDate = c.renewal_date || '';
-      var isExpiringSoon = false;
-      if (renewalDate) {
-        var rd = new Date(renewalDate);
-        var now = new Date();
-        var daysUntil = Math.floor((rd - now) / (1000*60*60*24));
-        isExpiringSoon = daysUntil >= 0 && daysUntil <= 90;
-      }
-
-      var html = '';
-
-      // Expiry warning
-      if (isExpiringSoon) {
-        html += '<div style="background:#FFF3E0;border:1.5px solid #F59E0B;border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--am);font-weight:600">⚠ Contract renewal coming up: ' + esc(renewalDate) + '</div>';
-      }
-
-      // Contract summary card (read view)
-      if (hasContract && (c.annual_value || c.frequency || c.renewal_date)) {
-        html += '<div class="card" style="margin-bottom:14px"><div class="card-hdr"><h2>PM Contract</h2>' +
-          (c.agreement_num ? '<span class="badge">#'+esc(c.agreement_num)+'</span>' : '') +
-          '</div><div class="card-body">';
-
-        if (c.annual_value) html += '<div style="font-size:26px;font-weight:800;color:var(--gn);margin-bottom:4px">'+esc(c.annual_value)+'<span style="font-size:13px;font-weight:600;color:var(--mu)">/year</span></div>';
-
-        var details = [];
-        if (c.frequency) details.push(esc(c.frequency));
-        if (c.visits_per_year) details.push(esc(c.visits_per_year)+' visits/year');
-        if (details.length) html += '<div style="font-size:13px;color:var(--mu);margin-bottom:8px">'+details.join(' · ')+'</div>';
-
-        if (c.start_date || c.renewal_date) {
-          html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">';
-          if (c.start_date) html += '<div style="background:var(--of);border-radius:8px;padding:8px 10px"><div style="font-size:9px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.05em">Start Date</div><div style="font-size:13px;font-weight:700;color:var(--tx);margin-top:2px">'+esc(c.start_date)+'</div></div>';
-          if (c.renewal_date) html += '<div style="background:'+(isExpiringSoon?'#FFF3E0':'var(--of)')+';border-radius:8px;padding:8px 10px"><div style="font-size:9px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.05em">Renewal Date</div><div style="font-size:13px;font-weight:700;color:'+(isExpiringSoon?'var(--am)':'var(--tx)')+';margin-top:2px">'+esc(c.renewal_date)+'</div></div>';
-          html += '</div>';
-        }
-
-        if (c.scope) html += '<div style="font-size:12px;color:var(--mu);line-height:1.5;padding-top:8px;border-top:1px solid var(--bd)">'+esc(c.scope)+'</div>';
-        html += '</div></div>';
-      }
-
-      // Next visit schedule
-      if (hasContract && c.frequency) {
-        ntdStore.pm_records.list(function(r){ return r.facility_id === fid; }).then(function(visits) {
-          var lastV = visits.sort(function(a,b){ return (b.ts||0)-(a.ts||0); })[0];
-          var lastDate = lastV ? lastV.date : (c.start_date || null);
-          var nextVisit = calcNextVisit(lastDate, c.frequency);
-          var status = pmScheduleStatus(nextVisit);
-          if (!status) return;
-          var schedCard = document.createElement('div');
-          schedCard.className = 'card';
-          schedCard.style.marginBottom = '14px';
-          schedCard.innerHTML = '<div class="card-hdr"><h2>Visit Schedule</h2></div><div class="card-body">' +
-            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
-              '<div style="background:var(--of);border-radius:8px;padding:8px 10px"><div style="font-size:9px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.05em">Last Visit</div><div style="font-size:13px;font-weight:700;color:var(--tx);margin-top:2px">'+(lastDate||'None on record')+'</div></div>' +
-              '<div style="background:'+(status.urgent?'#FDEDEC':'var(--of)')+';border-radius:8px;padding:8px 10px"><div style="font-size:9px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.05em">Next Due</div><div style="font-size:13px;font-weight:700;color:'+status.color+';margin-top:2px">'+status.label+'</div></div>' +
-            '</div>' +
-          '</div>';
-          var editForm = document.querySelector('.card:last-of-type');
-          if(editForm) editForm.parentNode.insertBefore(schedCard, editForm);
-        });
-      }
-
-      // Edit form
-      html += '<div class="card"><div class="card-hdr"><h2>'+(hasContract && c.annual_value ? 'Edit Contract' : 'Add PM Contract')+'</h2></div><div class="card-body">' +
-        '<div class="fg"><label>Agreement / Contract #</label><input type="text" id="c-agr" value="'+esc(c.agreement_num||'')+'" placeholder="e.g. PM-2025-001"></div>' +
-        '<div class="fg"><label>Annual Value</label><input type="text" id="c-val" value="'+esc(c.annual_value||'')+'" placeholder="e.g. $24,800"></div>' +
-        '<div class="fg"><label>Visit Frequency</label><select id="c-freq">' +
-          '<option value="">— Select —</option>' +
-          ['Monthly','Quarterly','Semi-Annual','Annual','Custom'].map(function(o){
-            return '<option value="'+o+'"'+(c.frequency===o?' selected':'')+'>'+o+'</option>';
-          }).join('') +
-        '</select></div>' +
-        '<div class="fg"><label>Visits Per Year</label><input type="text" id="c-vis" value="'+esc(c.visits_per_year||'')+'" placeholder="e.g. 4"></div>' +
-        '<div class="r2">' +
-          '<div class="fg"><label>Contract Start</label><input type="text" id="c-start" value="'+esc(c.start_date||'')+'" placeholder="MM/DD/YYYY"></div>' +
-          '<div class="fg"><label>Renewal Date</label><input type="text" id="c-renew" value="'+esc(c.renewal_date||'')+'" placeholder="MM/DD/YYYY"></div>' +
-        '</div>' +
-        '<div class="fg"><label>Scope / Inclusions</label><textarea id="c-scope" placeholder="e.g. 35 RTUs, 2 AHUs, monthly tunnel units…">'+esc(c.scope||'')+'</textarea></div>' +
-        '<button class="btn btn-nv" onclick="saveContract()">Save Contract</button>' +
-        '</div></div>';
-
-      content.innerHTML = html;
-    });
-  }
-
   else if (currentDetailTab === 'agreements') {
     var fid = f.id;
     ntdStore.jobs.list(function(j){ return j.facility_id === fid && j.type === 'agreement'; }).then(function(agrs) {
@@ -1061,7 +1058,8 @@ function saveContract() {
     return ntdStore.facilities.upsert(f);
   }).then(function() {
     showToast('Contract saved');
-    ntdStore.facilities.get(currentFacilityId).then(renderDetailTab);
+    currentDetailTab = 'pm';
+    renderDetail();
   });
 }
 
@@ -1599,7 +1597,7 @@ function renderDashboard() {
       expiringContracts.forEach(function(f) {
         var rd = new Date(f.contract.renewal_date);
         var days = Math.floor((rd - now) / (1000*60*60*24));
-        html += '<div class="rec-row ntd-goto" data-fid="'+f.id+'" data-tab="contract" style="cursor:pointer">'+
+        html += '<div class="rec-row ntd-goto" data-fid="'+f.id+'" data-tab="pm" style="cursor:pointer">'+
           '<div class="rec-icon or">📋</div>' +
           '<div class="rec-body">' +
             '<div class="rec-title">'+esc(f.name)+'</div>' +
