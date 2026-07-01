@@ -2,8 +2,8 @@
 // Replace the two values below with your Supabase project credentials
 // DO NOT share these values publicly
 
-var SUPABASE_URL = https://mngilvenfclopyfzaghq.supabase.co;
-var SUPABASE_ANON_KEY = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uZ2lsdmVuZmNsb3B5ZnphZ2hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MjU0NzgsImV4cCI6MjA5ODUwMTQ3OH0.9crgKglgt9Dh2Gr3NMsqF8rmS_bKB9Zv3-xatGpzy9c;
+var SUPABASE_URL = 'https://mngilvenfclopyfzaghq.supabase.co';
+var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uZ2lsdmVuZmNsb3B5ZnphZ2hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MjU0NzgsImV4cCI6MjA5ODUwMTQ3OH0.9crgKglgt9Dh2Gr3NMsqF8rmS_bKB9Zv3-xatGpzy9c';
 
 // ── SUPABASE CLIENT ──────────────────────────────────────────────────────────
 var _sb = (function() {
