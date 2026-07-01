@@ -10,7 +10,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <title>NTD Mechanical - HVAC Asset Survey</title>
-<script src="ntdStore.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
@@ -241,7 +240,6 @@ textarea{resize:vertical;min-height:70px}
     <div class="cb"><div class="fg"><label>Overall Narrative</label><textarea id="esnotes" placeholder="Overall site condition, priority findings, recommendations..." style="min-height:100px"></textarea></div></div>
   </div>
   <button class="dlb" onclick="dlSummary()">Download Executive Summary PDF</button>
-  <button class="dlb sec" onclick="ntdSubmitAssessment()" ontouchend="ntdSubmitAssessment()">&#10003; Submit Assessment to Store</button>
 </div>
 
 <!-- TAB 3: FORECAST -->
@@ -344,7 +342,6 @@ textarea{resize:vertical;min-height:70px}
     </div>
   </div>
   <button class="dlb" onclick="pmGenPDF()">📄 Generate PM Proposal PDF</button>
-  <button class="dlb sec" onclick="ntdSubmitPMQuote()" ontouchend="ntdSubmitPMQuote()">&#10003; Submit PM Quote to Store</button>
   <button class="dlb sec" onclick="pmExportJSON()">📧 Email Quote for Excel Import</button>
 </div>
 
@@ -436,7 +433,6 @@ textarea{resize:vertical;min-height:70px}
     </div>
   </div>
   <button class="dlb" onclick="sqGeneratePDF()">&#128196; Generate Service Proposal PDF</button>
-  <button class="dlb sec" onclick="ntdSubmitServiceQuote()" ontouchend="ntdSubmitServiceQuote()">&#10003; Submit Service Quote to Store</button>
   <button class="dlb sec" onclick="sqClearItems()" style="margin-top:6px;background:#C0392B">&#128465; Clear Line Items</button>
 </div>
 
@@ -1002,6 +998,7 @@ function dlSummary(){
   pdfFooter(doc);
   var blob=doc.output('blob');var url=URL.createObjectURL(blob);
   window.open(url,'_blank');setTimeout(function(){URL.revokeObjectURL(url);},60000);
+  ntdUploadPDF(blob,'asset_survey','Asset Survey — '+(gv('sf')||'Site')+' — Executive Summary',{unitCount:eqs.length});
 }
 
 // ── FORECAST PDF ──────────────────────────────────────────────
@@ -1083,6 +1080,7 @@ function dlForecast(){
   pdfFooter(doc);
   var blob=doc.output('blob');var url=URL.createObjectURL(blob);
   window.open(url,'_blank');setTimeout(function(){URL.revokeObjectURL(url);},60000);
+  ntdUploadPDF(blob,'asset_survey','Asset Survey — '+(gv('sf')||'Site')+' — Capital Forecast',{unitCount:eqs.length});
 }
 
 // ── PM QUOTE ──────────────────────────────────────────────────
@@ -1577,6 +1575,7 @@ function pmGenPDF(){
 
   var blob=doc.output('blob');var url=URL.createObjectURL(blob);
   window.open(url,'_blank');setTimeout(function(){URL.revokeObjectURL(url);},60000);
+  ntdUploadPDF(blob,'pm_proposal','PM Proposal — '+(gv('sf')||'Site'),{unitCount:pmUnits.length});
 }
 
 function pmExportJSON(){
@@ -1693,6 +1692,7 @@ function dlSiteRecord(){
   doc.text('NTD Mechanical  |  TACLA65973C  |  INTERNAL DOCUMENT \u2014 NOT FOR DISTRIBUTION',W/2,H-5,{align:'center'});
   var blob=doc.output('blob');var url=URL.createObjectURL(blob);
   window.open(url,'_blank');setTimeout(function(){URL.revokeObjectURL(url);},60000);
+  ntdUploadPDF(blob,'pm_proposal','PM Proposal — '+(gv('sf')||'Site')+' (Detail)',{unitCount:pmUnits.length});
 }
 
 
@@ -2076,9 +2076,36 @@ function sqGeneratePDF(){
   var blob=doc.output('blob');var url=URL.createObjectURL(blob);
   window.open(url,'_blank');
   setTimeout(function(){URL.revokeObjectURL(url);},60000);
+  ntdUploadPDF(blob,'service_quote','Service Quote — '+(gv('sf')||'Site'),{unitCount:sqItems.length});
 }
 
 // ── INIT ──────────────────────────────────────────────────────
+
+// ── NTD PDF UPLOAD HELPER ─────────────────────────────────────────────────
+function ntdUploadPDF(blob, formType, description, extraParams) {
+  if (typeof ntdStore === 'undefined' || !ntdStore.uploadPDF) return;
+  var facName = gv('sf') || gv('facility') || '';
+  if (!facName) return;
+  ntdStore.facilities.list(function(f){
+    return (f.name||'').toLowerCase().trim() === facName.toLowerCase().trim();
+  }).then(function(matches) {
+    if (!matches.length) return;
+    return ntdStore.uploadPDF(Object.assign({
+      blob: blob,
+      facilityId: matches[0].id,
+      formType: formType,
+      description: description,
+      date: gv('sd') || new Date().toISOString().substring(0,10),
+      tech: gv('stch') || gv('tech') || ''
+    }, extraParams || {}));
+  }).then(function(doc) {
+    if(doc) console.log('[NTD] PDF uploaded:', doc.file_path);
+  }).catch(function(e) {
+    console.warn('[NTD] PDF upload failed (non-critical):', e.message);
+  });
+}
+// ── END NTD PDF UPLOAD HELPER ─────────────────────────────────────────────
+
 window.onload=function(){
   var t=new Date();
   document.getElementById('sd').value=String(t.getMonth()+1).padStart(2,'0')+'/'+String(t.getDate()).padStart(2,'0')+'/'+t.getFullYear();
@@ -2092,142 +2119,6 @@ window.onload=function(){
   document.getElementById('pmAddBtn').addEventListener('click',pmAddUnit);
   document.getElementById('sq-add-custom-btn').addEventListener('click',sqAddCustom);
 };
-
-
-// ── NTDSTORE INTEGRATION ──────────────────────────────────────────────────────
-var _ntdAssetFacilityId = null;
-
-function ntdUpsertAssetFacility(callback) {
-  if (typeof ntdStore === 'undefined') { if(callback) callback(null); return; }
-  var name    = gv('sf');
-  var address = [gv('sa'), gv('sct')].filter(Boolean).join(', ');
-  if (!name) { alert('Please enter a Customer name on the Site tab first.'); if(callback) callback(null); return; }
-  if (_ntdAssetFacilityId) { if(callback) callback(_ntdAssetFacilityId); return; }
-  ntdStore.facilities.list(function(f){
-    return (f.name||'').toLowerCase().trim() === name.toLowerCase().trim();
-  }).then(function(matches){
-    if (matches.length) {
-      _ntdAssetFacilityId = matches[0].id;
-      if(callback) callback(_ntdAssetFacilityId);
-    } else {
-      ntdStore.facilities.upsert({ name: name, address: address })
-        .then(function(fac){ _ntdAssetFacilityId = fac.id; if(callback) callback(fac.id); })
-        .catch(function(){ if(callback) callback(null); });
-    }
-  }).catch(function(){ if(callback) callback(null); });
-}
-
-// Submit Assessment (Summary tab)
-function ntdSubmitAssessment() {
-  if (typeof ntdStore === 'undefined') { alert('ntdStore not available.'); return; }
-  if (!eqs.length) { alert('No units to submit. Add units on the Units tab first.'); return; }
-  ntdUpsertAssetFacility(function(facilityId) {
-    if (!facilityId) return;
-    var date  = gv('sd');
-    var tech  = gv('stch');
-    var notes = gv('esnotes');
-    var good  = eqs.filter(function(e){ return e.ov==='good'; }).length;
-    var fair  = eqs.filter(function(e){ return e.ov==='fair'; }).length;
-    var poor  = eqs.filter(function(e){ return e.ov==='poor'; }).length;
-
-    // Save equipment records
-    var eqSaves = eqs.map(function(eq) {
-      return ntdStore.equipment.upsert({
-        facility_id:   facilityId,
-        tag:           eq.tag || '',
-        type:          eq.type || '',
-        condition:     eq.ov || '',
-        install_year:  eq.yr || '',
-        repl_cost:     getReplCost(eq),
-        repl_year:     getReplYear(eq),
-        notes:         eq.notes || ''
-      });
-    });
-
-    // Save assessment record
-    var assessSave = ntdStore.pm_records.upsert({
-      facility_id:  facilityId,
-      date:         date,
-      tech:         tech,
-      visit_label:  'Asset Assessment',
-      unit_count:   eqs.length,
-      good_count:   good,
-      fair_count:   fair,
-      poor_count:   poor,
-      notes:        notes,
-      units: eqs.map(function(eq){
-        return { tag: eq.tag, type: eq.type, condition: eq.ov, notes: eq.notes };
-      })
-    });
-
-    Promise.all(eqSaves.concat([assessSave])).then(function() {
-      alert('\u2713 Assessment submitted for ' + gv('sf') + '.\n' + eqs.length + ' units: ' + good + ' Good, ' + fair + ' Fair, ' + poor + ' Poor/Action.');
-    }).catch(function(e){
-      console.error('[NTD] Assessment submit error:', e);
-      alert('Submit failed. PDFs still available.');
-    });
-  });
-}
-
-// Submit PM Quote (PM Quote tab)
-function ntdSubmitPMQuote() {
-  if (typeof ntdStore === 'undefined') { alert('ntdStore not available.'); return; }
-  if (!pmUnits.length) { alert('No units in the PM Quote. Build the quote first.'); return; }
-  ntdUpsertAssetFacility(function(facilityId) {
-    if (!facilityId) return;
-    var annualEl  = document.getElementById('pm-grand-annual');
-    var qtrEl     = document.getElementById('pm-qtr');
-    var moEl      = document.getElementById('pm-mo');
-    var unitCntEl = document.getElementById('pm-units');
-    ntdStore.pm_quotes.upsert({
-      facility_id:    facilityId,
-      date:           gv('sd'),
-      frequency:      pmFreq,
-      unit_count:     unitCntEl ? parseInt(unitCntEl.textContent) || 0 : pmUnits.length,
-      annual_total:   annualEl  ? annualEl.textContent  : '',
-      quarterly_rate: qtrEl     ? qtrEl.textContent     : '',
-      monthly_rate:   moEl      ? moEl.textContent      : '',
-      plans:          Object.keys(pmPlans).filter(function(k){ return pmPlans[k]; }),
-      units:          pmUnits,
-      renewal_date:   gv('pm-renewal'),
-      agreement_num:  gv('pm-agr-num')
-    }).then(function() {
-      alert('\u2713 PM Quote submitted for ' + gv('sf') + '.\n' + pmFreq + ' | ' + (annualEl ? annualEl.textContent : '') + '/year');
-    }).catch(function(e){
-      console.error('[NTD] PM Quote submit error:', e);
-      alert('Submit failed. PDF still available.');
-    });
-  });
-}
-
-// Submit Service Quote (Service Quote tab)
-function ntdSubmitServiceQuote() {
-  if (typeof ntdStore === 'undefined') { alert('ntdStore not available.'); return; }
-  if (!sqItems.length) { alert('No line items in the Service Quote. Build the quote first.'); return; }
-  ntdUpsertAssetFacility(function(facilityId) {
-    if (!facilityId) return;
-    var grandEl = document.getElementById('sq-tot-grand');
-    var baseEl  = document.getElementById('sq-tot-base');
-    var taxEl   = document.getElementById('sq-tot-tax');
-    ntdStore.service_quotes.upsert({
-      facility_id:  facilityId,
-      date:         gv('sd'),
-      job_type_id:  sqSelectedJT,
-      items:        sqItems,
-      base_total:   baseEl  ? baseEl.textContent  : '',
-      tax_total:    taxEl   ? taxEl.textContent    : '',
-      grand_total:  grandEl ? grandEl.textContent  : '',
-      notes:        gv('sn')
-    }).then(function() {
-      alert('\u2713 Service Quote submitted for ' + gv('sf') + '.\nTotal: ' + (grandEl ? grandEl.textContent : ''));
-    }).catch(function(e){
-      console.error('[NTD] Service Quote submit error:', e);
-      alert('Submit failed. PDF still available.');
-    });
-  });
-}
-// ── END NTDSTORE INTEGRATION ──────────────────────────────────────────────────
-
 </script>
 </body>
 </html>

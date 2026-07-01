@@ -646,6 +646,7 @@ function dlPDF(){
   var fn='NTD_Equipment_Survey_'+(gv('j-cust')||'Survey').replace(/\s+/g,'_')+'_'+(gv('j-date')||'draft').replace(/\//g,'-')+'.pdf';
   var _blob=doc.output('blob');
   var _burl=URL.createObjectURL(_blob);
+  ntdUploadPDF(_blob,'equipment_survey','Equipment Survey — '+(gv('j-cust')||'Site')+' — '+(gv('j-date')||''),{unitCount:(typeof unitData!=='undefined'?unitData.length:0)});
   var _win=window.open(_burl,'_blank');
   if(!_win){
     // Fallback if popup blocked
@@ -910,6 +911,31 @@ function doSubmitToStore() {
 }
 </script>
 <script>
+
+// ── NTD PDF UPLOAD HELPER ─────────────────────────────────────────────────
+function ntdUploadPDF(blob, formType, description, extraParams) {
+  if (typeof ntdStore === 'undefined' || !ntdStore.uploadPDF) return;
+  var facName = gv('j-cust') || gv('facility') || '';
+  if (!facName) return;
+  ntdStore.facilities.list(function(f){
+    return (f.name||'').toLowerCase().trim() === facName.toLowerCase().trim();
+  }).then(function(matches) {
+    if (!matches.length) return;
+    return ntdStore.uploadPDF(Object.assign({
+      blob: blob,
+      facilityId: matches[0].id,
+      formType: formType,
+      description: description,
+      date: gv('j-date') || new Date().toISOString().substring(0,10),
+      tech: gv('j-tech') || gv('tech') || ''
+    }, extraParams || {}));
+  }).then(function(doc) {
+    if(doc) console.log('[NTD] PDF uploaded:', doc.file_path);
+  }).catch(function(e) {
+    console.warn('[NTD] PDF upload failed:', e.message);
+  });
+}
+// ── END NTD PDF UPLOAD HELPER ─────────────────────────────────────────────
 if('serviceWorker' in navigator){
   window.addEventListener('load', function(){
     navigator.serviceWorker.register('sw.js').then(function(reg){

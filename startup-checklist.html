@@ -1431,6 +1431,7 @@ function dlPDF(){
   var fn='NTD_Startup_'+(EQ_TYPES[currentType]||'').replace(/[^a-zA-Z0-9]/g,'_')+'_'+(gv('unit_num')||gv('job_po')||'draft')+'.pdf';
   var _blob=doc.output('blob');
   var _burl=URL.createObjectURL(_blob);
+  ntdUploadPDF(_blob,'startup','Startup — '+(gv('unit_num')||'Unit')+' — '+(gv('facility')||''));
   var _win=window.open(_burl,'_blank');
   if(!_win){
     // Fallback if popup blocked
@@ -2199,6 +2200,7 @@ function dlPDFFromSnap(snap){
   var fn='NTD_Startup_'+(EQ_TYPES[snap.type]||'').replace(/[^a-zA-Z0-9]/g,'_')+'_'+(sf('unit_num')||'unit')+'.pdf';
   var blob=doc.output('blob');
   var url=URL.createObjectURL(blob);
+  ntdUploadPDF(blob,'startup','Startup Preview — '+(gv('unit_num')||'Unit')+' — '+(gv('facility')||''));
   var w=window.open(url,'_blank');
   if(!w){ alert('Allow popups to open PDFs.'); }
   setTimeout(function(){ URL.revokeObjectURL(url); },60000);
@@ -2648,6 +2650,32 @@ function ljApplyUnit(job, unit){
   ntdOnJobLoaded(job);
 }
 
+
+// ── NTD PDF UPLOAD HELPER ─────────────────────────────────────────────────
+function ntdUploadPDF(blob, formType, description, extraParams) {
+  if (typeof ntdStore === 'undefined' || !ntdStore.uploadPDF) return;
+  var facName = gv('facility') || gv('sf') || '';
+  if (!facName) { console.warn('[NTD] No facility name for PDF upload'); return; }
+  ntdStore.facilities.list(function(f){
+    return (f.name||'').toLowerCase().trim() === facName.toLowerCase().trim();
+  }).then(function(matches) {
+    var facilityId = matches.length ? matches[0].id : (_ntdFacilityId || null);
+    if (!facilityId) return;
+    return ntdStore.uploadPDF(Object.assign({
+      blob: blob,
+      facilityId: facilityId,
+      formType: formType,
+      description: description,
+      date: gv('u_date') || new Date().toISOString().substring(0,10),
+      tech: gv('tech') || ''
+    }, extraParams || {}));
+  }).then(function(doc) {
+    if(doc) console.log('[NTD] PDF uploaded:', doc.file_path);
+  }).catch(function(e) {
+    console.warn('[NTD] PDF upload failed:', e.message);
+  });
+}
+// ── END NTD PDF UPLOAD HELPER ─────────────────────────────────────────────
 </script>
 <script>
 if('serviceWorker' in navigator){

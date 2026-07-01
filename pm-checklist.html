@@ -204,7 +204,6 @@ textarea{resize:vertical;min-height:70px}
   </div>
 </div></div>
 <button class="dlb" onclick="dlSummary()" type="button">⬇ Download Visit Report PDF</button>
-<button class="dlb" onclick="ntdSubmitPMVisit()" ontouchend="ntdSubmitPMVisit()" type="button" style="background:var(--nv);margin-top:8px">&#10003; Submit Visit to Store</button>
 </div>
 
 <!-- SITE PICKER MODAL -->
@@ -223,7 +222,6 @@ textarea{resize:vertical;min-height:70px}
   </div>
 </div>
 
-<script src="ntdStore.js"></script>
 <script>
 // ─── LOGO (short version for speed — tools repo has full base64) ───
 var LG = '';
@@ -236,131 +234,15 @@ var siteProfile = null;
 
 // ─── KNOWN SITE INDEX ─────────────────────────────────────────────
 // Add entries here as new PM sites are published to GitHub
-// ─── FALLBACK KNOWN SITES (used if ntdStore has no PM facilities yet) ────────
-var FALLBACK_SITES = [
+var KNOWN_SITES = [
   {
     name: 'ILS Gummies',
     address: 'Grand Prairie, TX',
     url: 'https://jason3kgt.github.io/tools/sites/ils-gummies.json',
     plans: 'Quarterly + Monthly Tunnel',
-    units: '35+ RTU, VAV, EF',
-    pm_contract: true
+    units: '35+ RTU, VAV, EF'
   }
 ];
-var KNOWN_SITES = FALLBACK_SITES.slice(); // start with fallback, replaced dynamically
-
-// ─── NTDSTORE: seed fallback sites and load PM facilities ────────────────────
-function ntdLoadKnownSites() {
-  if (typeof ntdStore === 'undefined') return;
-  // Seed fallback sites into ntdStore if not already present
-  var seeds = FALLBACK_SITES.filter(function(s){ return s.pm_contract; });
-  seeds.forEach(function(s) {
-    ntdStore.facilities.list(function(f){
-      return (f.name||'').toLowerCase().trim() === s.name.toLowerCase().trim();
-    }).then(function(matches){
-      if (!matches.length) {
-        ntdStore.facilities.upsert({
-          name: s.name,
-          address: s.address,
-          pm_contract: true,
-          pm_url: s.url,
-          pm_plans: s.plans,
-          pm_units: s.units
-        });
-      }
-    }).catch(function(){});
-  });
-  // Load PM facilities from ntdStore to populate KNOWN_SITES
-  ntdStore.facilities.list(function(f){ return !!f.pm_contract; })
-    .then(function(facilities) {
-      if (!facilities.length) return;
-      KNOWN_SITES = facilities.map(function(f) {
-        return {
-          name: f.name,
-          address: f.address || '',
-          url: f.pm_url || '',
-          plans: f.pm_plans || '',
-          units: f.pm_units || '',
-          ntd_facility_id: f.id
-        };
-      });
-    }).catch(function(){});
-}
-
-// ─── NTDSTORE: current visit tracking ────────────────────────────────────────
-var _ntdPMFacilityId = null;
-
-function ntdSubmitPMVisit() {
-  if (typeof ntdStore === 'undefined') { alert('ntdStore not available.'); return; }
-  if (!eqs.length) { alert('No equipment loaded. Load a site profile first.'); return; }
-
-  var customer = gv('sf');
-  var address  = [gv('sa'), gv('sct')].filter(Boolean).join(', ');
-  var date     = gv('sd');
-  var tech     = gv('stch');
-  var visit    = gv('sv');
-  var notes    = (document.getElementById('overall-notes')||{}).value || '';
-
-  var doSubmit = function(facilityId) {
-    // Capture equipment results
-    var unitResults = eqs.map(function(eq) {
-      return {
-        tag:         eq.tag || '',
-        type:        eq.type || '',
-        service_type: eq.serviceType || '',
-        condition:   eq.ov || '',
-        notes:       eq.notes || '',
-        detail:      eq.detail || {}
-      };
-    });
-
-    var good = eqs.filter(function(e){ return e.ov === 'good'; }).length;
-    var fair = eqs.filter(function(e){ return e.ov === 'fair'; }).length;
-    var poor = eqs.filter(function(e){ return e.ov === 'poor'; }).length;
-
-    ntdStore.pm_records.upsert({
-      facility_id:  facilityId,
-      date:         date,
-      tech:         tech,
-      visit_label:  visit,
-      unit_count:   eqs.length,
-      good_count:   good,
-      fair_count:   fair,
-      poor_count:   poor,
-      notes:        notes,
-      units:        unitResults
-    }).then(function(record) {
-      alert('\u2713 PM visit submitted to store for ' + customer + '.\n' + eqs.length + ' units recorded: ' + good + ' Good, ' + fair + ' Fair, ' + poor + ' Poor/Action.');
-    }).catch(function(e) {
-      console.error('[NTD] PM submit error:', e);
-      alert('Submit failed. Your PDFs are still saved.');
-    });
-  };
-
-  // Find or create facility
-  if (_ntdPMFacilityId) {
-    doSubmit(_ntdPMFacilityId);
-    return;
-  }
-  ntdStore.facilities.list(function(f){
-    return (f.name||'').toLowerCase().trim() === customer.toLowerCase().trim();
-  }).then(function(matches){
-    if (matches.length) {
-      _ntdPMFacilityId = matches[0].id;
-      doSubmit(_ntdPMFacilityId);
-    } else {
-      ntdStore.facilities.upsert({
-        name: customer,
-        address: address,
-        pm_contract: true
-      }).then(function(fac){
-        _ntdPMFacilityId = fac.id;
-        doSubmit(_ntdPMFacilityId);
-      }).catch(function(){ alert('Could not create facility record.'); });
-    }
-  }).catch(function(){ alert('Store error. PDFs still saved.'); });
-}
-// ─── END NTDSTORE INTEGRATION ─────────────────────────────────────────────────
 
 // ─── TASK CHECKLISTS BY SERVICE TYPE ─────────────────────────────
 // Matches ILS Scope of Work but works for any PM account
@@ -674,16 +556,6 @@ function applyProfile(data) {
   var visit = calcVisit(data.contract_start);
   sv('sv', visit ? visit.label : '');
 
-  // Capture ntdStore facility ID if this site came from a KNOWN_SITES entry
-  _ntdPMFacilityId = null;
-  var _loadedName = (data.customer || '').toLowerCase().trim();
-  for (var _si = 0; _si < KNOWN_SITES.length; _si++) {
-    if ((KNOWN_SITES[_si].name || '').toLowerCase().trim() === _loadedName && KNOWN_SITES[_si].ntd_facility_id) {
-      _ntdPMFacilityId = KNOWN_SITES[_si].ntd_facility_id;
-      break;
-    }
-  }
-
   // Show site chip
   var chip = document.getElementById('site-chip-area');
   if (chip) {
@@ -704,7 +576,6 @@ function clearSite() {
   var banner = document.getElementById('visit-banner-area');
   if (banner) banner.innerHTML = '';
   sv('sf',''); sv('sa',''); sv('sct',''); sv('sn',''); sv('sv','');
-  _ntdPMFacilityId = null;
   eqs = [];
   renderEqs();
 }
@@ -1196,6 +1067,7 @@ function dlEquip() {
     var burl = URL.createObjectURL(blob);
     window.open(burl, '_blank');
     setTimeout(function(){URL.revokeObjectURL(burl);}, 60000);
+    ntdUploadPDF(blob,'pm_checklist','PM Visit — '+(gv('sf')||'Site')+' — '+(gv('sv')||gv('sd')||''),{unitCount:eqs.length});
   });
 }
 
@@ -1327,12 +1199,38 @@ function dlSummary() {
     var burl = URL.createObjectURL(blob);
     window.open(burl, '_blank');
     setTimeout(function(){URL.revokeObjectURL(burl);}, 60000);
+    ntdUploadPDF(blob,'pm_checklist','PM Visit — '+(gv('sf')||'Site')+' — '+(gv('sv')||gv('sd')||''),{unitCount:eqs.length});
   });
 }
 
+
+// ── NTD PDF UPLOAD HELPER ─────────────────────────────────────────────────
+function ntdUploadPDF(blob, formType, description, extraParams) {
+  if (typeof ntdStore === 'undefined' || !ntdStore.uploadPDF) return;
+  var facName = gv('sf') || '';
+  if (!facName) return;
+  ntdStore.facilities.list(function(f){
+    return (f.name||'').toLowerCase().trim() === facName.toLowerCase().trim();
+  }).then(function(matches) {
+    if (!matches.length) return;
+    return ntdStore.uploadPDF(Object.assign({
+      blob: blob,
+      facilityId: matches[0].id,
+      formType: formType,
+      description: description,
+      date: gv('sd') || new Date().toISOString().substring(0,10),
+      tech: gv('stch') || gv('tech') || ''
+    }, extraParams || {}));
+  }).then(function(doc) {
+    if(doc) console.log('[NTD] PDF uploaded:', doc.file_path);
+  }).catch(function(e) {
+    console.warn('[NTD] PDF upload failed:', e.message);
+  });
+}
+// ── END NTD PDF UPLOAD HELPER ─────────────────────────────────────────────
+
 // ─── INIT ─────────────────────────────────────────────────────────
 initPiping();
-ntdLoadKnownSites();
 // Set today's date
 var _now = new Date();
 var _mm = String(_now.getMonth()+1).padStart(2,'0');

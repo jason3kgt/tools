@@ -612,7 +612,8 @@ function renderDetailTab(f) {
       ntdStore.pm_quotes.list(function(r){ return r.facility_id === fid; }),
       ntdStore.service_quotes.list(function(r){ return r.facility_id === fid; }),
       ntdStore.jobs.list(function(j){ return j.facility_id === fid; }),
-      ntdStore.equipment.list(function(e){ return e.facility_id === fid; })
+      ntdStore.equipment.list(function(e){ return e.facility_id === fid; }),
+      ntdStore.documents ? ntdStore.documents.list(function(d){ return d.facility_id === fid; }) : Promise.resolve([])
     ]).then(function(results) {
       var startups  = results[0];
       var pmRecs    = results[1];
@@ -620,6 +621,7 @@ function renderDetailTab(f) {
       var svcQuotes = results[3];
       var jobs      = results[4];
       var equip     = results[5];
+      var docs      = results[6] || [];
 
       var events = [];
 
@@ -713,6 +715,20 @@ function renderDetailTab(f) {
         content.innerHTML = emptyState('📅','No activity yet','Activity from all NTD tools will appear here as data is submitted for this facility.');
         return;
       }
+
+      // Document / PDF events
+      var formLabels = {asset_survey:'Asset Survey',pm_checklist:'PM Visit Report',pm_proposal:'PM Proposal',service_quote:'Service Quote',startup:'Startup Checklist',equipment_survey:'Equipment Survey'};
+      docs.forEach(function(d) {
+        events.push({
+          ts:    d.ts || 0,
+          icon:  '📄',
+          color: 'nv',
+          title: esc(d.description || formLabels[d.form_type] || 'Document'),
+          sub:   d.tech ? 'Tech: '+esc(d.tech) : '',
+          meta:  d.file_url ? '<a href="'+esc(d.file_url)+'" target="_blank" style="color:var(--st);font-weight:600;text-decoration:none">📥 Open PDF</a>' : '',
+          date:  d.date || ''
+        });
+      });
 
       // Sort newest first
       events.sort(function(a,b){ return (b.ts||0) - (a.ts||0); });
