@@ -95,9 +95,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .detail-act-btn.primary{background:var(--or);border-color:var(--or)}
 
 /* ── SECTION TABS ── */
-.sec-tabs{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.sec-tabs{display:flex;gap:5px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px;-webkit-overflow-scrolling:touch}
 .sec-tabs::-webkit-scrollbar{display:none}
-.sec-tab{padding:7px 14px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;cursor:pointer;border:1.5px solid var(--bd);background:#fff;color:var(--mu);touch-action:manipulation;font-family:inherit}
+.sec-tabs::after{content:'';flex-shrink:0;width:1px}
+.sec-tabs-wrap{position:relative;margin-bottom:14px}
+.sec-tabs-wrap .sec-tabs{margin-bottom:0}
+.sec-tabs-wrap::after{content:'';position:absolute;right:0;top:0;bottom:0;width:32px;background:linear-gradient(to right,transparent,var(--bg));pointer-events:none}
+.sec-tab{padding:6px 11px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;cursor:pointer;border:1.5px solid var(--bd);background:#fff;color:var(--mu);touch-action:manipulation;font-family:inherit;flex-shrink:0}
 .sec-tab.on{background:var(--nv);color:#fff;border-color:var(--nv)}
 
 /* ── RECORD ROWS ── */
@@ -207,7 +211,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <!-- ② FACILITY DETAIL -->
 <div class="pg" id="pg-detail">
   <div class="detail-hero" id="detail-hero"></div>
-  <div class="sec-tabs" id="detail-tabs"></div>
+  <div class="sec-tabs-wrap"><div class="sec-tabs" id="detail-tabs"></div></div>
   <div id="detail-content"></div>
 </div>
 
@@ -558,7 +562,7 @@ function renderDetail() {
 
     // Tabs
     var tabs = ['timeline','equipment','startups','pm','quotes','projects','contract','agreements','notes'];
-    var tabLabels = {timeline:'📅 Timeline',equipment:'🔧 Units',startups:'✅ Startups',pm:'📋 PM Visits',quotes:'💲 Quotes',projects:'📁 Projects',contract:'📋 PM Contract',agreements:'📄 Agreements',notes:'📝 Notes'};
+    var tabLabels = {timeline:'📅 Timeline',equipment:'🔧 Units',startups:'✅ Startups',pm:'📋 PM',quotes:'💲 Quotes',projects:'📁 Projects',contract:'📋 Contract',agreements:'📄 Agreements',notes:'📝 Notes'};
     var tabsHtml = tabs.map(function(t) {
       return '<button class="sec-tab'+(t===currentDetailTab?' on':'')+'" onclick="switchDetailTab(\''+t+'\')">'+tabLabels[t]+'</button>';
     }).join('');
