@@ -1309,10 +1309,22 @@ function showToast(msg) {
 
 
 // ── PM VISIT SCHEDULER ───────────────────────────────────────────────────
+function parseDate(str) {
+  if (!str) return null;
+  // Handle MM/DD/YYYY
+  var mdy = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (mdy) return new Date(parseInt(mdy[3]), parseInt(mdy[1])-1, parseInt(mdy[2]));
+  // Handle YYYY-MM-DD
+  var ymd = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (ymd) return new Date(parseInt(ymd[1]), parseInt(ymd[2])-1, parseInt(ymd[3]));
+  var d = new Date(str);
+  return isNaN(d.getTime()) ? null : d;
+}
+
 function calcNextVisit(lastVisitDate, frequency) {
   if (!lastVisitDate) return null;
-  var d = new Date(lastVisitDate);
-  if (isNaN(d.getTime())) return null;
+  var d = parseDate(lastVisitDate);
+  if (!d) return null;
   var freq = (frequency || '').toLowerCase();
   if (freq === 'monthly')      d.setMonth(d.getMonth() + 1);
   else if (freq === 'quarterly')    d.setMonth(d.getMonth() + 3);
@@ -1327,8 +1339,8 @@ function pmScheduleStatus(nextVisit) {
   var now = new Date();
   var days = Math.floor((nextVisit - now) / (1000*60*60*24));
   if (days < 0)  return { label: 'Overdue by ' + Math.abs(days) + ' days', color: 'var(--rd)', urgent: true };
-  if (days <= 14) return { label: 'Due in ' + days + ' days', color: 'var(--rd)', urgent: true };
-  if (days <= 30) return { label: 'Due in ' + days + ' days', color: 'var(--am)', urgent: false };
+  if (days <= 7)  return { label: 'Due in ' + days + ' day'+(days===1?'':'s'), color: 'var(--rd)', urgent: true };
+  if (days <= 30) return { label: 'Due in ' + days + ' days', color: 'var(--am)', urgent: true };
   return { label: 'Due ' + (nextVisit.getMonth()+1) + '/' + nextVisit.getDate() + '/' + nextVisit.getFullYear(), color: 'var(--mu)', urgent: false };
 }
 // ── END PM VISIT SCHEDULER ────────────────────────────────────────────────
