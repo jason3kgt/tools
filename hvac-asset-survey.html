@@ -2090,6 +2090,7 @@ function sqGeneratePDF(){
 
 // ── NTDSTORE INTEGRATION ──────────────────────────────────────────────────────
 var _ntdAssetFacilityId = null;
+var _ntdAutoSubmitted = false; // Prevent duplicate auto-submits
 
 function ntdUpsertAssetFacility(callback) {
   if (typeof ntdStore === 'undefined') { if(callback) callback(null); return; }
@@ -2207,6 +2208,8 @@ function ntdUploadPDF(blob, formType, description, extraParams) {
 // No alert shown — data saves quietly to Supabase
 function ntdAutoSubmitAssessment() {
   if (typeof ntdStore === 'undefined' || !eqs.length) return;
+  if (_ntdAutoSubmitted) { console.log('[NTD] Already submitted this session, skipping duplicate'); return; }
+  _ntdAutoSubmitted = true;
   ntdUpsertAssetFacility(function(facilityId) {
     if (!facilityId) return;
     var good = eqs.filter(function(e){ return e.ov==='good'; }).length;
@@ -2271,6 +2274,12 @@ function ntdAutoSubmitServiceQuote() {
 }
 // ── END AUTO-SUBMIT ───────────────────────────────────────────────────────
 window.onload=function(){
+  // Reset auto-submit flag when customer name changes
+  var sfEl = document.getElementById('sf');
+  if (sfEl) {
+    sfEl.addEventListener('change', function(){ _ntdAutoSubmitted = false; _ntdAssetFacilityId = null; });
+    sfEl.addEventListener('input', function(){ _ntdAutoSubmitted = false; _ntdAssetFacilityId = null; });
+  }
   var t=new Date();
   document.getElementById('sd').value=String(t.getMonth()+1).padStart(2,'0')+'/'+String(t.getDate()).padStart(2,'0')+'/'+t.getFullYear();
   document.getElementById('pm-agr-date').value=t.toISOString().split('T')[0];
