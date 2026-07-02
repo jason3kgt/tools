@@ -1003,6 +1003,7 @@ function dlSummary(){
   var blob=doc.output('blob');var url=URL.createObjectURL(blob);
   window.open(url,'_blank');setTimeout(function(){URL.revokeObjectURL(url);},60000);
   ntdUploadPDF(blob,'asset_survey','Asset Survey — '+(gv('sf')||'Site')+' — Executive Summary',{unitCount:eqs.length});
+  ntdAutoSubmitAssessment();
 }
 
 // ── FORECAST PDF ──────────────────────────────────────────────
@@ -1580,6 +1581,7 @@ function pmGenPDF(){
   var blob=doc.output('blob');var url=URL.createObjectURL(blob);
   window.open(url,'_blank');setTimeout(function(){URL.revokeObjectURL(url);},60000);
   ntdUploadPDF(blob,'pm_proposal','PM Proposal — '+(gv('sf')||'Site'),{unitCount:pmUnits.length});
+  ntdAutoSubmitPMQuote();
 }
 
 function pmExportJSON(){
@@ -2081,6 +2083,7 @@ function sqGeneratePDF(){
   window.open(url,'_blank');
   setTimeout(function(){URL.revokeObjectURL(url);},60000);
   ntdUploadPDF(blob,'service_quote','Service Quote — '+(gv('sf')||'Site'),{unitCount:sqItems.length});
+  ntdAutoSubmitServiceQuote();
 }
 
 // ── INIT ──────────────────────────────────────────────────────
@@ -2122,11 +2125,12 @@ function ntdSubmitAssessment() {
         condition: eq.ov||'', install_year: eq.yr||'', notes: eq.notes||''
       });
     });
-    var assessSave = ntdStore.pm_records.upsert({
-      facility_id: facilityId, date: gv('sd'), tech: gv('stch'),
-      visit_label: 'Asset Assessment', unit_count: eqs.length,
-      good_count: good, fair_count: fair, poor_count: poor,
-      notes: gv('esnotes'), units: eqs.map(function(eq){ return {tag:eq.tag,type:eq.type,condition:eq.ov}; })
+    var assessSave = ntdStore.jobs.upsert({
+      facility_id: facilityId, type: 'asset_survey',
+      name: 'Asset Assessment — ' + (gv('sf')||''),
+      date: gv('sd'), tech: gv('stch'), status: 'complete',
+      notes: gv('esnotes'),
+      units: eqs.map(function(eq){ return {tag:eq.tag,type:eq.type,condition:eq.ov}; })
     });
     Promise.all(eqSaves.concat([assessSave])).then(function() {
       alert('\u2713 Assessment submitted for ' + gv('sf') + '.\n' + eqs.length + ' units: ' + good + ' Good, ' + fair + ' Fair, ' + poor + ' Poor.');
@@ -2197,6 +2201,75 @@ function ntdUploadPDF(blob, formType, description, extraParams) {
   }).catch(function(){});
 }
 // ── END NTDSTORE INTEGRATION ──────────────────────────────────────────────────
+
+// ── AUTO-SUBMIT ON PDF DOWNLOAD ───────────────────────────────────────────
+// These run silently in the background when a PDF is downloaded
+// No alert shown — data saves quietly to Supabase
+function ntdAutoSubmitAssessment() {
+  if (typeof ntdStore === 'undefined' || !eqs.length) return;
+  ntdUpsertAssetFacility(function(facilityId) {
+    if (!facilityId) return;
+    var good = eqs.filter(function(e){ return e.ov==='good'; }).length;
+    var fair = eqs.filter(function(e){ return e.ov==='fair'; }).length;
+    var poor = eqs.filter(function(e){ return e.ov==='poor'; }).length;
+    var eqSaves = eqs.map(function(eq) {
+      return ntdStore.equipment.upsert({
+        facility_id: facilityId, tag: eq.tag||'', type: eq.type||'',
+        condition: eq.ov||'', install_year: eq.yr||'', notes: eq.notes||''
+      });
+    });
+    var assessSave = ntdStore.jobs.upsert({
+      facility_id: facilityId, type: 'asset_survey',
+      name: 'Asset Assessment — ' + (gv('sf')||''),
+      date: gv('sd'), tech: gv('stch'), status: 'complete',
+      notes: gv('esnotes'),
+      units: eqs.map(function(eq){ return {tag:eq.tag,type:eq.type,condition:eq.ov}; })
+    });
+    Promise.all(eqSaves.concat([assessSave]))
+      .then(function(){ console.log('[NTD] Assessment auto-saved to store'); })
+      .catch(function(e){ console.warn('[NTD] Auto-save failed:', e.message); });
+  });
+}
+
+function ntdAutoSubmitPMQuote() {
+  if (typeof ntdStore === 'undefined' || !pmUnits.length) return;
+  ntdUpsertAssetFacility(function(facilityId) {
+    if (!facilityId) return;
+    var annualEl = document.getElementById('pm-annual');
+    var qtrEl    = document.getElementById('pm-qtr');
+    var moEl     = document.getElementById('pm-mo');
+    ntdStore.pm_quotes.upsert({
+      facility_id: facilityId, date: gv('sd'), frequency: pmFreq,
+      unit_count: pmUnits.length,
+      annual_total: annualEl ? annualEl.textContent : '',
+      quarterly_rate: qtrEl ? qtrEl.textContent : '',
+      monthly_rate: moEl ? moEl.textContent : '',
+      plans: Object.keys(pmPlans).filter(function(k){ return pmPlans[k]; }),
+      units: pmUnits
+    }).then(function(){ console.log('[NTD] PM Quote auto-saved to store'); })
+      .catch(function(e){ console.warn('[NTD] PM Quote auto-save failed:', e.message); });
+  });
+}
+
+function ntdAutoSubmitServiceQuote() {
+  if (typeof ntdStore === 'undefined' || !sqItems.length) return;
+  ntdUpsertAssetFacility(function(facilityId) {
+    if (!facilityId) return;
+    var grandEl = document.getElementById('sq-tot-grand');
+    var baseEl  = document.getElementById('sq-tot-base');
+    var taxEl   = document.getElementById('sq-tot-tax');
+    ntdStore.service_quotes.upsert({
+      facility_id: facilityId, date: gv('sd'), job_type_id: sqSelectedJT,
+      items: sqItems,
+      base_total:  baseEl  ? baseEl.textContent  : '',
+      tax_total:   taxEl   ? taxEl.textContent   : '',
+      grand_total: grandEl ? grandEl.textContent : '',
+      notes: gv('sn')
+    }).then(function(){ console.log('[NTD] Service Quote auto-saved to store'); })
+      .catch(function(e){ console.warn('[NTD] Service Quote auto-save failed:', e.message); });
+  });
+}
+// ── END AUTO-SUBMIT ───────────────────────────────────────────────────────
 window.onload=function(){
   var t=new Date();
   document.getElementById('sd').value=String(t.getMonth()+1).padStart(2,'0')+'/'+String(t.getDate()).padStart(2,'0')+'/'+t.getFullYear();

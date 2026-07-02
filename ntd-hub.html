@@ -693,7 +693,7 @@ function renderDetailTab(f) {
         });
       });
 
-      // Equipment survey (grouped — one event per job type 'survey')
+      // Equipment survey jobs
       var surveyJobs = jobs.filter(function(j){ return j.type === 'survey'; });
       surveyJobs.forEach(function(j) {
         var unitCount = equip.filter(function(e){ return e.job_id === j.id; }).length || equip.length;
@@ -704,6 +704,21 @@ function renderDetailTab(f) {
           title: 'Equipment Survey',
           sub:   j.date || '',
           meta:  unitCount ? unitCount + ' units captured' : '',
+          date:  j.date || ''
+        });
+      });
+
+      // Asset assessment jobs
+      var assetJobs = jobs.filter(function(j){ return j.type === 'asset_survey'; });
+      assetJobs.forEach(function(j) {
+        var unitCount = j.units ? j.units.length : 0;
+        events.push({
+          ts:    j.ts || 0,
+          icon:  '📊',
+          color: 'or',
+          title: j.name || 'Asset Assessment',
+          sub:   [j.date, j.tech ? 'Tech: '+esc(j.tech) : ''].filter(Boolean).join(' · '),
+          meta:  unitCount ? unitCount + ' units assessed' : '',
           date:  j.date || ''
         });
       });
@@ -732,6 +747,12 @@ function renderDetailTab(f) {
 
       // Sort newest first
       events.sort(function(a,b){ return (b.ts||0) - (a.ts||0); });
+      window._ntdAllEvents = events; // Store for load more
+
+      // Pagination - show first 20, rest on demand
+      var PAGE_SIZE = 20;
+      var totalEvents = events.length;
+      var visibleEvents = events.slice(0, PAGE_SIZE);
 
       var html = '';
 
@@ -751,20 +772,37 @@ function renderDetailTab(f) {
         html += '</div>';
       }
 
-      html += '<div class="card"><div class="card-body">';
-      events.forEach(function(ev) {
-        html += '<div class="rec-row">' +
+      // Group visible events by date for dividers
+      var lastDateLabel = null;
+      var lastCardOpen = false;
+      var html2 = '';
+      visibleEvents.forEach(function(ev) {
+        var dateLabel = '';
+        if (ev.ts) { var d = new Date(ev.ts); dateLabel = (d.getMonth()+1)+'/'+d.getDate()+'/'+d.getFullYear(); }
+        else if (ev.date) { dateLabel = ev.date; }
+        if (dateLabel !== lastDateLabel) {
+          if (lastCardOpen) html2 += '</div></div>';
+          html2 += '<div style="display:flex;align-items:center;gap:8px;margin:10px 0 6px">' +
+            '<div style="flex:1;height:1px;background:var(--bd)"></div>' +
+            '<div style="font-size:10px;font-weight:700;color:var(--mu);white-space:nowrap;padding:0 4px">'+esc(dateLabel||'No date')+'</div>' +
+            '<div style="flex:1;height:1px;background:var(--bd)"></div>' +
+            '</div><div class="card"><div class="card-body">';
+          lastDateLabel = dateLabel;
+          lastCardOpen = true;
+        }
+        html2 += '<div class="rec-row">' +
           '<div class="rec-icon '+ev.color+'">'+ev.icon+'</div>' +
           '<div class="rec-body">' +
-            '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">' +
-              '<div class="rec-title">'+ev.title+'</div>' +
-              (ev.date ? '<div style="font-size:10px;color:var(--mu);white-space:nowrap;margin-top:2px">'+esc(ev.date)+'</div>' : '') +
-            '</div>' +
+            '<div class="rec-title">'+ev.title+'</div>' +
             (ev.sub  ? '<div class="rec-sub">'+ev.sub+'</div>' : '') +
             (ev.meta ? '<div class="rec-meta" '+(ev.meta_color?'style="color:'+ev.meta_color+'"':'')+'>'+ev.meta+'</div>' : '') +
           '</div></div>';
       });
-      html += '</div></div>';
+      if (lastCardOpen) html2 += '</div></div>';
+      if (totalEvents > PAGE_SIZE) {
+        html2 += '<button class="btn btn-outline" style="margin-top:8px" onclick="ntdLoadMoreTimeline()">↓ Load more ('+(totalEvents-PAGE_SIZE)+' older items)</button>';
+      }
+      html += html2;
       content.innerHTML = html;
     });
     return;
@@ -1599,6 +1637,48 @@ function statPill(num, label, color) {
   '</div>';
 }
 // ── END DASHBOARD ──────────────────────────────────────────────────────────
+
+function ntdLoadMoreTimeline() {
+  // Re-render timeline with all events visible
+  var btn = document.querySelector('.btn-outline[onclick*="ntdLoadMoreTimeline"]');
+  if (btn) btn.textContent = 'Loading...';
+  // Store full event list on window for access
+  if (window._ntdAllEvents) {
+    var allEvents = window._ntdAllEvents;
+    var content = document.getElementById('detail-content');
+    // Re-render with all events
+    var lastDateLabel = null;
+    var lastCardOpen = false;
+    var html = '';
+    // Keep follow-up card if present
+    var followupCard = document.querySelector('.followup-card');
+    if (followupCard) html = followupCard.outerHTML;
+    allEvents.forEach(function(ev) {
+      var dateLabel = '';
+      if (ev.ts) { var d = new Date(ev.ts); dateLabel = (d.getMonth()+1)+'/'+d.getDate()+'/'+d.getFullYear(); }
+      else if (ev.date) { dateLabel = ev.date; }
+      if (dateLabel !== lastDateLabel) {
+        if (lastCardOpen) html += '</div></div>';
+        html += '<div style="display:flex;align-items:center;gap:8px;margin:10px 0 6px">' +
+          '<div style="flex:1;height:1px;background:var(--bd)"></div>' +
+          '<div style="font-size:10px;font-weight:700;color:var(--mu);white-space:nowrap;padding:0 4px">'+esc(dateLabel||'No date')+'</div>' +
+          '<div style="flex:1;height:1px;background:var(--bd)"></div>' +
+          '</div><div class="card"><div class="card-body">';
+        lastDateLabel = dateLabel;
+        lastCardOpen = true;
+      }
+      html += '<div class="rec-row">' +
+        '<div class="rec-icon '+ev.color+'">'+ev.icon+'</div>' +
+        '<div class="rec-body">' +
+          '<div class="rec-title">'+ev.title+'</div>' +
+          (ev.sub  ? '<div class="rec-sub">'+ev.sub+'</div>' : '') +
+          (ev.meta ? '<div class="rec-meta" '+(ev.meta_color?'style="color:'+ev.meta_color+'"':'')+'>'+ev.meta+'</div>' : '') +
+        '</div></div>';
+    });
+    if (lastCardOpen) html += '</div></div>';
+    content.innerHTML = html;
+  }
+}
 // ── GLOBAL SEARCH ─────────────────────────────────────────────────────────
 var _searchTimer = null;
 

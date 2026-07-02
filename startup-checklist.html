@@ -1432,6 +1432,7 @@ function dlPDF(){
   var _blob=doc.output('blob');
   var _burl=URL.createObjectURL(_blob);
   ntdUploadPDF(_blob,'startup','Startup — '+(gv('unit_num')||'Unit')+' — '+(gv('facility')||''));
+  ntdAutoSubmitStartup(null);
   var _win=window.open(_burl,'_blank');
   if(!_win){
     // Fallback if popup blocked
@@ -2676,6 +2677,36 @@ function ntdUploadPDF(blob, formType, description, extraParams) {
   });
 }
 // ── END NTD PDF UPLOAD HELPER ─────────────────────────────────────────────
+
+// ── AUTO-SUBMIT ON PDF DOWNLOAD ───────────────────────────────────────────
+function ntdAutoSubmitStartup(snap) {
+  if (typeof ntdStore === 'undefined') return;
+  var facName = gv('facility') || gv('sf') || '';
+  if (!facName) return;
+  var facilityId = _ntdFacilityId || null;
+  var doSave = function(fid) {
+    if (!fid) return;
+    ntdStore.startup_records.upsert({
+      facility_id: fid,
+      job_id: _ntdJobId || null,
+      unit_num: snap ? (snap.fields && snap.fields.unit_num) || snap.label || '' : gv('unit_num') || '',
+      eq_type: snap ? snap.type || '' : '',
+      snapshot: snap || {},
+      notes: snap ? snap.notes || '' : gv('notes') || '',
+      followup: snap ? snap.followup || '' : gv('followup') || '',
+      sig_name: snap && snap.sig ? snap.sig.name || '' : gv('sig_name') || '',
+      sig_date: snap && snap.sig ? snap.sig.date || '' : gv('sig_date') || ''
+    }).then(function(){ console.log('[NTD] Startup auto-saved'); })
+      .catch(function(e){ console.warn('[NTD] Startup auto-save failed:', e.message); });
+  };
+  if (facilityId) { doSave(facilityId); return; }
+  ntdStore.facilities.list(function(f){
+    return (f.name||'').toLowerCase().trim() === facName.toLowerCase().trim();
+  }).then(function(matches) {
+    if (matches.length) doSave(matches[0].id);
+  }).catch(function(){});
+}
+// ── END AUTO-SUBMIT ───────────────────────────────────────────────────────
 </script>
 <script>
 if('serviceWorker' in navigator){

@@ -1069,6 +1069,7 @@ function dlEquip() {
     window.open(burl, '_blank');
     setTimeout(function(){URL.revokeObjectURL(burl);}, 60000);
     ntdUploadPDF(blob,'pm_checklist','PM Visit — '+(gv('sf')||'Site')+' — '+(gv('sv')||gv('sd')||''),{unitCount:eqs.length});
+    ntdAutoSubmitPMVisit();
   });
 }
 
@@ -1201,6 +1202,7 @@ function dlSummary() {
     window.open(burl, '_blank');
     setTimeout(function(){URL.revokeObjectURL(burl);}, 60000);
     ntdUploadPDF(blob,'pm_checklist','PM Visit — '+(gv('sf')||'Site')+' — '+(gv('sv')||gv('sd')||''),{unitCount:eqs.length});
+    ntdAutoSubmitPMVisit();
   });
 }
 
@@ -1229,6 +1231,40 @@ function ntdUploadPDF(blob, formType, description, extraParams) {
   });
 }
 // ── END NTD PDF UPLOAD HELPER ─────────────────────────────────────────────
+
+
+// ── AUTO-SUBMIT ON PDF DOWNLOAD ───────────────────────────────────────────
+function ntdAutoSubmitPMVisit() {
+  if (typeof ntdStore === 'undefined' || !eqs.length) return;
+  var facName = gv('sf') || '';
+  if (!facName) return;
+  ntdStore.facilities.list(function(f){
+    return (f.name||'').toLowerCase().trim() === facName.toLowerCase().trim();
+  }).then(function(matches) {
+    var facilityId = matches.length ? matches[0].id : null;
+    if (!facilityId) {
+      // Create facility if not found
+      return ntdStore.facilities.upsert({ name: facName, address: gv('sa')||'', pm_contract: true })
+        .then(function(fac){ return fac.id; });
+    }
+    return facilityId;
+  }).then(function(facilityId) {
+    if (!facilityId) return;
+    var good = eqs.filter(function(e){ return e.ov==='good'; }).length;
+    var fair = eqs.filter(function(e){ return e.ov==='fair'; }).length;
+    var poor = eqs.filter(function(e){ return e.ov==='poor'; }).length;
+    return ntdStore.pm_records.upsert({
+      facility_id: facilityId,
+      date: gv('sd'), tech: gv('stch'),
+      visit_label: gv('sv') || 'PM Visit',
+      unit_count: eqs.length,
+      good_count: good, fair_count: fair, poor_count: poor,
+      units: eqs.map(function(e){ return {tag:e.tag,type:e.type,condition:e.ov,notes:e.notes}; })
+    });
+  }).then(function(){ console.log('[NTD] PM visit auto-saved'); })
+    .catch(function(e){ console.warn('[NTD] PM visit auto-save failed:', e.message); });
+}
+// ── END AUTO-SUBMIT ───────────────────────────────────────────────────────
 
 // ─── INIT ─────────────────────────────────────────────────────────
 initPiping();
