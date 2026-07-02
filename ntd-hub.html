@@ -404,7 +404,7 @@ function goPage(page) {
   var hdrBtn = document.getElementById('hdr-action-btn');
   if (page === 'dashboard') {
     hdrBtn.style.display = 'none';
-    renderDashboard();
+    renderDashboard(); // Always refresh on navigate
   } else if (page === 'facilities') {
     hdrBtn.textContent = '+ Facility';
     hdrBtn.style.display = 'block';
@@ -436,7 +436,7 @@ function hdrAction() {
     document.getElementById('pg-detail').classList.remove('on');
     var returnPage = currentPage === 'detail' ? 'dashboard' : currentPage;
     currentPage = returnPage;
-    goPage(returnPage);
+    goPage(returnPage); // goPage calls renderDashboard which auto-refreshes
     return;
   }
   if (currentPage === 'facilities') openAddFacility();
