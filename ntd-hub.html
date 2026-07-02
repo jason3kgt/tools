@@ -577,8 +577,8 @@ function renderPinnedNote(f) {
       '<div class="pinned-note-text">' + esc(f.pinned_note) + '</div>' +
       '<button class="pinned-note-btn" onclick="unpinNote()">✕ Unpin</button>' +
     '</div>';
-  var content = document.getElementById('detail-content');
-  if (content) content.parentNode.insertBefore(wrap, content);
+  var detailEl = document.getElementById('detail-content');
+  if (detailEl) detailEl.parentNode.insertBefore(wrap, detailEl);
 }
 
 function unpinNote() {
@@ -711,11 +711,6 @@ function renderDetailTab(f) {
       // Collect open follow-ups
       var openFollowups = startups.filter(function(r){ return r.facility_id === fid && r.followup && r.followup.trim(); });
 
-      if (!events.length && !openFollowups.length) {
-        content.innerHTML = emptyState('📅','No activity yet','Activity from all NTD tools will appear here as data is submitted for this facility.');
-        return;
-      }
-
       // Document / PDF events
       var formLabels = {asset_survey:'Asset Survey',pm_checklist:'PM Visit Report',pm_proposal:'PM Proposal',service_quote:'Service Quote',startup:'Startup Checklist',equipment_survey:'Equipment Survey'};
       docs.forEach(function(d) {
@@ -729,6 +724,11 @@ function renderDetailTab(f) {
           date:  d.date || ''
         });
       });
+
+      if (!events.length && !openFollowups.length) {
+        content.innerHTML = emptyState('📅','No activity yet','Activity from all NTD tools will appear here as data is submitted for this facility.');
+        return;
+      }
 
       // Sort newest first
       events.sort(function(a,b){ return (b.ts||0) - (a.ts||0); });

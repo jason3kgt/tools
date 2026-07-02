@@ -1,4 +1,4 @@
-var CACHE='ntd-tools-v35';
+var CACHE='ntd-tools-v36';
 var ASSETS=[
   './',
   './index.html',
