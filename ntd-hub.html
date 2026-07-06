@@ -205,18 +205,23 @@ body.tv-mode .hdr-btn{display:none !important}
 body.tv-mode .pg{max-width:1400px;padding:28px}
 body.tv-mode #pg-calendar{display:block !important}
 body.tv-mode .cal-week-nav,body.tv-mode .cal-week-nav + .btn-outline{display:none}
-body.tv-mode #cal-week-wrap{display:grid;grid-template-columns:repeat(7,1fr);gap:14px}
+body.tv-mode #cal-week-wrap{min-width:1100px}
+body.tv-mode .pg{overflow-x:auto}
+.cal-week-row{display:block}
+body.tv-mode .cal-week-row{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:10px}
 body.tv-mode .cal-day-card{margin-bottom:0}
-body.tv-mode .cal-day-hdr{padding:12px 14px}
-body.tv-mode .cal-day-name{font-size:15px}
-body.tv-mode .cal-day-date{font-size:12px}
-body.tv-mode .cal-day-body{padding:12px 14px 14px}
-body.tv-mode .cal-section-lbl{font-size:10.5px}
-body.tv-mode .status-chip{font-size:12px;padding:5px 10px}
-body.tv-mode .cal-job-text{font-size:12.5px}
-body.tv-mode .cal-empty-day{font-size:11.5px}
-@media (max-width:1300px){ body.tv-mode #cal-week-wrap{grid-template-columns:repeat(4,1fr)} }
-@media (max-width:800px){ body.tv-mode #cal-week-wrap{grid-template-columns:repeat(2,1fr)} }
+body.tv-mode .cal-day-hdr{padding:10px 12px}
+body.tv-mode .cal-day-name{font-size:13.5px}
+body.tv-mode .cal-day-date{font-size:11px}
+body.tv-mode .cal-day-body{padding:10px 12px 12px}
+body.tv-mode .cal-section-lbl{font-size:9.5px}
+body.tv-mode .status-chip{font-size:11px;padding:4px 9px}
+body.tv-mode .cal-job-text{font-size:11.5px}
+body.tv-mode .cal-empty-day{font-size:10.5px}
+body.tv-mode .cal-day-slim{display:flex;align-items:center;justify-content:center;overflow:hidden}
+body.tv-mode .cal-day-slim .cal-day-hdr{background:none;border:none;padding:6px 2px;text-align:center;width:100%;display:block}
+body.tv-mode .cal-day-slim .cal-day-name{font-size:9.5px;white-space:nowrap}
+body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
 
 /* ── MISC ── */
 .divider{height:1px;background:var(--bd);margin:14px 0}
@@ -1948,10 +1953,13 @@ function matches(q) {
 // ── TV / BIG SCREEN MODE ──────────────────────────────────────────────────
 // Load with ?tv=1 in the URL on an office display to get a hands-off,
 // auto-refreshing, large-text view locked to the Team Calendar.
+var isTvMode = false;
+
 function initTvModeIfRequested() {
   var params = new URLSearchParams(window.location.search);
   if (params.get('tv') !== '1') return;
 
+  isTvMode = true;
   document.body.classList.add('tv-mode');
   document.getElementById('hdr-clock').style.display = 'block';
 
@@ -2069,14 +2077,24 @@ function renderCalendarWeek() {
   ntdStore.team_calendar.list().then(function(all) {
     var todayISO = fmtDateISO(new Date());
     var html = '';
-    days.forEach(function(d) {
+
+    function renderDayCard(d, slim) {
       var iso = fmtDateISO(d);
       var dayEntries = (all||[]).filter(function(e){ return e.date === iso; });
       var statusEntries = dayEntries.filter(function(e){ return e.entry_type==='pto'||e.entry_type==='sick'||e.entry_type==='ooo'; });
       var jobEntries = dayEntries.filter(function(e){ return e.entry_type==='job'||e.entry_type==='site_visit'||e.entry_type==='site_inspection'||e.entry_type==='job_walk'; });
       var isToday = iso === todayISO;
 
-      html += '<div class="cal-day-card">' +
+      if (slim) {
+        // Compact placeholder for an empty weekend day — keeps its column slot without wasting space
+        return '<div class="cal-day-card cal-day-slim">' +
+          '<div class="cal-day-hdr'+(isToday?' today':'')+'">' +
+            '<div class="cal-day-name">'+d.toLocaleDateString('en-US',{weekday:'short'})+'</div>' +
+            '<div class="cal-day-date">'+d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+'</div>' +
+          '</div></div>';
+      }
+
+      var out = '<div class="cal-day-card">' +
         '<div class="cal-day-hdr'+(isToday?' today':'')+'">' +
           '<div><div class="cal-day-name">'+d.toLocaleDateString('en-US',{weekday:'long'})+(isToday?' · Today':'')+'</div>' +
           '<div class="cal-day-date">'+d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+'</div></div>' +
@@ -2084,16 +2102,16 @@ function renderCalendarWeek() {
         '<div class="cal-day-body">';
 
       if (statusEntries.length) {
-        html += '<div class="cal-section-lbl">Out Today</div><div class="chip-row">';
+        out += '<div class="cal-section-lbl">Out Today</div><div class="chip-row">';
         statusEntries.forEach(function(e) {
-          html += '<span class="status-chip '+e.entry_type+'" onclick="openEditCalEntry(\''+e.id+'\')">'+
+          out += '<span class="status-chip '+e.entry_type+'" onclick="openEditCalEntry(\''+e.id+'\')">'+
             (e.entry_type==='pto'?'🏖️':e.entry_type==='sick'?'🤒':'🚫')+' '+esc(e.title)+'</span>';
         });
-        html += '</div>';
+        out += '</div>';
       }
 
       if (jobEntries.length) {
-        html += '<div class="cal-section-lbl">Jobs Today</div>';
+        out += '<div class="cal-section-lbl">Jobs Today</div>';
         var jobTypeMeta = {
           job:            {icon:'🔧', label:''},
           site_visit:     {icon:'📍', label:'Site Visit — '},
@@ -2102,7 +2120,7 @@ function renderCalendarWeek() {
         };
         jobEntries.forEach(function(e) {
           var meta = jobTypeMeta[e.entry_type] || jobTypeMeta.job;
-          html += '<div class="cal-job-row" onclick="openEditCalEntry(\''+e.id+'\')">' +
+          out += '<div class="cal-job-row" onclick="openEditCalEntry(\''+e.id+'\')">' +
             '<div class="cal-job-dot"></div>' +
             '<div class="cal-job-text">'+meta.icon+' <b>'+meta.label+esc(e.title)+'</b>'+(e.note?' <span>— '+esc(e.note)+'</span>':'')+'</div>' +
           '</div>';
@@ -2110,11 +2128,38 @@ function renderCalendarWeek() {
       }
 
       if (!statusEntries.length && !jobEntries.length) {
-        html += '<div class="cal-empty-day">Nothing logged</div>';
+        out += '<div class="cal-empty-day">Nothing logged</div>';
       }
 
-      html += '</div></div>';
-    });
+      out += '</div></div>';
+      return out;
+    }
+
+    // Group into weeks of 7 (Mon..Sun) so each week can size its own Sat/Sun columns
+    for (var w=0; w<days.length; w+=7) {
+      var weekDays = days.slice(w, w+7);
+      var satDay = weekDays[5], sunDay = weekDays[6];
+      var hasSat = satDay && (all||[]).some(function(e){ return e.date === fmtDateISO(satDay); });
+      var hasSun = sunDay && (all||[]).some(function(e){ return e.date === fmtDateISO(sunDay); });
+
+      var rowStyleAttr = '';
+      if (isTvMode) {
+        var satW = hasSat ? '1fr' : '0.4fr';
+        var sunW = hasSun ? '1fr' : '0.4fr';
+        rowStyleAttr = ' style="grid-template-columns:1fr 1fr 1fr 1fr 1fr '+satW+' '+sunW+'"';
+      }
+
+      html += '<div class="cal-week-row"'+rowStyleAttr+'>';
+      weekDays.forEach(function(d, idx) {
+        var isWeekend = (idx === 5 || idx === 6);
+        var iso = fmtDateISO(d);
+        var hasEntries = (all||[]).some(function(e){ return e.date === iso; });
+        var slim = isTvMode && isWeekend && !hasEntries;
+        html += renderDayCard(d, slim);
+      });
+      html += '</div>';
+    }
+
     wrap.innerHTML = html;
   }).catch(function(err) {
     wrap.innerHTML = emptyState('⚠️','Couldn\'t load calendar', esc(err.message||'Please try again.'));
