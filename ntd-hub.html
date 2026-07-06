@@ -193,6 +193,30 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .cal-suggest-item:last-child{border-bottom:none}
 .cal-suggest-item:active,.cal-suggest-item:hover{background:var(--of)}
 
+/* ── TV / BIG SCREEN MODE ── */
+.hdr-clock{font-size:20px;font-weight:800;color:#fff;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+body.tv-mode{padding-bottom:0}
+body.tv-mode .bnav{display:none !important}
+body.tv-mode .hdr{height:74px;padding:0 28px}
+body.tv-mode .hdr-title{font-size:24px}
+body.tv-mode .hdr-sub{font-size:13px}
+body.tv-mode .hdr-logo{width:48px;height:48px;font-size:24px;border-radius:11px}
+body.tv-mode .hdr-btn{display:none !important}
+body.tv-mode .pg{max-width:1400px;padding:28px}
+body.tv-mode #pg-calendar{display:block !important}
+body.tv-mode .cal-week-nav,body.tv-mode .cal-week-nav + .btn-outline{display:none}
+body.tv-mode #cal-week-wrap{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+body.tv-mode .cal-day-card{margin-bottom:0}
+body.tv-mode .cal-day-hdr{padding:14px 18px}
+body.tv-mode .cal-day-name{font-size:17px}
+body.tv-mode .cal-day-date{font-size:14px}
+body.tv-mode .cal-day-body{padding:14px 18px 16px}
+body.tv-mode .cal-section-lbl{font-size:12px}
+body.tv-mode .status-chip{font-size:14px;padding:7px 13px}
+body.tv-mode .cal-job-text{font-size:15px}
+body.tv-mode .cal-empty-day{font-size:13px}
+@media (max-width:1100px){ body.tv-mode #cal-week-wrap{grid-template-columns:repeat(2,1fr)} }
+
 /* ── MISC ── */
 .divider{height:1px;background:var(--bd);margin:14px 0}
 .section-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--mu);margin:16px 0 8px 2px}
@@ -219,6 +243,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
   </div>
   <button class="hdr-btn" id="hdr-action-btn" onclick="hdrAction()" style="display:none">+ Facility</button>
+  <div class="hdr-clock" id="hdr-clock" style="display:none"></div>
 </div>
 
 <!-- PAGES -->
@@ -1919,6 +1944,30 @@ function matches(q) {
   return fields.some(function(f){ return f && f.toString().toLowerCase().indexOf(q) > -1; });
 }
 // ── END GLOBAL SEARCH ──────────────────────────────────────────────────────
+// ── TV / BIG SCREEN MODE ──────────────────────────────────────────────────
+// Load with ?tv=1 in the URL on an office display to get a hands-off,
+// auto-refreshing, large-text view locked to the Team Calendar.
+function initTvModeIfRequested() {
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('tv') !== '1') return;
+
+  document.body.classList.add('tv-mode');
+  document.getElementById('hdr-clock').style.display = 'block';
+  goPage('calendar');
+
+  function tickClock() {
+    var now = new Date();
+    document.getElementById('hdr-clock').textContent =
+      now.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'}) + ' · ' +
+      now.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'});
+  }
+  tickClock();
+  setInterval(tickClock, 15000);
+
+  // Refresh the calendar data periodically so new entries show up unattended
+  setInterval(function() { renderCalendarWeek(); }, 90000);
+}
+
 // ── INIT ──────────────────────────────────────────────────────────────────
 // Delegated click handler for ntd-goto elements
 document.addEventListener('click', function(e) {
@@ -1944,6 +1993,7 @@ window.addEventListener('load', function() {
     return;
   }
   renderDashboard();
+  initTvModeIfRequested();
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').then(function(reg) {
       // If a new version is already waiting (e.g. tab was open during deploy), activate it now
