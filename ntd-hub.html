@@ -163,6 +163,30 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .modal-handle{width:40px;height:4px;background:var(--bd2);border-radius:2px;margin:0 auto 16px}
 .modal-title{font-size:17px;font-weight:700;color:var(--tx);margin-bottom:16px}
 
+/* ── TEAM CALENDAR ── */
+.cal-week-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:8px}
+.cal-week-nav .btn-sm{margin:0}
+.cal-week-label{font-size:13px;font-weight:700;color:var(--tx);text-align:center;flex:1}
+.cal-day-card{background:#fff;border-radius:14px;border:1px solid var(--bd);margin-bottom:10px;box-shadow:var(--card-shadow);overflow:hidden}
+.cal-day-hdr{padding:9px 14px;background:var(--of);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--bd)}
+.cal-day-hdr.today{background:#EEF3FB}
+.cal-day-name{font-size:12px;font-weight:800;color:var(--nv);text-transform:uppercase;letter-spacing:.04em}
+.cal-day-date{font-size:11px;color:var(--mu);margin-top:1px}
+.cal-day-body{padding:10px 14px 12px}
+.cal-empty-day{font-size:11px;color:var(--mu);padding:4px 0;font-style:italic}
+.cal-section-lbl{font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mu);margin:8px 0 5px}
+.cal-section-lbl:first-child{margin-top:0}
+.chip-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:2px}
+.status-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:5px 10px;border-radius:20px;cursor:pointer}
+.status-chip.pto{background:#E8F0FA;color:var(--nv)}
+.status-chip.sick{background:#FDEDEC;color:var(--rd)}
+.status-chip.ooo{background:#F0F0F0;color:var(--mu)}
+.cal-job-row{display:flex;align-items:flex-start;gap:8px;padding:6px 0;cursor:pointer}
+.cal-job-dot{width:7px;height:7px;border-radius:50%;background:var(--or);margin-top:6px;flex-shrink:0}
+.cal-job-text{flex:1;font-size:12.5px;line-height:1.5}
+.cal-job-text b{color:var(--tx)}
+.cal-job-text span{color:var(--mu)}
+
 /* ── MISC ── */
 .divider{height:1px;background:var(--bd);margin:14px 0}
 .section-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--mu);margin:16px 0 8px 2px}
@@ -237,6 +261,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
+<!-- ④ TEAM CALENDAR -->
+<div class="pg" id="pg-calendar">
+  <div class="cal-week-nav">
+    <button class="btn btn-outline btn-sm" onclick="calShiftWeek(-1)">◀ Prev</button>
+    <div class="cal-week-label" id="cal-week-label"></div>
+    <button class="btn btn-outline btn-sm" onclick="calShiftWeek(1)">Next ▶</button>
+  </div>
+  <button class="btn btn-outline btn-sm" style="width:100%;margin-bottom:14px" onclick="calGoToday()">Jump to This Week</button>
+  <div id="cal-week-wrap"></div>
+</div>
+
 <!-- ④ SETTINGS -->
 <div class="pg" id="pg-settings">
   <div class="section-label">Data</div>
@@ -279,6 +314,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </button>
   <button class="bnav-btn" id="bnav-search" onclick="goPage('search')">
     <span class="bi">🔍</span>Search
+  </button>
+  <button class="bnav-btn" id="bnav-calendar" onclick="goPage('calendar')">
+    <span class="bi">🗓️</span>Team Cal
   </button>
   <button class="bnav-btn" id="bnav-settings" onclick="goPage('settings')">
     <span class="bi">⚙️</span>Settings
@@ -382,6 +420,36 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
+<!-- ADD TEAM CALENDAR ENTRY MODAL -->
+<div class="modal-overlay" id="cal-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="cal-modal-title">Add Calendar Entry</div>
+    <div class="fg">
+      <label>Type</label>
+      <select id="cm-type" onchange="calToggleFields()">
+        <option value="job">Job / Site Visit — techs at a job today</option>
+        <option value="pto">PTO</option>
+        <option value="sick">Sick</option>
+        <option value="ooo">Out of Office</option>
+      </select>
+    </div>
+    <div class="fg"><label>Date</label><input type="date" id="cm-date"></div>
+    <div class="fg" id="cm-title-fg">
+      <label id="cm-title-lbl">Facility / Job Site *</label>
+      <input type="text" id="cm-title" placeholder="e.g. ILS Gummies">
+    </div>
+    <div class="fg">
+      <label id="cm-note-lbl">Brief Description</label>
+      <textarea id="cm-note" placeholder="e.g. Two techs on-site for RTU replacement"></textarea>
+    </div>
+    <div class="fg"><label>Entered By</label><input type="text" id="cm-by" placeholder="Your name"></div>
+    <button class="btn btn-nv" onclick="saveCalEntry()">Save Entry</button>
+    <button class="btn btn-outline" onclick="closeModal('cal-modal')" style="margin-top:6px">Cancel</button>
+    <button class="btn btn-red" id="cm-delete-btn" style="display:none" onclick="deleteCalEntry()">Delete Entry</button>
+  </div>
+</div>
+
 <script>
 // ── STATE ──────────────────────────────────────────────────────────────────
 var currentPage = 'facilities';
@@ -416,6 +484,10 @@ function goPage(page) {
   } else if (page === 'search') {
     hdrBtn.style.display = 'none';
     setTimeout(function(){ var el = document.getElementById('global-search'); if(el) el.focus(); }, 100);
+  } else if (page === 'calendar') {
+    hdrBtn.textContent = '+ Entry';
+    hdrBtn.style.display = 'block';
+    renderCalendarWeek();
   } else if (page === 'settings') {
     hdrBtn.style.display = 'none';
     renderSettings();
@@ -441,6 +513,7 @@ function hdrAction() {
   }
   if (currentPage === 'facilities') openAddFacility();
   else if (currentPage === 'projects') openAddProject(null);
+  else if (currentPage === 'calendar') openAddCalEntry();
 }
 
 // ── FACILITY LIST ─────────────────────────────────────────────────────────
@@ -1865,6 +1938,174 @@ window.addEventListener('load', function() {
     navigator.serviceWorker.register('sw.js').catch(function(){});
   }
 });
+// ── TEAM CALENDAR ─────────────────────────────────────────────────────────
+var calWeekStart = startOfWeek(new Date());
+var editingCalId = null;
+
+function startOfWeek(d) {
+  var dt = new Date(d);
+  var day = dt.getDay(); // 0=Sun
+  var diff = day === 0 ? -6 : 1 - day; // week starts Monday
+  dt.setDate(dt.getDate() + diff);
+  dt.setHours(0,0,0,0);
+  return dt;
+}
+function fmtDateISO(d) {
+  var yr = d.getFullYear(), mo = ('0'+(d.getMonth()+1)).slice(-2), da = ('0'+d.getDate()).slice(-2);
+  return yr + '-' + mo + '-' + da;
+}
+function calShiftWeek(dir) {
+  calWeekStart.setDate(calWeekStart.getDate() + dir*7);
+  renderCalendarWeek();
+}
+function calGoToday() {
+  calWeekStart = startOfWeek(new Date());
+  renderCalendarWeek();
+}
+
+function renderCalendarWeek() {
+  var wrap = document.getElementById('cal-week-wrap');
+  var lbl = document.getElementById('cal-week-label');
+  var days = [];
+  for (var i=0;i<7;i++) {
+    var d = new Date(calWeekStart);
+    d.setDate(d.getDate()+i);
+    days.push(d);
+  }
+  lbl.textContent = days[0].toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' – ' +
+                     days[6].toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+
+  wrap.innerHTML = '<div style="text-align:center;padding:24px;color:var(--mu);font-size:13px">Loading…</div>';
+
+  ntdStore.team_calendar.list().then(function(all) {
+    var todayISO = fmtDateISO(new Date());
+    var html = '';
+    days.forEach(function(d) {
+      var iso = fmtDateISO(d);
+      var dayEntries = (all||[]).filter(function(e){ return e.date === iso; });
+      var statusEntries = dayEntries.filter(function(e){ return e.entry_type==='pto'||e.entry_type==='sick'||e.entry_type==='ooo'; });
+      var jobEntries = dayEntries.filter(function(e){ return e.entry_type==='job'; });
+      var isToday = iso === todayISO;
+
+      html += '<div class="cal-day-card">' +
+        '<div class="cal-day-hdr'+(isToday?' today':'')+'">' +
+          '<div><div class="cal-day-name">'+d.toLocaleDateString('en-US',{weekday:'long'})+(isToday?' · Today':'')+'</div>' +
+          '<div class="cal-day-date">'+d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+'</div></div>' +
+        '</div>' +
+        '<div class="cal-day-body">';
+
+      if (statusEntries.length) {
+        html += '<div class="cal-section-lbl">Out Today</div><div class="chip-row">';
+        statusEntries.forEach(function(e) {
+          html += '<span class="status-chip '+e.entry_type+'" onclick="openEditCalEntry(\''+e.id+'\')">'+
+            (e.entry_type==='pto'?'🏖️':e.entry_type==='sick'?'🤒':'🚫')+' '+esc(e.title)+'</span>';
+        });
+        html += '</div>';
+      }
+
+      if (jobEntries.length) {
+        html += '<div class="cal-section-lbl">Jobs Today</div>';
+        jobEntries.forEach(function(e) {
+          html += '<div class="cal-job-row" onclick="openEditCalEntry(\''+e.id+'\')">' +
+            '<div class="cal-job-dot"></div>' +
+            '<div class="cal-job-text"><b>'+esc(e.title)+'</b>'+(e.note?' <span>— '+esc(e.note)+'</span>':'')+'</div>' +
+          '</div>';
+        });
+      }
+
+      if (!statusEntries.length && !jobEntries.length) {
+        html += '<div class="cal-empty-day">Nothing logged</div>';
+      }
+
+      html += '</div></div>';
+    });
+    wrap.innerHTML = html;
+  }).catch(function(err) {
+    wrap.innerHTML = emptyState('⚠️','Couldn\'t load calendar', esc(err.message||'Please try again.'));
+  });
+}
+
+function calToggleFields() {
+  var type = document.getElementById('cm-type').value;
+  var titleLbl = document.getElementById('cm-title-lbl');
+  var titleInput = document.getElementById('cm-title');
+  var noteLbl = document.getElementById('cm-note-lbl');
+  if (type === 'job') {
+    titleLbl.textContent = 'Facility / Job Site *';
+    titleInput.placeholder = 'e.g. ILS Gummies';
+    noteLbl.textContent = 'Brief Description';
+    document.getElementById('cm-note').placeholder = 'e.g. Two techs on-site for RTU replacement';
+  } else {
+    titleLbl.textContent = 'Name *';
+    titleInput.placeholder = 'e.g. Mike R.';
+    noteLbl.textContent = 'Note (optional)';
+    document.getElementById('cm-note').placeholder = 'e.g. Back Thursday';
+  }
+}
+
+function openAddCalEntry() {
+  editingCalId = null;
+  document.getElementById('cal-modal-title').textContent = 'Add Calendar Entry';
+  document.getElementById('cm-type').value = 'job';
+  document.getElementById('cm-date').value = fmtDateISO(new Date());
+  document.getElementById('cm-title').value = '';
+  document.getElementById('cm-note').value = '';
+  document.getElementById('cm-by').value = '';
+  document.getElementById('cm-delete-btn').style.display = 'none';
+  calToggleFields();
+  openModal('cal-modal');
+}
+
+function openEditCalEntry(id) {
+  ntdStore.team_calendar.get(id).then(function(e) {
+    if (!e) return;
+    editingCalId = id;
+    document.getElementById('cal-modal-title').textContent = 'Edit Calendar Entry';
+    document.getElementById('cm-type').value = e.entry_type || 'job';
+    document.getElementById('cm-date').value = e.date || fmtDateISO(new Date());
+    document.getElementById('cm-title').value = e.title || '';
+    document.getElementById('cm-note').value = e.note || '';
+    document.getElementById('cm-by').value = e.entered_by || '';
+    document.getElementById('cm-delete-btn').style.display = 'block';
+    calToggleFields();
+    openModal('cal-modal');
+  });
+}
+
+function saveCalEntry() {
+  var title = document.getElementById('cm-title').value.trim();
+  var date = document.getElementById('cm-date').value;
+  if (!title) { showToast('Please enter a name or facility'); return; }
+  if (!date) { showToast('Please pick a date'); return; }
+
+  var record = {
+    entry_type: document.getElementById('cm-type').value,
+    date: date,
+    title: title,
+    note: document.getElementById('cm-note').value.trim(),
+    entered_by: document.getElementById('cm-by').value.trim()
+  };
+  if (editingCalId) record.id = editingCalId;
+
+  ntdStore.team_calendar.upsert(record).then(function() {
+    closeModal('cal-modal');
+    showToast('Saved');
+    renderCalendarWeek();
+  }).catch(function(err) {
+    showToast('Error: ' + (err.message||'could not save'));
+  });
+}
+
+function deleteCalEntry() {
+  if (!editingCalId) return;
+  if (!confirm('Delete this entry?')) return;
+  ntdStore.team_calendar.delete(editingCalId).then(function() {
+    closeModal('cal-modal');
+    showToast('Deleted');
+    renderCalendarWeek();
+  });
+}
+
 </script>
 </body>
 </html>
