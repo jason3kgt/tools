@@ -1466,7 +1466,8 @@ function renderDashboard() {
     ntdStore.pm_records.list(),
     ntdStore.pm_quotes.list(),
     ntdStore.service_quotes.list(),
-    ntdStore.jobs.list()
+    ntdStore.jobs.list(),
+    ntdStore.documents ? ntdStore.documents.list() : Promise.resolve([])
   ]).then(function(results) {
     var facilities = results[0];
     var startups   = results[1];
@@ -1474,6 +1475,7 @@ function renderDashboard() {
     var pmQuotes   = results[3];
     var svcQuotes  = results[4];
     var jobs       = results[5];
+    var docs       = results[6] || [];
 
     // ── Metrics ──
     var openFollowups = startups.filter(function(r){ return r.followup && r.followup.trim(); });
@@ -1491,11 +1493,13 @@ function renderDashboard() {
 
     // Recent activity (all records sorted by ts, last 5)
     var allActivity = [];
-    startups.forEach(function(r){ allActivity.push({ts:r.ts||0, icon:'✅', label:'Startup — '+esc(r.unit_num||'Unit'), fid:r.facility_id}); });
-    pmRecs.forEach(function(r){ allActivity.push({ts:r.ts||0, icon:'📋', label:'PM Visit — '+esc(r.visit_label||'Visit'), fid:r.facility_id}); });
-    pmQuotes.forEach(function(r){ allActivity.push({ts:r.ts||0, icon:'📄', label:'PM Proposal — '+esc(r.frequency||'PM'), fid:r.facility_id}); });
-    svcQuotes.forEach(function(r){ allActivity.push({ts:r.ts||0, icon:'🔨', label:'Service Quote', fid:r.facility_id}); });
-    jobs.filter(function(j){return j.type==='project';}).forEach(function(p){ allActivity.push({ts:p.ts||0, icon:'📁', label:'Project — '+esc(p.name||'Project'), fid:p.facility_id}); });
+    startups.forEach(function(r){ allActivity.push({ts:r.ts||0, icon:'✅', label:'Startup — '+esc(r.unit_num||'Unit'), fid:r.facility_id, tab:'startups'}); });
+    pmRecs.forEach(function(r){ allActivity.push({ts:r.ts||0, icon:'📋', label:'PM Visit — '+esc(r.visit_label||'Visit'), fid:r.facility_id, tab:'pm'}); });
+    pmQuotes.forEach(function(r){ allActivity.push({ts:r.ts||0, icon:'📄', label:'PM Proposal — '+esc(r.frequency||'PM'), fid:r.facility_id, tab:'quotes'}); });
+    svcQuotes.forEach(function(r){ allActivity.push({ts:r.ts||0, icon:'🔨', label:'Service Quote', fid:r.facility_id, tab:'quotes'}); });
+    jobs.filter(function(j){return j.type==='project';}).forEach(function(p){ allActivity.push({ts:p.ts||0, icon:'📁', label:'Project — '+esc(p.name||'Project'), fid:p.facility_id, tab:'projects'}); });
+    jobs.filter(function(j){return j.type==='asset_survey';}).forEach(function(j){ allActivity.push({ts:j.ts||0, icon:'📊', label:'Asset Survey — '+esc((j.name||'').replace('Asset Assessment — ','')), fid:j.facility_id, tab:'timeline'}); });
+    // Documents intentionally excluded from dashboard — they appear in facility Timeline only
     allActivity.sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
     var recentActivity = allActivity.slice(0, 6);
 
@@ -1610,7 +1614,7 @@ function renderDashboard() {
       recentActivity.forEach(function(ev) {
         var d = ev.ts ? new Date(ev.ts) : null;
         var dateStr = d ? (d.getMonth()+1)+'/'+(d.getDate())+'/'+d.getFullYear() : '';
-        html += '<div class="rec-row ntd-goto" data-fid="'+ev.fid+'" style="cursor:pointer">'+
+        html += '<div class="rec-row ntd-goto" data-fid="'+ev.fid+'"'+(ev.tab?' data-tab="'+ev.tab+'"':'')+' style="cursor:pointer">'+
           '<div style="font-size:22px;width:36px;text-align:center;flex-shrink:0">'+ev.icon+'</div>' +
           '<div class="rec-body">' +
             '<div class="rec-title" style="font-size:13px">'+ev.label+'</div>' +
