@@ -187,6 +187,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .cal-job-text b{color:var(--tx)}
 .cal-job-text span{color:var(--mu)}
 
+.cal-suggest{display:none;position:absolute;left:0;right:0;top:100%;background:#fff;border:1.5px solid var(--bd);border-top:none;border-radius:0 0 10px 10px;max-height:180px;overflow-y:auto;z-index:50;box-shadow:0 8px 16px rgba(0,0,0,.12)}
+.cal-suggest.on{display:block}
+.cal-suggest-item{padding:9px 12px;font-size:13px;color:var(--tx);cursor:pointer;border-bottom:1px solid var(--of)}
+.cal-suggest-item:last-child{border-bottom:none}
+.cal-suggest-item:active,.cal-suggest-item:hover{background:var(--of)}
+
 /* ── MISC ── */
 .divider{height:1px;background:var(--bd);margin:14px 0}
 .section-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--mu);margin:16px 0 8px 2px}
@@ -438,9 +444,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </select>
     </div>
     <div class="fg"><label>Date</label><input type="date" id="cm-date"></div>
-    <div class="fg" id="cm-title-fg">
+    <div class="fg" id="cm-title-fg" style="position:relative">
       <label id="cm-title-lbl">Facility / Job Site *</label>
-      <input type="text" id="cm-title" placeholder="e.g. ILS Gummies">
+      <input type="text" id="cm-title" placeholder="e.g. ILS Gummies" autocomplete="off" oninput="calFilterFacilities()" onfocus="calFilterFacilities()">
+      <div id="cm-title-suggest" class="cal-suggest"></div>
     </div>
     <div class="fg">
       <label id="cm-note-lbl">Brief Description</label>
@@ -2073,10 +2080,53 @@ function calToggleFields() {
     noteLbl.textContent = 'Note (optional)';
     document.getElementById('cm-note').placeholder = 'e.g. Back Thursday';
   }
+  if (!jobTypes[type]) document.getElementById('cm-title-suggest').classList.remove('on');
 }
+
+var calFacilitiesCache = null;
+function calLoadFacilitiesCache() {
+  if (calFacilitiesCache) return Promise.resolve(calFacilitiesCache);
+  return ntdStore.facilities.list().then(function(rows) {
+    calFacilitiesCache = rows || [];
+    return calFacilitiesCache;
+  }).catch(function(){ calFacilitiesCache = []; return calFacilitiesCache; });
+}
+
+function calFilterFacilities() {
+  var box = document.getElementById('cm-title-suggest');
+  var jobTypes = {job:1, site_visit:1, site_inspection:1, job_walk:1};
+  var type = document.getElementById('cm-type').value;
+  if (!jobTypes[type]) { box.classList.remove('on'); return; }
+
+  var q = (document.getElementById('cm-title').value || '').trim().toLowerCase();
+  calLoadFacilitiesCache().then(function(facilities) {
+    var matches = !q ? facilities.slice(0, 6) :
+      facilities.filter(function(f){ return (f.name||'').toLowerCase().indexOf(q) > -1; }).slice(0, 6);
+    if (!matches.length) { box.classList.remove('on'); return; }
+    box.innerHTML = matches.map(function(f) {
+      return '<div class="cal-suggest-item" onmousedown="event.preventDefault();calPickFacility(\''+esc(f.name).replace(/'/g,"\\'")+'\')">'+esc(f.name)+'</div>';
+    }).join('');
+    box.classList.add('on');
+  });
+}
+
+function calPickFacility(name) {
+  document.getElementById('cm-title').value = name;
+  document.getElementById('cm-title-suggest').classList.remove('on');
+}
+
+// Hide suggestions when tapping elsewhere
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('#cm-title-fg')) {
+    var box = document.getElementById('cm-title-suggest');
+    if (box) box.classList.remove('on');
+  }
+});
 
 function openAddCalEntry() {
   editingCalId = null;
+  calFacilitiesCache = null;
+  document.getElementById('cm-title-suggest').classList.remove('on');
   document.getElementById('cal-modal-title').textContent = 'Add Calendar Entry';
   document.getElementById('cm-type').value = 'job';
   document.getElementById('cm-date').value = fmtDateISO(new Date());
@@ -2092,6 +2142,8 @@ function openEditCalEntry(id) {
   ntdStore.team_calendar.get(id).then(function(e) {
     if (!e) return;
     editingCalId = id;
+    calFacilitiesCache = null;
+    document.getElementById('cm-title-suggest').classList.remove('on');
     document.getElementById('cal-modal-title').textContent = 'Edit Calendar Entry';
     document.getElementById('cm-type').value = e.entry_type || 'job';
     document.getElementById('cm-date').value = e.date || fmtDateISO(new Date());
