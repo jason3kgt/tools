@@ -428,7 +428,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="fg">
       <label>Type</label>
       <select id="cm-type" onchange="calToggleFields()">
-        <option value="job">Job / Site Visit — techs at a job today</option>
+        <option value="job">Job — techs on-site today</option>
+        <option value="site_visit">Site Visit</option>
+        <option value="site_inspection">Site Inspection</option>
+        <option value="job_walk">Job Walk (Sales)</option>
         <option value="pto">PTO</option>
         <option value="sick">Sick</option>
         <option value="ooo">Out of Office</option>
@@ -1935,7 +1938,28 @@ window.addEventListener('load', function() {
   }
   renderDashboard();
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(function(){});
+    navigator.serviceWorker.register('sw.js').then(function(reg) {
+      // If a new version is already waiting (e.g. tab was open during deploy), activate it now
+      if (reg.waiting) reg.waiting.postMessage('skipWaiting');
+      reg.addEventListener('updatefound', function() {
+        var nw = reg.installing;
+        if (!nw) return;
+        nw.addEventListener('statechange', function() {
+          if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+            // New version finished installing — activate it immediately instead of waiting
+            nw.postMessage('skipWaiting');
+          }
+        });
+      });
+    }).catch(function(){});
+
+    // Once the new service worker takes control, reload once to pick up the new files
+    var swRefreshed = false;
+    navigator.serviceWorker.addEventListener('controllerchange', function() {
+      if (swRefreshed) return;
+      swRefreshed = true;
+      window.location.reload();
+    });
   }
 });
 // ── TEAM CALENDAR ─────────────────────────────────────────────────────────
@@ -1984,7 +2008,7 @@ function renderCalendarWeek() {
       var iso = fmtDateISO(d);
       var dayEntries = (all||[]).filter(function(e){ return e.date === iso; });
       var statusEntries = dayEntries.filter(function(e){ return e.entry_type==='pto'||e.entry_type==='sick'||e.entry_type==='ooo'; });
-      var jobEntries = dayEntries.filter(function(e){ return e.entry_type==='job'; });
+      var jobEntries = dayEntries.filter(function(e){ return e.entry_type==='job'||e.entry_type==='site_visit'||e.entry_type==='site_inspection'||e.entry_type==='job_walk'; });
       var isToday = iso === todayISO;
 
       html += '<div class="cal-day-card">' +
@@ -2005,10 +2029,17 @@ function renderCalendarWeek() {
 
       if (jobEntries.length) {
         html += '<div class="cal-section-lbl">Jobs Today</div>';
+        var jobTypeMeta = {
+          job:            {icon:'🔧', label:''},
+          site_visit:     {icon:'📍', label:'Site Visit — '},
+          site_inspection:{icon:'🔍', label:'Site Inspection — '},
+          job_walk:       {icon:'🤝', label:'Job Walk (Sales) — '}
+        };
         jobEntries.forEach(function(e) {
+          var meta = jobTypeMeta[e.entry_type] || jobTypeMeta.job;
           html += '<div class="cal-job-row" onclick="openEditCalEntry(\''+e.id+'\')">' +
             '<div class="cal-job-dot"></div>' +
-            '<div class="cal-job-text"><b>'+esc(e.title)+'</b>'+(e.note?' <span>— '+esc(e.note)+'</span>':'')+'</div>' +
+            '<div class="cal-job-text">'+meta.icon+' <b>'+meta.label+esc(e.title)+'</b>'+(e.note?' <span>— '+esc(e.note)+'</span>':'')+'</div>' +
           '</div>';
         });
       }
@@ -2030,7 +2061,8 @@ function calToggleFields() {
   var titleLbl = document.getElementById('cm-title-lbl');
   var titleInput = document.getElementById('cm-title');
   var noteLbl = document.getElementById('cm-note-lbl');
-  if (type === 'job') {
+  var jobTypes = {job:1, site_visit:1, site_inspection:1, job_walk:1};
+  if (jobTypes[type]) {
     titleLbl.textContent = 'Facility / Job Site *';
     titleInput.placeholder = 'e.g. ILS Gummies';
     noteLbl.textContent = 'Brief Description';
