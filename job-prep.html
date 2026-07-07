@@ -259,6 +259,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--st);back
   <button class="btn btn-gn" id="publish_btn" onclick="publishJob()">☁ Publish to GitHub</button>
 </div>
 
+<script src="ntdStore.js"></script>
 <script>
 // ─── CONFIG ───────────────────────────────────────────────
 var GITHUB_OWNER = 'jason3kgt';
@@ -562,6 +563,7 @@ function publishJob(){
     if(res && (res.status === 200 || res.status === 201)){
       showJobsBanner('ok', '✓ Published! "' + obj.job_name + '" is live with ' + obj.units.length + ' units.');
       loadPublishedJobs();
+      ntdPublishToSupabase(obj); // Also write to Supabase
     } else {
       res.json().then(function(d){
         showJobsBanner('err', '✗ GitHub error: ' + (d.message || res.status) + '. Check your token permissions.');
@@ -705,6 +707,59 @@ function loadExample(){
 // ─── HELPERS ──────────────────────────────────────────────
 function show(id){ document.getElementById(id).classList.remove('hidden'); }
 function hide(id){ document.getElementById(id).classList.add('hidden'); }
+// ── SUPABASE PUBLISH ─────────────────────────────────────────────────────
+function ntdPublishToSupabase(obj) {
+  if (typeof ntdStore === 'undefined') return;
+  var facName = (obj.job_name || '').trim();
+  if (!facName) return;
+
+  // Find or create facility
+  ntdStore.facilities.list(function(f){
+    return (f.name||'').toLowerCase().trim() === facName.toLowerCase().trim();
+  }).then(function(matches) {
+    var facData = {
+      name: facName,
+      address: obj.address || '',
+      notes: 'Published via Job Prep on ' + (obj.published || new Date().toISOString().split('T')[0])
+    };
+    if (matches.length) facData.id = matches[0].id;
+    return ntdStore.facilities.upsert(facData);
+  }).then(function(fac) {
+    // Create a job record
+    return ntdStore.jobs.upsert({
+      facility_id:    fac.id,
+      type:           'startup_job',
+      name:           obj.job_name || '',
+      project_number: obj.project_number || '',
+      address:        obj.address || '',
+      status:         'pending',
+      date:           obj.published || '',
+      equipment_type: obj.equipment_type || '',
+      manufacturer:   obj.manufacturer || '',
+      units:          obj.units || []
+    }).then(function(job) {
+      console.log('[NTD] Job published to Supabase:', fac.name, '|', obj.units.length, 'units');
+      // Save each unit as equipment record
+      var saves = (obj.units || []).map(function(u) {
+        return ntdStore.equipment.upsert({
+          facility_id: fac.id,
+          job_id:      job.id,
+          tag:         u.tag || '',
+          type:        u.type || obj.equipment_type || '',
+          model:       u.model || '',
+          notes:       'From Job Prep — ' + (obj.published || '')
+        });
+      });
+      return Promise.all(saves);
+    });
+  }).then(function() {
+    console.log('[NTD] Facility + units saved to Supabase from Job Prep');
+  }).catch(function(e) {
+    console.warn('[NTD] Supabase publish failed (non-critical):', e.message);
+  });
+}
+// ── END SUPABASE PUBLISH ──────────────────────────────────────────────────
+
 </script>
 </body>
 </html>
