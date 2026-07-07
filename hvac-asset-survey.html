@@ -1002,7 +1002,7 @@ function dlSummary(){
   pdfFooter(doc);
   var blob=doc.output('blob');var url=URL.createObjectURL(blob);
   window.open(url,'_blank');setTimeout(function(){URL.revokeObjectURL(url);},60000);
-  ntdUploadPDF(blob,'asset_survey','Asset Survey — '+(gv('sf')||'Site')+' — Executive Summary',{unitCount:eqs.length});
+  ntdUploadPDFWithFeedback(blob,'asset_survey','Asset Survey — '+(gv('sf')||'Site')+' — Executive Summary',{unitCount:eqs.length},_ntdAssetFacilityId||null);
   ntdAutoSubmitAssessment();
 }
 
@@ -1085,7 +1085,7 @@ function dlForecast(){
   pdfFooter(doc);
   var blob=doc.output('blob');var url=URL.createObjectURL(blob);
   window.open(url,'_blank');setTimeout(function(){URL.revokeObjectURL(url);},60000);
-  ntdUploadPDF(blob,'asset_survey','Asset Survey — '+(gv('sf')||'Site')+' — Capital Forecast',{unitCount:eqs.length});
+  ntdUploadPDFWithFeedback(blob,'asset_survey','Asset Survey — '+(gv('sf')||'Site')+' — Capital Forecast',{unitCount:eqs.length},_ntdAssetFacilityId||null);
 }
 
 // ── PM QUOTE ──────────────────────────────────────────────────
@@ -1580,7 +1580,7 @@ function pmGenPDF(){
 
   var blob=doc.output('blob');var url=URL.createObjectURL(blob);
   window.open(url,'_blank');setTimeout(function(){URL.revokeObjectURL(url);},60000);
-  ntdUploadPDF(blob,'pm_proposal','PM Proposal — '+(gv('sf')||'Site'),{unitCount:pmUnits.length});
+  ntdUploadPDFWithFeedback(blob,'pm_proposal','PM Proposal — '+(gv('sf')||'Site'),{unitCount:pmUnits.length},_ntdAssetFacilityId||null);
   ntdAutoSubmitPMQuote();
 }
 
@@ -1698,7 +1698,7 @@ function dlSiteRecord(){
   doc.text('NTD Mechanical  |  TACLA65973C  |  INTERNAL DOCUMENT \u2014 NOT FOR DISTRIBUTION',W/2,H-5,{align:'center'});
   var blob=doc.output('blob');var url=URL.createObjectURL(blob);
   window.open(url,'_blank');setTimeout(function(){URL.revokeObjectURL(url);},60000);
-  ntdUploadPDF(blob,'pm_proposal','PM Proposal — '+(gv('sf')||'Site')+' (Detail)',{unitCount:pmUnits.length});
+  ntdUploadPDFWithFeedback(blob,'pm_proposal','PM Proposal — '+(gv('sf')||'Site')+' (Detail)',{unitCount:pmUnits.length},_ntdAssetFacilityId||null);
 }
 
 
@@ -2082,7 +2082,7 @@ function sqGeneratePDF(){
   var blob=doc.output('blob');var url=URL.createObjectURL(blob);
   window.open(url,'_blank');
   setTimeout(function(){URL.revokeObjectURL(url);},60000);
-  ntdUploadPDF(blob,'service_quote','Service Quote — '+(gv('sf')||'Site'),{unitCount:sqItems.length});
+  ntdUploadPDFWithFeedback(blob,'service_quote','Service Quote — '+(gv('sf')||'Site'),{unitCount:sqItems.length},_ntdAssetFacilityId||null);
   ntdAutoSubmitServiceQuote();
 }
 
@@ -2178,6 +2178,57 @@ function ntdSubmitServiceQuote() {
 }
 
 // ── NTD PDF UPLOAD HELPER ─────────────────────────────────────────────────
+
+// ── NTD UPLOAD WITH FEEDBACK ──────────────────────────────────────────────
+function ntdShowToast(msg, color) {
+  var t = document.getElementById('ntd-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'ntd-toast';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;color:#fff;opacity:0;transition:all .3s;z-index:9999;white-space:nowrap;pointer-events:none;font-family:-apple-system,sans-serif';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.background = color || '#1A1A2E';
+  t.style.opacity = '1';
+  t.style.transform = 'translateX(-50%) translateY(0)';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function() {
+    t.style.opacity = '0';
+    t.style.transform = 'translateX(-50%) translateY(20px)';
+  }, 3000);
+}
+
+function ntdUploadPDFWithFeedback(blob, formType, description, extraParams, facilityId) {
+  if (typeof ntdStore === 'undefined' || !ntdStore.uploadPDF) return;
+  var doUpload = function(fid) {
+    if (!fid) { ntdShowToast('⚠ Not saved — no facility found', '#D4820A'); return; }
+    ntdStore.uploadPDF(Object.assign({
+      blob: blob,
+      facilityId: fid,
+      formType: formType,
+      description: description
+    }, extraParams || {})).then(function(doc) {
+      if (doc) {
+        console.log('[NTD] PDF uploaded:', doc.file_path);
+        ntdShowToast('✓ Saved to NTD Hub', '#1E7A3E');
+      }
+    }).catch(function(e) {
+      console.warn('[NTD] PDF upload failed:', e.message);
+      ntdShowToast('⚠ Not saved — tap download to retry', '#D4820A');
+    });
+  };
+  if (facilityId) { doUpload(facilityId); return; }
+  var facName = (typeof gv === 'function') ? (gv('sf')||gv('facility')||gv('j-cust')||'') : '';
+  if (!facName) { ntdShowToast('⚠ Enter customer name to save', '#D4820A'); return; }
+  ntdStore.facilities.list(function(f){
+    return (f.name||'').toLowerCase().trim() === facName.toLowerCase().trim();
+  }).then(function(matches) {
+    doUpload(matches.length ? matches[0].id : null);
+  }).catch(function(){ ntdShowToast('⚠ Not saved — check connection', '#D4820A'); });
+}
+// ── END NTD UPLOAD WITH FEEDBACK ─────────────────────────────────────────
+
 function ntdUploadPDF(blob, formType, description, extraParams) {
   if (typeof ntdStore === 'undefined' || !ntdStore.uploadPDF) return;
   var facName = gv('sf') || '';

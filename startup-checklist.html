@@ -2201,7 +2201,7 @@ function dlPDFFromSnap(snap){
   var fn='NTD_Startup_'+(EQ_TYPES[snap.type]||'').replace(/[^a-zA-Z0-9]/g,'_')+'_'+(sf('unit_num')||'unit')+'.pdf';
   var blob=doc.output('blob');
   var url=URL.createObjectURL(blob);
-  ntdUploadPDF(blob,'startup','Startup Preview — '+(gv('unit_num')||'Unit')+' — '+(gv('facility')||''));
+  ntdUploadPDFWithFeedback(blob,'startup','Startup Preview — '+(gv('unit_num')||'Unit')+' — '+(gv('facility')||''));
   var w=window.open(url,'_blank');
   if(!w){ alert('Allow popups to open PDFs.'); }
   setTimeout(function(){ URL.revokeObjectURL(url); },60000);
@@ -2653,6 +2653,57 @@ function ljApplyUnit(job, unit){
 
 
 // ── NTD PDF UPLOAD HELPER ─────────────────────────────────────────────────
+
+// ── NTD UPLOAD WITH FEEDBACK ──────────────────────────────────────────────
+function ntdShowToast(msg, color) {
+  var t = document.getElementById('ntd-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'ntd-toast';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;color:#fff;opacity:0;transition:all .3s;z-index:9999;white-space:nowrap;pointer-events:none;font-family:-apple-system,sans-serif';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.background = color || '#1A1A2E';
+  t.style.opacity = '1';
+  t.style.transform = 'translateX(-50%) translateY(0)';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function() {
+    t.style.opacity = '0';
+    t.style.transform = 'translateX(-50%) translateY(20px)';
+  }, 3000);
+}
+
+function ntdUploadPDFWithFeedback(blob, formType, description, extraParams, facilityId) {
+  if (typeof ntdStore === 'undefined' || !ntdStore.uploadPDF) return;
+  var doUpload = function(fid) {
+    if (!fid) { ntdShowToast('⚠ Not saved — no facility found', '#D4820A'); return; }
+    ntdStore.uploadPDF(Object.assign({
+      blob: blob,
+      facilityId: fid,
+      formType: formType,
+      description: description
+    }, extraParams || {})).then(function(doc) {
+      if (doc) {
+        console.log('[NTD] PDF uploaded:', doc.file_path);
+        ntdShowToast('✓ Saved to NTD Hub', '#1E7A3E');
+      }
+    }).catch(function(e) {
+      console.warn('[NTD] PDF upload failed:', e.message);
+      ntdShowToast('⚠ Not saved — tap download to retry', '#D4820A');
+    });
+  };
+  if (facilityId) { doUpload(facilityId); return; }
+  var facName = (typeof gv === 'function') ? (gv('sf')||gv('facility')||gv('j-cust')||'') : '';
+  if (!facName) { ntdShowToast('⚠ Enter customer name to save', '#D4820A'); return; }
+  ntdStore.facilities.list(function(f){
+    return (f.name||'').toLowerCase().trim() === facName.toLowerCase().trim();
+  }).then(function(matches) {
+    doUpload(matches.length ? matches[0].id : null);
+  }).catch(function(){ ntdShowToast('⚠ Not saved — check connection', '#D4820A'); });
+}
+// ── END NTD UPLOAD WITH FEEDBACK ─────────────────────────────────────────
+
 function ntdUploadPDF(blob, formType, description, extraParams) {
   if (typeof ntdStore === 'undefined' || !ntdStore.uploadPDF) return;
   var facName = gv('facility') || gv('sf') || '';
