@@ -118,6 +118,13 @@ textarea{resize:vertical;min-height:70px}
 /* Tunnel flag */
 .tunnel-flag{font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;background:var(--or);color:#fff;margin-left:4px}
 .annual-flag{font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;background:var(--gn);color:#fff;margin-left:4px}
+/* Piping */
+.pi{border:1.5px solid var(--bd);border-radius:12px;margin-bottom:10px;overflow:hidden}
+.ph{background:var(--of);padding:9px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--bd)}
+.pn{background:var(--st);color:#fff;font-size:10px;font-weight:700;width:19px;height:19px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pb{padding:10px 12px}
+.tab{background:none;border:none;font-family:inherit;outline:none;-webkit-appearance:none}
+
 /* Photos */
 .photo-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
 .photo-item{display:flex;flex-direction:column;border-radius:10px;overflow:hidden;border:1.5px solid var(--bd)}
@@ -127,12 +134,6 @@ textarea{resize:vertical;min-height:70px}
 .photo-caption{width:100%;padding:6px 8px;font-size:11px;border:none;border-top:1.5px solid var(--bd);font-family:inherit;color:var(--tx);background:#fff}
 .photo-caption:focus{outline:none;background:var(--of)}
 .photo-add-btn{display:block;width:100%;padding:11px;border-radius:10px;font-size:13px;font-weight:600;border:1.5px dashed var(--nv);background:#fff;color:var(--nv);text-align:center;cursor:pointer;touch-action:manipulation}
-/* Piping */
-.pi{border:1.5px solid var(--bd);border-radius:12px;margin-bottom:10px;overflow:hidden}
-.ph{background:var(--of);padding:9px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--bd)}
-.pn{background:var(--st);color:#fff;font-size:10px;font-weight:700;width:19px;height:19px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.pb{padding:10px 12px}
-.tab{background:none;border:none;font-family:inherit;outline:none;-webkit-appearance:none}
 </style>
 </head>
 <body>
@@ -205,17 +206,17 @@ textarea{resize:vertical;min-height:70px}
 <div class="card"><div class="ch"><span class="cn">!</span><h2>Findings &amp; Recommendations</h2></div><div class="cb">
   <div id="flags-area"><div class="empty">No poor-condition items flagged yet.</div></div>
 </div></div>
-<div class="card"><div class="ch"><span class="cn">&#128247;</span><h2>Site Photos</h2></div><div class="cb">
-  <p style="font-size:11px;color:var(--mu);margin-bottom:10px">General site photos (not tied to a specific unit) \u2014 access points, nameplates, panels, roof condition, etc. Per-unit photos live on each unit's Equipment tab.</p>
-  <div class="photo-grid" id="pg-site"></div>
-  <label class="photo-add-btn">&#128247; Add Site Photo<input type="file" accept="image/*" capture="environment" style="display:none" onchange="addSitePhoto(this)"></label>
-</div></div>
 <div class="card"><div class="ch"><span class="cn">5</span><h2>Overall Visit Notes</h2></div><div class="cb">
   <div class="fg"><label>General Site Conditions</label><textarea id="overall-notes" placeholder="Overall site condition, access issues, customer interactions, next visit prep..."></textarea></div>
   <div class="r2">
     <div class="fg"><label>Tech Signature</label><input type="text" id="tech-sig" placeholder="Tech name / sign-off"></div>
     <div class="fg"><label>Customer Sign-Off</label><input type="text" id="cust-sig" placeholder="Customer name"></div>
   </div>
+</div></div>
+<div class="card"><div class="ch"><span class="cn">&#128247;</span><h2>Site Photos</h2></div><div class="cb">
+  <p style="font-size:11px;color:var(--mu);margin-bottom:10px">General site photos (not tied to a specific unit) — access points, nameplates, panels, roof condition, etc.</p>
+  <div class="photo-grid" id="pg-site"></div>
+  <label class="photo-add-btn">&#128247; Add Site Photo<input type="file" accept="image/*" capture="environment" style="display:none" onchange="addSitePhoto(this)"></label>
 </div></div>
 <button class="dlb" onclick="dlSummary()" type="button">⬇ Download Visit Report PDF</button>
 </div>
@@ -236,6 +237,7 @@ textarea{resize:vertical;min-height:70px}
   </div>
 </div>
 
+<script src="ntdStore.js"></script>
 <script>
 // ─── LOGO (short version for speed — tools repo has full base64) ───
 var LG = '';
@@ -452,17 +454,35 @@ function calcVisit(contractStartISO) {
   var now = new Date();
   if (isNaN(start.getTime())) return null;
   var diffMs = now - start;
-  if (diffMs < 0) return { year: 1, quarter: 1, month: 1, label: 'Q1 — Year 1' };
-  var diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  var contractYear = Math.floor(diffDays / 365) + 1;
-  var dayInYear = diffDays % 365;
-  var quarter = Math.floor(dayInYear / 91.25) + 1;
-  if (quarter > 4) quarter = 4;
-  var month = Math.floor(diffDays / 30.44) + 1;
-  var monthInYear = ((month - 1) % 12) + 1;
   var mNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  var label = 'Q' + quarter + ' \u2014 Year ' + contractYear;
-  return { year: contractYear, quarter: quarter, month: month, monthInYear: monthInYear, monthName: mNames[monthInYear-1], label: label };
+  var calQ = Math.floor(now.getMonth() / 3) + 1;
+  var calY = now.getFullYear();
+  // If contract hasn't started yet, treat as first quarterly visit
+  if (diffMs < 0) {
+    var preLabel = 'Q' + calQ + ' ' + calY + ' (Pre-Start)';
+    return { year:1, quarter:calQ, isQuarterMonth:true, isAnnualMonth:true, totalMonths:0, label:preLabel };
+  }
+  // Total full months elapsed since contract start
+  var totalMonths = (now.getFullYear() - start.getFullYear()) * 12
+                  + (now.getMonth() - start.getMonth());
+  // Contract quarter tracking (for annual detection)
+  var contractQuarterNum = Math.floor(totalMonths / 3) + 1;
+  var contractYear = Math.floor((contractQuarterNum - 1) / 4) + 1;
+  var quarterInYear = ((contractQuarterNum - 1) % 4) + 1;
+  var isQuarterMonth = (totalMonths % 3 === 0);
+  var isAnnualMonth = (quarterInYear === 1 && isQuarterMonth);
+  // Label always uses calendar quarter/year
+  var label = isQuarterMonth
+    ? ('Q' + calQ + ' ' + calY)
+    : ('Monthly — ' + mNames[now.getMonth()] + ' ' + calY);
+  return {
+    year: contractYear,
+    quarter: calQ,
+    isQuarterMonth: isQuarterMonth,
+    isAnnualMonth: isAnnualMonth,
+    totalMonths: totalMonths,
+    label: label
+  };
 }
 
 // ─── NAVIGATION ───────────────────────────────────────────────────
@@ -581,22 +601,24 @@ function clearSite() {
 function renderVisitBanner(data, visit) {
   var el = document.getElementById('visit-banner-area');
   if (!el || !visit) return;
-  var quarterly = (data.equipment || []).filter(function(u) { return u.frequency === 'quarterly' || u.frequency === 'quarterly+annual'; });
-  var monthly = (data.equipment || []).filter(function(u) { return u.frequency === 'monthly'; });
-  var annual = (data.equipment || []).filter(function(u) { return u.frequency === 'annual'; });
-  // On monthly visits, quarterly units are NOT due unless it's also a quarter month
-  // Visit label shows what's actually due today
+  var all = data.equipment || [];
+  var monthly = all.filter(function(u){ return u.frequency === 'monthly'; });
+  var quarterly = visit.isQuarterMonth ? all.filter(function(u){ return u.frequency === 'quarterly'; }) : [];
+  var annual = visit.isAnnualMonth ? all.filter(function(u){ return u.frequency === 'annual'; }) : [];
+  var total = monthly.length + quarterly.length + annual.length;
   var html = '<div class="vbanner">';
-  html += '<div class="vb-title">Visit: ' + visit.label + '</div>';
-  html += '<div class="vb-sub">';
-  if (quarterly.length) html += quarterly.length + ' quarterly unit(s) due this visit. ';
-  if (monthly.length) html += monthly.length + ' monthly tunnel unit(s) due every visit. ';
-  if (annual.length) html += annual.length + ' annual inspection unit(s).';
-  html += '</div>';
+  html += '<div class="vb-title">&#128197; ' + visit.label + '</div>';
+  html += '<div class="vb-sub">' + total + ' unit(s) due this visit: ';
+  var parts = [];
+  if (monthly.length) parts.push(monthly.length + ' monthly tunnel');
+  if (quarterly.length) parts.push(quarterly.length + ' quarterly');
+  if (annual.length) parts.push(annual.length + ' annual inspection');
+  html += parts.join(', ') + '.</div>';
   html += '<div class="vb-tags">';
-  if (quarterly.length) html += '<span class="vb-tag">Q' + visit.quarter + ' Quarterly</span>';
   if (monthly.length) html += '<span class="vb-tag tunnel">Monthly Tunnel</span>';
-  if (annual.length) html += '<span class="vb-tag" style="background:var(--gn)">Annual</span>';
+  if (quarterly.length) html += '<span class="vb-tag">Q' + visit.quarter + ' Quarterly</span>';
+  if (annual.length) html += '<span class="vb-tag ann">Annual Inspection</span>';
+  if (!visit.isQuarterMonth) html += '<span class="vb-tag" style="background:var(--mu)">Quarterly units not due this month</span>';
   html += '</div></div>';
   el.innerHTML = html;
 }
@@ -605,17 +627,23 @@ function loadEquipmentFromProfile(data, visit) {
   eqs = [];
   eid = 1;
   var units = data.equipment || [];
-  var isMonthly = visit ? (visit.monthInYear % 3 !== 0) : false;
-  // Actually: all units load — quarterly ones just happen quarterly
-  // The banner tells the tech what's due; all are listed so nothing gets missed
   for (var i = 0; i < units.length; i++) {
     var u = units[i];
+    var freq = (u.frequency || 'quarterly').toLowerCase();
+    // Only load units due on this visit type
+    if (freq === 'monthly') {
+      // Always due — tunnel units every visit
+    } else if (freq === 'quarterly') {
+      if (!visit || !visit.isQuarterMonth) continue;
+    } else if (freq === 'annual') {
+      if (!visit || !visit.isAnnualMonth) continue;
+    }
     var serviceType = mapServiceType(u);
     eqs.push({
       id: eid++,
       tag: u.tag || '',
       type: u.type || 'RTU',
-      freq: u.frequency || 'quarterly',
+      freq: freq,
       tunnel: u.tunnel || false,
       filterQty: u.filter_qty || '',
       filterSize: u.filter_size || '',
@@ -847,85 +875,6 @@ function tacc(id, sec) {
   if (body) { var open = body.classList.toggle('on'); if(arrow) arrow.textContent = open?'v':''; }
 }
 
-// ─── PHOTOS (per-unit) ────────────────────────────────────────────
-function addUnitPhoto(uid, inp) {
-  var file = inp.files[0];
-  if (!file) return;
-  var eq = eqs.find(function(e) { return e.id === uid; });
-  if (!eq) return;
-  if (!eq.photos) eq.photos = [];
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    eq.photos.push({ data: e.target.result, caption: '' });
-    renderUnitPhotos(uid);
-    var btn = document.getElementById('ab-photos-'+uid);
-  };
-  reader.readAsDataURL(file);
-  inp.value = '';
-}
-function removeUnitPhoto(uid, idx) {
-  var eq = eqs.find(function(e) { return e.id === uid; });
-  if (!eq || !eq.photos) return;
-  eq.photos.splice(idx, 1);
-  renderUnitPhotos(uid);
-}
-function updateUnitPhotoCaption(uid, idx, val) {
-  var eq = eqs.find(function(e) { return e.id === uid; });
-  if (eq && eq.photos && eq.photos[idx]) eq.photos[idx].caption = val;
-}
-function renderUnitPhotos(uid) {
-  var grid = document.getElementById('pg-unit-'+uid);
-  if (!grid) return;
-  var eq = eqs.find(function(e) { return e.id === uid; });
-  var photos = (eq && eq.photos) || [];
-  grid.innerHTML = photos.map(function(p, i) {
-    return '<div class="photo-item"><div class="photo-thumb"><img src="'+p.data+'" alt="Photo '+(i+1)+'">'
-      + '<button class="photo-del" data-uid="'+uid+'" data-idx="'+i+'" onclick="removeUnitPhoto('+uid+','+i+')" type="button">&#x2715;</button></div>'
-      + '<input class="photo-caption" placeholder="Caption (optional)" value="'+(p.caption||'').replace(/"/g,'&quot;')+'" oninput="updateUnitPhotoCaption('+uid+','+i+',this.value)"></div>';
-  }).join('');
-  // Refresh count on accordion label
-  var er = document.getElementById('er-'+uid);
-  if (er) {
-    var btns = er.querySelectorAll('.ab');
-    for (var b = 0; b < btns.length; b++) {
-      if (btns[b].textContent.indexOf('Unit Photos') === 0) {
-        btns[b].childNodes[0].textContent = 'Unit Photos' + (photos.length ? ' (' + photos.length + ')' : '') + ' ';
-        break;
-      }
-    }
-  }
-}
-
-// ─── PHOTOS (general site) ────────────────────────────────────────
-var sitePhotos = [];
-function addSitePhoto(inp) {
-  var file = inp.files[0];
-  if (!file) return;
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    sitePhotos.push({ data: e.target.result, caption: '' });
-    renderSitePhotos();
-  };
-  reader.readAsDataURL(file);
-  inp.value = '';
-}
-function removeSitePhoto(idx) {
-  sitePhotos.splice(idx, 1);
-  renderSitePhotos();
-}
-function updateSitePhotoCaption(idx, val) {
-  if (sitePhotos[idx]) sitePhotos[idx].caption = val;
-}
-function renderSitePhotos() {
-  var grid = document.getElementById('pg-site');
-  if (!grid) return;
-  grid.innerHTML = sitePhotos.map(function(p, i) {
-    return '<div class="photo-item"><div class="photo-thumb"><img src="'+p.data+'" alt="Site Photo '+(i+1)+'">'
-      + '<button class="photo-del" onclick="removeSitePhoto('+i+')" type="button">&#x2715;</button></div>'
-      + '<input class="photo-caption" placeholder="Caption (optional)" value="'+(p.caption||'').replace(/"/g,'&quot;')+'" oninput="updateSitePhotoCaption('+i+',this.value)"></div>';
-  }).join('');
-}
-
 // ─── FIELD HELPERS ───────────────────────────────────────────────
 function sv(id, val) { var el = document.getElementById(id); if(el) el.value = val; }
 function gv(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
@@ -990,6 +939,114 @@ function updFlags() {
   el.innerHTML = h;
 }
 
+
+// ─── PHOTOS (per-unit) ──────────────────────────────────────────────────
+function addUnitPhoto(uid, inp) {
+  var file = inp.files[0];
+  if (!file) return;
+  var eq = eqs.find(function(e) { return e.id === uid; });
+  if (!eq) return;
+  if (!eq.photos) eq.photos = [];
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    eq.photos.push({ data: e.target.result, caption: '' });
+    renderUnitPhotos(uid);
+  };
+  reader.readAsDataURL(file);
+  inp.value = '';
+}
+function removeUnitPhoto(uid, idx) {
+  var eq = eqs.find(function(e) { return e.id === uid; });
+  if (!eq || !eq.photos) return;
+  eq.photos.splice(idx, 1);
+  renderUnitPhotos(uid);
+}
+function updateUnitPhotoCaption(uid, idx, val) {
+  var eq = eqs.find(function(e) { return e.id === uid; });
+  if (eq && eq.photos && eq.photos[idx]) eq.photos[idx].caption = val;
+}
+function renderUnitPhotos(uid) {
+  var grid = document.getElementById('pg-unit-'+uid);
+  if (!grid) return;
+  var eq = eqs.find(function(e) { return e.id === uid; });
+  var photos = (eq && eq.photos) || [];
+  grid.innerHTML = photos.map(function(p, i) {
+    return '<div class="photo-item"><div class="photo-thumb"><img src="'+p.data+'" alt="Photo '+(i+1)+'">'
+      + '<button class="photo-del" onclick="removeUnitPhoto('+uid+','+i+')" type="button">&#x2715;</button></div>'
+      + '<input class="photo-caption" placeholder="Caption (optional)" value="'+(p.caption||'').replace(/"/g,'&quot;')+'" oninput="updateUnitPhotoCaption('+uid+','+i+',this.value)"></div>';
+  }).join('');
+}
+
+// ─── PHOTOS (general site) ──────────────────────────────────────────────
+var sitePhotos = [];
+function addSitePhoto(inp) {
+  var file = inp.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    sitePhotos.push({ data: e.target.result, caption: '' });
+    renderSitePhotos();
+  };
+  reader.readAsDataURL(file);
+  inp.value = '';
+}
+function removeSitePhoto(idx) {
+  sitePhotos.splice(idx, 1);
+  renderSitePhotos();
+}
+function updateSitePhotoCaption(idx, val) {
+  if (sitePhotos[idx]) sitePhotos[idx].caption = val;
+}
+function renderSitePhotos() {
+  var grid = document.getElementById('pg-site');
+  if (!grid) return;
+  grid.innerHTML = sitePhotos.map(function(p, i) {
+    return '<div class="photo-item"><div class="photo-thumb"><img src="'+p.data+'" alt="Site Photo '+(i+1)+'">'
+      + '<button class="photo-del" onclick="removeSitePhoto('+i+')" type="button">&#x2715;</button></div>'
+      + '<input class="photo-caption" placeholder="Caption (optional)" value="'+(p.caption||'').replace(/"/g,'&quot;')+'" oninput="updateSitePhotoCaption('+i+',this.value)"></div>';
+  }).join('');
+}
+
+// Helper to add photo appendix to PDF
+function addPhotoAppendix(doc, photos, title) {
+  if (!photos || !photos.length) return;
+  var W = doc.internal.pageSize.getWidth();
+  var H = doc.internal.pageSize.getHeight();
+  var M = 14;
+  doc.addPage();
+  var y = 40;
+  function drawTitle(t) {
+    doc.setFillColor(27,58,107); doc.rect(M,y,W-2*M,20,'F');
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(10);
+    doc.text(t,M+6,y+14);
+    y += 30;
+  }
+  drawTitle(title);
+  var cols = 2, gap = 10;
+  var pw = (W - 2*M - gap) / cols;
+  var ph = pw * 0.75;
+  var col = 0;
+  for (var i=0; i<photos.length; i++) {
+    if (y + ph + 26 > H - 30) {
+      doc.addPage(); y = 40;
+      drawTitle(title + ' (continued)');
+      col = 0;
+    }
+    var px = M + col*(pw+gap);
+    try { doc.addImage(photos[i].data, px, y, pw, ph, '', 'FAST'); }
+    catch(e) {
+      doc.setFillColor(220,220,220); doc.rect(px,y,pw,ph,'F');
+      doc.setFont('helvetica','normal'); doc.setTextColor(120,120,120); doc.setFontSize(8);
+      doc.text('Photo could not render', px+pw/2, y+ph/2, {align:'center'});
+    }
+    doc.setFont('helvetica','normal'); doc.setTextColor(80,80,80); doc.setFontSize(7.5);
+    doc.text(photos[i].caption || ('Photo '+(i+1)), px+pw/2, y+ph+10, {align:'center', maxWidth:pw});
+    doc.setTextColor(0,0,0);
+    col++;
+    if (col >= cols) { col = 0; y += ph + 24; }
+  }
+}
+
 // ─── PIPING SECTION ───────────────────────────────────────────────
 var PIPING = ['Supply Piping','Return Piping','Condensate Lines','Chilled Water Piping','Hot Water Piping','Refrigerant Lines','Insulation Condition','Valves & Isolation'];
 function initPiping() {
@@ -1037,50 +1094,6 @@ function loadJsPDF(cb) {
     document.head.appendChild(s2);
   };
   document.head.appendChild(s);
-}
-
-// Draws a photo appendix (title + 2-col image grid w/ captions), adding pages as needed.
-// Always starts on a fresh page. Returns nothing.
-function addPhotoAppendix(doc, photos, title) {
-  if (!photos || !photos.length) return;
-  var W = doc.internal.pageSize.getWidth();
-  var H = doc.internal.pageSize.getHeight();
-  var M = 14;
-  doc.addPage();
-  var y = 40;
-  function drawTitle(t) {
-    doc.setFillColor(27,58,107); doc.rect(M,y,W-2*M,20,'F');
-    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(10);
-    doc.text(t,M+6,y+14);
-    y += 30;
-  }
-  drawTitle(title);
-  var cols = 2;
-  var gap = 10;
-  var pw = (W - 2*M - gap) / cols;
-  var ph = pw * 0.75;
-  var col = 0;
-  for (var i=0; i<photos.length; i++) {
-    if (y + ph + 26 > H - 30) {
-      doc.addPage();
-      y = 40;
-      drawTitle(title + ' (continued)');
-      col = 0;
-    }
-    var px = M + col*(pw+gap);
-    try {
-      doc.addImage(photos[i].data, px, y, pw, ph, '', 'FAST');
-    } catch(e) {
-      doc.setFillColor(220,220,220); doc.rect(px,y,pw,ph,'F');
-      doc.setFont('helvetica','normal'); doc.setTextColor(120,120,120); doc.setFontSize(8);
-      doc.text('Photo could not render', px+pw/2, y+ph/2, {align:'center'});
-    }
-    doc.setFont('helvetica','normal'); doc.setTextColor(80,80,80); doc.setFontSize(7.5);
-    doc.text(photos[i].caption || ('Photo '+(i+1)), px+pw/2, y+ph+10, {align:'center', maxWidth:pw});
-    doc.setTextColor(0,0,0);
-    col++;
-    if (col >= cols) { col = 0; y += ph + 24; }
-  }
 }
 
 function dlEquip() {
@@ -1185,16 +1198,21 @@ function dlEquip() {
         alternateRowStyles:{fillColor:[247,248,250]},
         didDrawPage: function() {}
       });
-
-      if (eq.photos && eq.photos.length) {
-        addPhotoAppendix(doc, eq.photos, 'Unit Photos \u2014 ' + (eq.tag || 'Unit '+(idx+1)));
-      }
     }
 
     var blob = doc.output('blob');
     var burl = URL.createObjectURL(blob);
+    // Photo appendices
+    if (typeof addPhotoAppendix === 'function') {
+      if (sitePhotos && sitePhotos.length) addPhotoAppendix(doc, sitePhotos, 'Site Photos');
+      for (var pu=0; pu<eqs.length; pu++) {
+        if (eqs[pu].photos && eqs[pu].photos.length) addPhotoAppendix(doc, eqs[pu].photos, 'Unit Photos — '+(eqs[pu].tag||'Unit '+(pu+1)));
+      }
+    }
     window.open(burl, '_blank');
     setTimeout(function(){URL.revokeObjectURL(burl);}, 60000);
+    ntdUploadPDF(blob,'pm_checklist','PM Visit — '+(gv('sf')||'Site')+' — '+(gv('sv')||gv('sd')||''),{unitCount:eqs.length});
+    ntdAutoSubmitPMVisit();
   });
 }
 
@@ -1322,23 +1340,81 @@ function dlSummary() {
     doc.setTextColor(255,255,255); doc.setFont('helvetica','normal'); doc.setFontSize(8);
     doc.text('NTD Mechanical  |  TACLA65973C  |  2477 Merritt Dr. Garland, TX 75041  |  (214) 785-2129  |  www.ntdmechanical.com',W/2,doc.internal.pageSize.getHeight()-8,{align:'center'});
 
-    // Site photo appendix
-    if (sitePhotos && sitePhotos.length) {
-      addPhotoAppendix(doc, sitePhotos, 'Site Photos');
-    }
-    // Per-unit photo appendices
-    for (var pu=0; pu<eqs.length; pu++) {
-      if (eqs[pu].photos && eqs[pu].photos.length) {
-        addPhotoAppendix(doc, eqs[pu].photos, 'Unit Photos \u2014 ' + (eqs[pu].tag || 'Unit '+(pu+1)));
-      }
-    }
-
     var blob = doc.output('blob');
     var burl = URL.createObjectURL(blob);
+    // Photo appendices
+    if (typeof addPhotoAppendix === 'function') {
+      if (sitePhotos && sitePhotos.length) addPhotoAppendix(doc, sitePhotos, 'Site Photos');
+      for (var pu=0; pu<eqs.length; pu++) {
+        if (eqs[pu].photos && eqs[pu].photos.length) addPhotoAppendix(doc, eqs[pu].photos, 'Unit Photos — '+(eqs[pu].tag||'Unit '+(pu+1)));
+      }
+    }
     window.open(burl, '_blank');
     setTimeout(function(){URL.revokeObjectURL(burl);}, 60000);
+    ntdUploadPDF(blob,'pm_checklist','PM Visit — '+(gv('sf')||'Site')+' — '+(gv('sv')||gv('sd')||''),{unitCount:eqs.length});
+    ntdAutoSubmitPMVisit();
   });
 }
+
+
+// ── NTD PDF UPLOAD HELPER ─────────────────────────────────────────────────
+function ntdUploadPDF(blob, formType, description, extraParams) {
+  if (typeof ntdStore === 'undefined' || !ntdStore.uploadPDF) return;
+  var facName = gv('sf') || '';
+  if (!facName) return;
+  ntdStore.facilities.list(function(f){
+    return (f.name||'').toLowerCase().trim() === facName.toLowerCase().trim();
+  }).then(function(matches) {
+    if (!matches.length) return;
+    return ntdStore.uploadPDF(Object.assign({
+      blob: blob,
+      facilityId: matches[0].id,
+      formType: formType,
+      description: description,
+      date: gv('sd') || new Date().toISOString().substring(0,10),
+      tech: gv('stch') || gv('tech') || ''
+    }, extraParams || {}));
+  }).then(function(doc) {
+    if(doc) console.log('[NTD] PDF uploaded:', doc.file_path);
+  }).catch(function(e) {
+    console.warn('[NTD] PDF upload failed:', e.message);
+  });
+}
+// ── END NTD PDF UPLOAD HELPER ─────────────────────────────────────────────
+
+
+// ── AUTO-SUBMIT ON PDF DOWNLOAD ───────────────────────────────────────────
+function ntdAutoSubmitPMVisit() {
+  if (typeof ntdStore === 'undefined' || !eqs.length) return;
+  var facName = gv('sf') || '';
+  if (!facName) return;
+  ntdStore.facilities.list(function(f){
+    return (f.name||'').toLowerCase().trim() === facName.toLowerCase().trim();
+  }).then(function(matches) {
+    var facilityId = matches.length ? matches[0].id : null;
+    if (!facilityId) {
+      // Create facility if not found
+      return ntdStore.facilities.upsert({ name: facName, address: gv('sa')||'', pm_contract: true })
+        .then(function(fac){ return fac.id; });
+    }
+    return facilityId;
+  }).then(function(facilityId) {
+    if (!facilityId) return;
+    var good = eqs.filter(function(e){ return e.ov==='good'; }).length;
+    var fair = eqs.filter(function(e){ return e.ov==='fair'; }).length;
+    var poor = eqs.filter(function(e){ return e.ov==='poor'; }).length;
+    return ntdStore.pm_records.upsert({
+      facility_id: facilityId,
+      date: gv('sd'), tech: gv('stch'),
+      visit_label: gv('sv') || 'PM Visit',
+      unit_count: eqs.length,
+      good_count: good, fair_count: fair, poor_count: poor,
+      units: eqs.map(function(e){ return {tag:e.tag,type:e.type,condition:e.ov,notes:e.notes}; })
+    });
+  }).then(function(){ console.log('[NTD] PM visit auto-saved'); })
+    .catch(function(e){ console.warn('[NTD] PM visit auto-save failed:', e.message); });
+}
+// ── END AUTO-SUBMIT ───────────────────────────────────────────────────────
 
 // ─── INIT ─────────────────────────────────────────────────────────
 initPiping();
