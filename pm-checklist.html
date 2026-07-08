@@ -1268,7 +1268,7 @@ function dlEquip() {
     }
     window.open(burl, '_blank');
     setTimeout(function(){URL.revokeObjectURL(burl);}, 60000);
-    ntdUploadPDFWithFeedback(blob,'pm_checklist','PM Visit — '+(gv('sf')||'Site')+' — '+(gv('sv')||gv('sd')||''),{unitCount:eqs.length});
+    ntdUploadPDFWithFeedback(blob,'pm_checklist','PM Equipment Report — '+(gv('sf')||'Site')+' — '+(gv('sv')||gv('sd')||''),{unitCount:eqs.length});
     ntdAutoSubmitPMVisit();
   });
 }
@@ -1408,7 +1408,7 @@ function dlSummary() {
     }
     window.open(burl, '_blank');
     setTimeout(function(){URL.revokeObjectURL(burl);}, 60000);
-    ntdUploadPDFWithFeedback(blob,'pm_checklist','PM Visit — '+(gv('sf')||'Site')+' — '+(gv('sv')||gv('sd')||''),{unitCount:eqs.length});
+    ntdUploadPDFWithFeedback(blob,'pm_checklist','PM Visit Summary — '+(gv('sf')||'Site')+' — '+(gv('sv')||gv('sd')||''),{unitCount:eqs.length});
     ntdAutoSubmitPMVisit();
     // Upload photos to Supabase
     var _fn = gv('sf') || '';
