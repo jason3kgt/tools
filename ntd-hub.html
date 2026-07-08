@@ -630,10 +630,18 @@ function renderDetailTab(f) {
       var docs      = results[6] || [];
 
       // Build docMap FIRST so it's available for all record merging below
+      // Normalize dates to MM/DD/YYYY for consistent matching
+      function normDate(dt) {
+        if (!dt) return '';
+        // Convert YYYY-MM-DD to MM/DD/YYYY
+        var m = dt.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (m) return m[2]+'/'+m[3]+'/'+m[1];
+        return dt;
+      }
       var docMap = {};
       var formLabels = {asset_survey:'Asset Survey',pm_checklist:'PM Visit Report',pm_proposal:'PM Proposal',service_quote:'Service Quote',startup:'Startup Checklist',equipment_survey:'Equipment Survey'};
       docs.forEach(function(d) {
-        var key = (d.form_type || '') + '|' + (d.date || '');
+        var key = (d.form_type || '') + '|' + normDate(d.date || '');
         if (!docMap[key] || (d.ts||0) > (docMap[key].ts||0)) {
           docMap[key] = d;
         }

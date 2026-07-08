@@ -233,7 +233,7 @@ var _migrate = {
 var _exportImport = {
   exportAll: function() {
     var tables = ['facilities','equipment','jobs','job_units','startup_records',
-                  'pm_records','pm_unit_results','pm_quotes','service_quotes','documents','team_calendar'];
+                  'pm_records','pm_unit_results','pm_quotes','service_quotes','documents'];
     var promises = tables.map(function(t) { return _sb.list(t); });
     return Promise.all(promises).then(function(results) {
       var blob = { _schema_version: 2, _exported_at: new Date().toISOString() };
@@ -245,7 +245,7 @@ var _exportImport = {
   importAll: function(blob) {
     if (!blob || typeof blob !== 'object') throw new Error('Invalid export file.');
     var tables = ['facilities','equipment','jobs','job_units','startup_records',
-                  'pm_records','pm_unit_results','pm_quotes','service_quotes','documents','team_calendar'];
+                  'pm_records','pm_unit_results','pm_quotes','service_quotes','documents'];
     var promises = [];
     tables.forEach(function(t) {
       if (!Array.isArray(blob[t])) return;
@@ -282,7 +282,6 @@ var ntdStore = {
   service_quotes: _makeStore('service_quotes'),
   settings:       _makeStore('facilities'), // settings not needed with Supabase
   documents:      _makeStore('documents'),
-  team_calendar:  _makeStore('team_calendar'),
   migrate:        _migrate,
   exportAll:      _exportImport.exportAll,
   importAll:      _exportImport.importAll,
@@ -297,7 +296,11 @@ var ntdStore = {
       return Promise.reject(new Error('blob and facilityId are required'));
     }
     var ts    = Date.now();
-    var date  = params.date || new Date().toISOString().substring(0,10);
+    // Normalize date to MM/DD/YYYY for consistent matching across tables
+    var _rawDate = params.date || '';
+    var _dateObj = _rawDate ? new Date(_rawDate.replace(/-/g,'/')) : new Date();
+    var date = (_dateObj.getMonth()+1) + '/' + _dateObj.getDate() + '/' + _dateObj.getFullYear();
+    if (isNaN(_dateObj.getTime())) date = _rawDate || (new Date().getMonth()+1)+'/'+(new Date().getDate())+'/'+(new Date().getFullYear());
     var fType = params.formType || 'document';
     var path  = 'pdfs/' + params.facilityId + '/' + fType + '_' + ts + '.pdf';
 
@@ -336,7 +339,7 @@ var ntdStore = {
 // This patch ensures filterFn still works on list() calls
 (function() {
   var stores = ['facilities','equipment','jobs','job_units','startup_records',
-                'pm_records','pm_unit_results','pm_quotes','service_quotes','documents','team_calendar'];
+                'pm_records','pm_unit_results','pm_quotes','service_quotes','documents'];
   stores.forEach(function(name) {
     var original = ntdStore[name].list;
     ntdStore[name].list = function(filterFn) {
