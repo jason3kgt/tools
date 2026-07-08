@@ -341,7 +341,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
     <div class="r2">
       <div class="fg"><label>Contract Value</label><input type="text" id="pm-value" placeholder="$0"></div>
-      <div class="fg"><label>PO / WO #</label><input type="text" id="pm-po" placeholder=""></div>
+      <div class="fg"><label>NTD Job ID</label><input type="text" id="pm-job-id" placeholder="e.g. NTD-2026-042"></div>
+    </div>
+    <div class="r2">
+      <div class="fg"><label>Equipment PO #</label><input type="text" id="pm-po-equip" placeholder=""></div>
+      <div class="fg"><label>Parts PO #</label><input type="text" id="pm-po-parts" placeholder=""></div>
+    </div>
+    <div class="fg"><label>Combined PO # <span style="font-size:9px;font-weight:400;color:var(--mu);text-transform:none">(if single PO covers both)</span></label><input type="text" id="pm-po" placeholder=""></div>
     </div>
     <div class="r2">
       <div class="fg"><label>Start Date</label><input type="text" id="pm-start" placeholder="MM/DD/YYYY"></div>
@@ -1048,7 +1054,10 @@ function renderDetailTab(f) {
               '<div style="font-size:15px;font-weight:700;color:var(--nv);flex:1">'+esc(p.name||'Project')+'</div>' +
               '<span class="status-badge '+(statusClass[p.status]||'status-bidding')+'">'+(statusLabel[p.status]||'Bidding')+'</span>' +
             '</div>' +
-            (p.wo_number ? '<div style="font-size:11px;color:var(--mu);margin-bottom:4px">PO/WO: '+esc(p.wo_number)+'</div>' : '') +
+            (p.job_id ? '<div style="font-size:11px;color:var(--nv);font-weight:700;margin-bottom:3px">Job ID: '+esc(p.job_id)+'</div>' : '') +
+            (p.wo_number ? '<div style="font-size:11px;color:var(--mu);margin-bottom:2px">Combined PO: '+esc(p.wo_number)+'</div>' : '') +
+            (p.po_equip ? '<div style="font-size:11px;color:var(--mu);margin-bottom:2px">Equipment PO: '+esc(p.po_equip)+'</div>' : '') +
+            (p.po_parts ? '<div style="font-size:11px;color:var(--mu);margin-bottom:4px">Parts PO: '+esc(p.po_parts)+'</div>' : '') +
             (p.value ? '<div style="font-size:13px;font-weight:700;color:var(--gn);margin-bottom:4px">'+esc(p.value)+'</div>' : '') +
             (p.start_date||p.end_date ? '<div style="font-size:11px;color:var(--mu);margin-bottom:8px">'+(p.start_date?'Start: '+esc(p.start_date):'')+(p.start_date&&p.end_date?' · ':'')+(p.end_date?'Target: '+esc(p.end_date):'')+'</div>' : '') +
             (p.sp_url ? '<a href="'+esc(p.sp_url)+'" target="_blank" class="sp-link" style="margin-bottom:8px;display:inline-flex">SharePoint Folder</a>' : '') +
@@ -1201,7 +1210,7 @@ function openAddProject(facilityId) {
   editingProjectId = null;
   editingProjectFacilityId = facilityId;
   document.getElementById('proj-modal-title').textContent = 'Add Project';
-  ['pm-name','pm-value','pm-po','pm-start','pm-end','pm-sp','pm-notes','pm-agr-num','pm-agr-signed','pm-agr-url'].forEach(function(id){ document.getElementById(id).value=''; });
+  ['pm-name','pm-value','pm-job-id','pm-po-equip','pm-po-parts','pm-po','pm-start','pm-end','pm-sp','pm-notes','pm-agr-num','pm-agr-signed','pm-agr-url'].forEach(function(id){ document.getElementById(id).value=''; });
   document.getElementById('pm-agr-type').value = '';
   document.getElementById('pm-agr-status').value = '';
   document.getElementById('pm-status').value = 'bidding';
@@ -1221,6 +1230,9 @@ function openEditProject(id, facilityId) {
     document.getElementById('pm-end').value    = p.end_date   || '';
     document.getElementById('pm-sp').value     = p.sp_url     || '';
     document.getElementById('pm-notes').value      = p.notes       || '';
+    document.getElementById('pm-job-id').value    = p.job_id      || '';
+    document.getElementById('pm-po-equip').value  = p.po_equip    || '';
+    document.getElementById('pm-po-parts').value  = p.po_parts    || '';
     document.getElementById('pm-agr-type').value   = p.agr_type   || '';
     document.getElementById('pm-agr-num').value    = p.agr_num    || '';
     document.getElementById('pm-agr-signed').value = p.agr_signed || '';
@@ -1240,6 +1252,9 @@ function saveProject() {
     status:      document.getElementById('pm-status').value,
     value:       document.getElementById('pm-value').value.trim(),
     wo_number:   document.getElementById('pm-po').value.trim(),
+    job_id:      document.getElementById('pm-job-id').value.trim(),
+    po_equip:    document.getElementById('pm-po-equip').value.trim(),
+    po_parts:    document.getElementById('pm-po-parts').value.trim(),
     start_date:  document.getElementById('pm-start').value.trim(),
     end_date:    document.getElementById('pm-end').value.trim(),
     sp_url:      document.getElementById('pm-sp').value.trim(),
@@ -1300,6 +1315,7 @@ function renderProjectList() {
               '<span class="status-badge '+(statusClass[p.status]||'status-bidding')+'">'+(statusLabel[p.status]||'Bidding')+'</span>' +
             '</div>' +
             '<div style="font-size:12px;color:var(--mu)">'+esc(facMap[p.facility_id]||'Unknown facility')+(p.value?' · <strong style="color:var(--gn)">'+esc(p.value)+'</strong>':'')+'</div>' +
+            (p.job_id ? '<div style="font-size:11px;color:var(--nv);font-weight:700;margin-top:2px">Job ID: '+esc(p.job_id)+'</div>' : '') +
             (p.start_date||p.end_date ? '<div style="font-size:11px;color:var(--mu);margin-top:4px">'+(p.start_date?esc(p.start_date):'')+(p.start_date&&p.end_date?' → ':'')+(p.end_date?esc(p.end_date):'')+'</div>' : '') +
           '</div></div>';
       });
