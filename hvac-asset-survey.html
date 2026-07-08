@@ -1002,7 +1002,10 @@ function dlSummary(){
   pdfFooter(doc);
   var blob=doc.output('blob');var url=URL.createObjectURL(blob);
   window.open(url,'_blank');setTimeout(function(){URL.revokeObjectURL(url);},60000);
-  ntdUploadPDFWithFeedback(blob,'asset_survey','Asset Survey — '+(gv('sf')||'Site')+' — Executive Summary',{unitCount:eqs.length},_ntdAssetFacilityId||null);
+  // Ensure facility exists before uploading PDF
+  ntdUpsertAssetFacility(function(facilityId) {
+    ntdUploadPDFWithFeedback(blob,'asset_survey','Asset Survey — '+(gv('sf')||'Site')+' — Executive Summary',{unitCount:eqs.length},facilityId);
+  });
   ntdAutoSubmitAssessment();
 }
 
@@ -1085,7 +1088,9 @@ function dlForecast(){
   pdfFooter(doc);
   var blob=doc.output('blob');var url=URL.createObjectURL(blob);
   window.open(url,'_blank');setTimeout(function(){URL.revokeObjectURL(url);},60000);
-  ntdUploadPDFWithFeedback(blob,'asset_survey','Asset Survey — '+(gv('sf')||'Site')+' — Capital Forecast',{unitCount:eqs.length},_ntdAssetFacilityId||null);
+  ntdUpsertAssetFacility(function(facilityId) {
+    ntdUploadPDFWithFeedback(blob,'asset_survey','Asset Survey — '+(gv('sf')||'Site')+' — Capital Forecast',{unitCount:eqs.length},facilityId);
+  });
 }
 
 // ── PM QUOTE ──────────────────────────────────────────────────
@@ -1580,7 +1585,9 @@ function pmGenPDF(){
 
   var blob=doc.output('blob');var url=URL.createObjectURL(blob);
   window.open(url,'_blank');setTimeout(function(){URL.revokeObjectURL(url);},60000);
-  ntdUploadPDFWithFeedback(blob,'pm_proposal','PM Proposal — '+(gv('sf')||'Site'),{unitCount:pmUnits.length},_ntdAssetFacilityId||null);
+  ntdUpsertAssetFacility(function(facilityId) {
+    ntdUploadPDFWithFeedback(blob,'pm_proposal','PM Proposal — '+(gv('sf')||'Site'),{unitCount:pmUnits.length},facilityId);
+  });
   ntdAutoSubmitPMQuote();
 }
 
@@ -1698,7 +1705,9 @@ function dlSiteRecord(){
   doc.text('NTD Mechanical  |  TACLA65973C  |  INTERNAL DOCUMENT \u2014 NOT FOR DISTRIBUTION',W/2,H-5,{align:'center'});
   var blob=doc.output('blob');var url=URL.createObjectURL(blob);
   window.open(url,'_blank');setTimeout(function(){URL.revokeObjectURL(url);},60000);
-  ntdUploadPDFWithFeedback(blob,'pm_proposal','PM Proposal — '+(gv('sf')||'Site')+' (Detail)',{unitCount:pmUnits.length},_ntdAssetFacilityId||null);
+  ntdUpsertAssetFacility(function(facilityId) {
+    ntdUploadPDFWithFeedback(blob,'pm_proposal','PM Proposal — '+(gv('sf')||'Site')+' (Detail)',{unitCount:pmUnits.length},facilityId);
+  });
 }
 
 
@@ -2082,7 +2091,9 @@ function sqGeneratePDF(){
   var blob=doc.output('blob');var url=URL.createObjectURL(blob);
   window.open(url,'_blank');
   setTimeout(function(){URL.revokeObjectURL(url);},60000);
-  ntdUploadPDFWithFeedback(blob,'service_quote','Service Quote — '+(gv('sf')||'Site'),{unitCount:sqItems.length},_ntdAssetFacilityId||null);
+  ntdUpsertAssetFacility(function(facilityId) {
+    ntdUploadPDFWithFeedback(blob,'service_quote','Service Quote — '+(gv('sf')||'Site'),{unitCount:sqItems.length},facilityId);
+  });
   ntdAutoSubmitServiceQuote();
 }
 
