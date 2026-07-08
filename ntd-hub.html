@@ -629,6 +629,16 @@ function renderDetailTab(f) {
       var equip     = results[5];
       var docs      = results[6] || [];
 
+      // Build docMap FIRST so it's available for all record merging below
+      var docMap = {};
+      var formLabels = {asset_survey:'Asset Survey',pm_checklist:'PM Visit Report',pm_proposal:'PM Proposal',service_quote:'Service Quote',startup:'Startup Checklist',equipment_survey:'Equipment Survey'};
+      docs.forEach(function(d) {
+        var key = (d.form_type || '') + '|' + (d.date || '');
+        if (!docMap[key] || (d.ts||0) > (docMap[key].ts||0)) {
+          docMap[key] = d;
+        }
+      });
+
       var events = [];
 
       // Startup records — merged with PDF document if available
@@ -746,16 +756,6 @@ function renderDetailTab(f) {
 
       // Collect open follow-ups
       var openFollowups = startups.filter(function(r){ return r.facility_id === fid && r.followup && r.followup.trim(); });
-
-      // Build a map of documents by form_type+date for merging
-      var docMap = {};
-      var formLabels = {asset_survey:'Asset Survey',pm_checklist:'PM Visit Report',pm_proposal:'PM Proposal',service_quote:'Service Quote',startup:'Startup Checklist',equipment_survey:'Equipment Survey'};
-      docs.forEach(function(d) {
-        var key = (d.form_type || '') + '|' + (d.date || '');
-        if (!docMap[key] || (d.ts||0) > (docMap[key].ts||0)) {
-          docMap[key] = d;
-        }
-      });
 
       // Add standalone document entries only for types that don't have a matching data record
       // PM visits, startups, asset surveys get their PDF link merged into the data record below
