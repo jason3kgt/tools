@@ -963,25 +963,46 @@ function renderDetailTab(f) {
       if (!recs.length) {
         html += emptyState('📋','No visits yet','PM visit records appear here after a technician submits a PM checklist for this facility.');
       } else {
-        html += '<div class="section-label">Visit History</div>';
-        html += '<div class="card"><div class="card-body">';
-        recs.forEach(function(r) {
-          var good=r.good_count||0, fair=r.fair_count||0, poor=r.poor_count||0;
-          html += '<div class="rec-row">' +
-            '<div class="rec-icon nv">📋</div>' +
-            '<div class="rec-body">' +
-              '<div class="rec-title">'+esc(r.visit_label||'PM Visit')+'</div>' +
-              '<div class="rec-sub">'+esc(r.date||'')+(r.tech?' · '+esc(r.tech):'')+'</div>' +
-              '<div class="rec-meta">' +
-                (r.unit_count ? r.unit_count+' units · ' : '') +
-                '<span style="color:var(--gn)">'+good+' Good</span> · ' +
-                '<span style="color:var(--am)">'+fair+' Fair</span> · ' +
-                '<span style="color:var(--rd)">'+poor+' Poor</span>' +
-              '</div>' +
-              (r.notes ? '<div class="rec-meta" style="margin-top:3px">'+esc(r.notes)+'</div>' : '') +
-            '</div></div>';
+        // Get document records for PDF links
+        ntdStore.documents.list(function(d){
+          return d.facility_id === fid && d.form_type === 'pm_checklist';
+        }).then(function(pmDocs) {
+          // Build map of docs by date for matching
+          var pmDocByDate = {};
+          pmDocs.forEach(function(d) {
+            var nd = normDate(d.date||'');
+            if (!pmDocByDate[nd]) pmDocByDate[nd] = [];
+            pmDocByDate[nd].push(d);
+          });
+
+          html += '<div class="section-label">Visit History</div>';
+          html += '<div class="card"><div class="card-body">';
+          recs.forEach(function(r) {
+            var good=r.good_count||0, fair=r.fair_count||0, poor=r.poor_count||0;
+            var nd = normDate(r.date||'');
+            var matchDocs = pmDocByDate[nd] || [];
+            var pdfLinks = matchDocs.map(function(d){
+              return d.file_url ? '<a href="'+esc(d.file_url)+'" target="_blank" style="color:var(--st);font-weight:600;text-decoration:none;font-size:11px;margin-right:8px">📥 '+esc((d.description||'').replace('ILS Gummies — ','').replace(/ — Monthly.*$/,'').replace(/ — Quarterly.*$/,'').replace(/ — .*$/,''))+'</a>' : '';
+            }).join('');
+            html += '<div class="rec-row">' +
+              '<div class="rec-icon nv">📋</div>' +
+              '<div class="rec-body">' +
+                '<div class="rec-title">'+esc(r.visit_label||'PM Visit')+'</div>' +
+                '<div class="rec-sub">'+esc(r.date||'')+(r.tech?' · '+esc(r.tech):'')+'</div>' +
+                '<div class="rec-meta">' +
+                  (r.unit_count ? r.unit_count+' units · ' : '') +
+                  '<span style="color:var(--gn)">'+good+' Good</span> · ' +
+                  '<span style="color:var(--am)">'+fair+' Fair</span> · ' +
+                  '<span style="color:var(--rd)">'+poor+' Poor</span>' +
+                '</div>' +
+                (r.notes ? '<div class="rec-meta" style="margin-top:3px">'+esc(r.notes)+'</div>' : '') +
+                (pdfLinks ? '<div style="margin-top:6px">'+pdfLinks+'</div>' : '') +
+              '</div></div>';
+          });
+          html += '</div></div>';
+          content.innerHTML = html;
         });
-        html += '</div></div>';
+        return; // early return since we handle innerHTML in the promise
       }
       content.innerHTML = html;
     });
