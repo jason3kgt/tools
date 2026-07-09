@@ -848,8 +848,8 @@ function renderDetailTab(f) {
           '<div class="rec-icon '+ev.color+'">'+ev.icon+'</div>' +
           '<div class="rec-body">' +
             '<div class="rec-title">'+ev.title+'</div>' +
-            '<div class="rec-title">'+ev.title+'</div>' +
             (ev.sub || ev.ts ? '<div class="rec-sub">'+(ev.sub||'')+(ev.ts ? (ev.sub?' · ':'')+(function(d){var h=d.getHours(),am=h>=12?'PM':'AM';h=h%12||12;return h+':'+(d.getMinutes()<10?'0':'')+d.getMinutes()+' '+am;})(new Date(ev.ts)) : '')+'</div>' : '') +
+            (ev.meta ? '<div class="rec-meta" '+(ev.meta_color?'style="color:'+ev.meta_color+'"':'')+'>'+ev.meta+'</div>' : '') +
           '</div></div>';
       });
       if (lastCardOpen) html2 += '</div></div>';
