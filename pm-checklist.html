@@ -1048,65 +1048,7 @@ function addPhotoAppendix(doc, photos, title) {
 }
 
 
-// ── SUPABASE PHOTO UPLOAD ─────────────────────────────────────────────────
-function ntdUploadPhotos(facilityId) {
-  if (typeof ntdStore === 'undefined' || !ntdStore.files) return;
-  if (!facilityId) return;
-
-  var allPhotos = [];
-
-  // Collect site photos
-  sitePhotos.forEach(function(p, i) {
-    allPhotos.push({ data: p.data, caption: p.caption || '', label: 'Site Photo ' + (i+1), type: 'site' });
-  });
-
-  // Collect per-unit photos
-  eqs.forEach(function(eq) {
-    if (!eq.photos || !eq.photos.length) return;
-    eq.photos.forEach(function(p, i) {
-      allPhotos.push({ data: p.data, caption: p.caption || '', label: (eq.tag||'Unit') + ' — Photo ' + (i+1), type: 'unit', unit: eq.tag||'' });
-    });
-  });
-
-  if (!allPhotos.length) return;
-
-  var date = gv('sd') || new Date().toISOString().substring(0,10);
-  var ts = Date.now();
-
-  allPhotos.forEach(function(photo, i) {
-    // Convert base64 data URL to blob
-    var parts = photo.data.split(',');
-    var mime = (parts[0].match(/:(.*?);/) || [])[1] || 'image/jpeg';
-    var binary = atob(parts[1]);
-    var array = new Uint8Array(binary.length);
-    for (var j = 0; j < binary.length; j++) array[j] = binary.charCodeAt(j);
-    var blob = new Blob([array], { type: mime });
-
-    var ext = mime.indexOf('png') > -1 ? 'png' : 'jpg';
-    var path = 'photos/' + facilityId + '/pm_' + ts + '_' + i + '.' + ext;
-
-    ntdStore.files.upload(path, blob, mime).then(function() {
-      // Save document record for this photo
-      // Get signed URL for private bucket
-      return ntdStore.files.getUrl(path).then(function(signedUrl) {
-        return ntdStore.documents.upsert({
-          facility_id:  facilityId,
-          form_type:    'pm_photo',
-          description:  'PM Photo — ' + photo.label + (photo.caption ? ' — ' + photo.caption : ''),
-          file_path:    path,
-          file_url:     signedUrl,
-          date:         date,
-          tech:         gv('stch') || ''
-        });
-      });
-    }).then(function() {
-      console.log('[NTD] Photo uploaded:', path);
-    }).catch(function(e) {
-      console.warn('[NTD] Photo upload failed:', e.message);
-    });
-  });
-}
-// ── END SUPABASE PHOTO UPLOAD ─────────────────────────────────────────────
+// Photos are embedded in PDFs only — not uploaded separately
 // ─── PIPING SECTION ───────────────────────────────────────────────
 var PIPING = ['Supply Piping','Return Piping','Condensate Lines','Chilled Water Piping','Hot Water Piping','Refrigerant Lines','Insulation Condition','Valves & Isolation'];
 function initPiping() {
@@ -1413,13 +1355,6 @@ function dlSummary() {
     setTimeout(function(){URL.revokeObjectURL(burl);}, 60000);
     ntdUploadPDFWithFeedback(blob,'pm_checklist','PM Visit Summary — '+(gv('sf')||'Site')+' — '+(gv('sv')||gv('sd')||''),{unitCount:eqs.length});
     ntdAutoSubmitPMVisit();
-    // Upload photos to Supabase
-    var _fn = gv('sf') || '';
-    if (_fn && typeof ntdStore !== 'undefined') {
-      ntdStore.facilities.list(function(f){ return (f.name||'')
-        .toLowerCase().trim() === _fn.toLowerCase().trim(); })
-        .then(function(m){ if(m.length) ntdUploadPhotos(m[0].id); }).catch(function(){});
-    }
   });
 }
 

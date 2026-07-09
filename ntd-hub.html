@@ -824,7 +824,7 @@ function renderDetailTab(f) {
       var html2 = '';
       visibleEvents.forEach(function(ev) {
         var dateLabel = '';
-        if (ev.ts) { var d = new Date(ev.ts); dateLabel = (d.getMonth()+1)+'/'+d.getDate()+'/'+d.getFullYear(); }
+        if (ev.ts) { var d = new Date(ev.ts); var h=d.getHours(),ampm=h>=12?'PM':'AM'; h=h%12||12; var mins=(d.getMinutes()<10?'0':'')+d.getMinutes(); dateLabel = (d.getMonth()+1)+'/'+d.getDate()+'/'+d.getFullYear()+' '+h+':'+mins+' '+ampm; }
         else if (ev.date) { dateLabel = ev.date; }
         if (dateLabel !== lastDateLabel) {
           if (lastCardOpen) html2 += '</div></div>';
@@ -1669,7 +1669,7 @@ function renderDashboard() {
       html += '<div class="card"><div class="card-body">';
       recentActivity.forEach(function(ev) {
         var d = ev.ts ? new Date(ev.ts) : null;
-        var dateStr = d ? (d.getMonth()+1)+'/'+(d.getDate())+'/'+d.getFullYear() : '';
+        var dateStr = d ? (d.getMonth()+1)+'/'+(d.getDate())+'/'+d.getFullYear()+' '+(function(){var h=d.getHours(),am=h>=12?'PM':'AM';h=h%12||12;return h+':'+(d.getMinutes()<10?'0':'')+d.getMinutes()+' '+am;})() : '';
         html += '<div class="rec-row ntd-goto" data-fid="'+ev.fid+'"'+(ev.tab?' data-tab="'+ev.tab+'"':'')+' style="cursor:pointer">'+
           '<div style="font-size:22px;width:36px;text-align:center;flex-shrink:0">'+ev.icon+'</div>' +
           '<div class="rec-body">' +
