@@ -296,11 +296,13 @@ var ntdStore = {
       return Promise.reject(new Error('blob and facilityId are required'));
     }
     var ts    = Date.now();
-    // Normalize date to MM/DD/YYYY for consistent matching across tables
+    // Normalize date to MM/DD/YYYY with leading zeros for consistent matching
+    function _pad(n){ return n < 10 ? '0'+n : ''+n; }
     var _rawDate = params.date || '';
     var _dateObj = _rawDate ? new Date(_rawDate.replace(/-/g,'/')) : new Date();
-    var date = (_dateObj.getMonth()+1) + '/' + _dateObj.getDate() + '/' + _dateObj.getFullYear();
-    if (isNaN(_dateObj.getTime())) date = _rawDate || (new Date().getMonth()+1)+'/'+(new Date().getDate())+'/'+(new Date().getFullYear());
+    var date = isNaN(_dateObj.getTime())
+      ? _rawDate
+      : _pad(_dateObj.getMonth()+1) + '/' + _pad(_dateObj.getDate()) + '/' + _dateObj.getFullYear();
     var fType = params.formType || 'document';
     var path  = 'pdfs/' + params.facilityId + '/' + fType + '_' + ts + '.pdf';
 

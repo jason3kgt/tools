@@ -633,9 +633,12 @@ function renderDetailTab(f) {
       // Normalize dates to MM/DD/YYYY for consistent matching
       function normDate(dt) {
         if (!dt) return '';
-        // Convert YYYY-MM-DD to MM/DD/YYYY
-        var m = dt.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-        if (m) return m[2]+'/'+m[3]+'/'+m[1];
+        // Convert YYYY-MM-DD to MM/DD/YYYY with leading zeros
+        var ymd = dt.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (ymd) return ymd[2]+'/'+ymd[3]+'/'+ymd[1];
+        // Normalize M/D/YYYY to MM/DD/YYYY with leading zeros
+        var mdy = dt.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (mdy) return (mdy[1].length<2?'0':'')+mdy[1]+'/'+(mdy[2].length<2?'0':'')+mdy[2]+'/'+mdy[3];
         return dt;
       }
       var docMap = {};

@@ -1087,14 +1087,17 @@ function ntdUploadPhotos(facilityId) {
 
     ntdStore.files.upload(path, blob, mime).then(function() {
       // Save document record for this photo
-      return ntdStore.documents.upsert({
-        facility_id:  facilityId,
-        form_type:    'pm_photo',
-        description:  'PM Photo — ' + photo.label + (photo.caption ? ' — ' + photo.caption : ''),
-        file_path:    path,
-        file_url:     'https://mngilvenfclopyfzaghq.supabase.co/storage/v1/object/public/ntd-files/' + path,
-        date:         date,
-        tech:         gv('stch') || ''
+      // Get signed URL for private bucket
+      return ntdStore.files.getUrl(path).then(function(signedUrl) {
+        return ntdStore.documents.upsert({
+          facility_id:  facilityId,
+          form_type:    'pm_photo',
+          description:  'PM Photo — ' + photo.label + (photo.caption ? ' — ' + photo.caption : ''),
+          file_path:    path,
+          file_url:     signedUrl,
+          date:         date,
+          tech:         gv('stch') || ''
+        });
       });
     }).then(function() {
       console.log('[NTD] Photo uploaded:', path);
