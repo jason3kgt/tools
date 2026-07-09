@@ -1260,15 +1260,15 @@ function dlEquip() {
       });
     }
 
-    var blob = doc.output('blob');
-    var burl = URL.createObjectURL(blob);
-    // Photo appendices
+    // Photo appendices BEFORE generating blob
     if (typeof addPhotoAppendix === 'function') {
       if (sitePhotos && sitePhotos.length) addPhotoAppendix(doc, sitePhotos, 'Site Photos');
       for (var pu=0; pu<eqs.length; pu++) {
         if (eqs[pu].photos && eqs[pu].photos.length) addPhotoAppendix(doc, eqs[pu].photos, 'Unit Photos — '+(eqs[pu].tag||'Unit '+(pu+1)));
       }
     }
+    var blob = doc.output('blob');
+    var burl = URL.createObjectURL(blob);
     window.open(burl, '_blank');
     setTimeout(function(){URL.revokeObjectURL(burl);}, 60000);
     ntdUploadPDFWithFeedback(blob,'pm_checklist','PM Equipment Report — '+(gv('sf')||'Site')+' — '+(gv('sv')||gv('sd')||''),{unitCount:eqs.length});
@@ -1400,15 +1400,15 @@ function dlSummary() {
     doc.setTextColor(255,255,255); doc.setFont('helvetica','normal'); doc.setFontSize(8);
     doc.text('NTD Mechanical  |  TACLA65973C  |  2477 Merritt Dr. Garland, TX 75041  |  (214) 785-2129  |  www.ntdmechanical.com',W/2,doc.internal.pageSize.getHeight()-8,{align:'center'});
 
-    var blob = doc.output('blob');
-    var burl = URL.createObjectURL(blob);
-    // Photo appendices
+    // Photo appendices BEFORE generating blob
     if (typeof addPhotoAppendix === 'function') {
       if (sitePhotos && sitePhotos.length) addPhotoAppendix(doc, sitePhotos, 'Site Photos');
       for (var pu=0; pu<eqs.length; pu++) {
         if (eqs[pu].photos && eqs[pu].photos.length) addPhotoAppendix(doc, eqs[pu].photos, 'Unit Photos — '+(eqs[pu].tag||'Unit '+(pu+1)));
       }
     }
+    var blob = doc.output('blob');
+    var burl = URL.createObjectURL(blob);
     window.open(burl, '_blank');
     setTimeout(function(){URL.revokeObjectURL(burl);}, 60000);
     ntdUploadPDFWithFeedback(blob,'pm_checklist','PM Visit Summary — '+(gv('sf')||'Site')+' — '+(gv('sv')||gv('sd')||''),{unitCount:eqs.length});
