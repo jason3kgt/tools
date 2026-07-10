@@ -1492,6 +1492,9 @@ function confirmDeleteFacility(id) {
     ntdStore.facilities.delete(id).then(function() {
       showToast('Facility deleted');
       goPage('facilities');
+    }).catch(function(err) {
+      console.error('deleteFacility failed:', err);
+      showToast(err.message || 'Delete failed');
     });
   });
 }
@@ -2636,6 +2639,9 @@ function deleteCalEntry() {
     renderCalendarWeek();
     refreshSchedReqBadge();
     if (currentScheduleView === 'requests') renderRequestsList();
+  }).catch(function(err) {
+    console.error('deleteCalEntry failed:', err);
+    showToast(err.message || 'Delete failed');
   });
 }
 

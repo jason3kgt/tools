@@ -68,7 +68,15 @@ var _sb = (function() {
     // Delete a record by id
     delete: function(table, id) {
       return req('DELETE', table, 'id=eq.' + encodeURIComponent(id))
-        .then(function() { return true; });
+        .then(function(rows) {
+          // With Prefer: return=representation, a successful delete returns
+          // the deleted row(s). An empty array means RLS silently blocked
+          // the delete (no DELETE policy for the anon key) — 0 rows removed.
+          if (Array.isArray(rows) && rows.length === 0) {
+            throw new Error('Nothing was deleted — this table\'s Row Level Security blocks DELETE via the public key. Delete this record from the Supabase Table Editor instead.');
+          }
+          return true;
+        });
     },
     // Raw request for custom queries
     raw: function(method, table, params, body) {
