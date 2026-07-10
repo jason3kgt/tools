@@ -1607,7 +1607,11 @@ function duplicateForm(){
   var jobFields = ['facility','address','city_state','job_po','tech','model'];
   jobFields.forEach(function(f){ snapshot.fields[f] = gv(f); });
 
-  // 2. Reload fresh form
+  // 2. Clear photos for new unit
+  photos = [];
+  var pg = document.getElementById('photo_grid'); if(pg) pg.innerHTML = '';
+
+  // 3. Reload fresh form
   switchType();
 
   // 3. Restore KEEP fields
