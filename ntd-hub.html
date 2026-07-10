@@ -234,6 +234,7 @@ body.tv-mode .hdr-title{font-size:24px}
 body.tv-mode .hdr-sub{font-size:13px}
 body.tv-mode .hdr-logo{width:48px;height:48px;font-size:24px;border-radius:11px}
 body.tv-mode .hdr-btn{display:none !important}
+body.tv-mode .hdr-icon-btn,body.tv-mode .hdr-user-pill{display:none !important}
 body.tv-mode .pg{max-width:1400px;padding:28px}
 body.tv-mode #pg-schedule{display:block !important}
 body.tv-mode .sched-subnav{display:none}
@@ -255,6 +256,22 @@ body.tv-mode .cal-day-slim{display:flex;align-items:center;justify-content:cente
 body.tv-mode .cal-day-slim .cal-day-hdr{background:none;border:none;padding:6px 2px;text-align:center;width:100%;display:block}
 body.tv-mode .cal-day-slim .cal-day-name{font-size:9.5px;white-space:nowrap}
 body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
+
+/* ── USER IDENTITY + NOTIFICATIONS ── */
+.hdr-icon-btn{position:relative;background:rgba(255,255,255,.12);border:none;border-radius:8px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;touch-action:manipulation;flex-shrink:0}
+.hdr-icon-btn:active{opacity:.8}
+.hdr-user-pill{background:rgba(255,255,255,.12);border:none;border-radius:20px;padding:6px 12px;font-size:11px;font-weight:700;color:#fff;cursor:pointer;font-family:inherit;touch-action:manipulation;white-space:nowrap;max-width:90px;overflow:hidden;text-overflow:ellipsis;flex-shrink:1}
+.hdr-right{display:flex;align-items:center;gap:7px;flex-shrink:0}
+.notif-badge{position:absolute;top:-3px;right:-3px;min-width:15px;height:15px;padding:0 3px;border-radius:8px;background:var(--rd);color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;line-height:1}
+
+.picker-list{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.picker-item{padding:14px 16px;border-radius:12px;border:1.5px solid var(--bd);background:#fff;font-size:15px;font-weight:700;color:var(--tx);cursor:pointer;touch-action:manipulation;text-align:left}
+.picker-item:active{background:var(--of)}
+
+.notif-item{padding:12px 14px;border-radius:12px;border:1px solid var(--bd);margin-bottom:8px;cursor:pointer;background:#fff}
+.notif-item.unread{background:#EEF3FB;border-color:var(--st)}
+.notif-item-msg{font-size:13px;color:var(--tx);line-height:1.5}
+.notif-item-time{font-size:10px;color:var(--mu);margin-top:5px}
 </style>
 </head>
 <body>
@@ -269,7 +286,11 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
     </div>
   </div>
   <div class="hdr-clock" id="hdr-clock" style="display:none"></div>
-  <button class="hdr-btn" id="hdr-action-btn" onclick="hdrAction()" style="display:none">+ Facility</button>
+  <div class="hdr-right">
+    <button class="hdr-icon-btn" id="hdr-bell-btn" onclick="openNotifPanel()" style="display:none">🔔<span class="notif-badge" id="notif-badge" style="display:none">0</span></button>
+    <button class="hdr-user-pill" id="hdr-user-pill" onclick="showUserPicker(true)" style="display:none"></button>
+    <button class="hdr-btn" id="hdr-action-btn" onclick="hdrAction()" style="display:none">+ Facility</button>
+  </div>
 </div>
 
 <!-- PAGES -->
@@ -529,6 +550,7 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
       <div class="fg"><label>Assigned Tech</label><input type="text" id="cm-tech" placeholder="e.g. Mike R."></div>
     </div>
     <div class="fg"><label>Entered By</label><input type="text" id="cm-by" placeholder="Your name"></div>
+    <button class="btn btn-or" id="cm-notify-btn" style="display:none" onclick="notifyRequester()">📱 Notify Requester</button>
     <button class="btn btn-nv" onclick="saveCalEntry()">Save Entry</button>
     <button class="btn btn-outline" onclick="closeModal('cal-modal')" style="margin-top:6px">Cancel</button>
     <button class="btn btn-red" id="cm-delete-btn" style="display:none" onclick="deleteCalEntry()">Delete Entry</button>
@@ -555,8 +577,30 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
     <div class="fg"><label>Date Needed *</label><input type="date" id="rm-date"></div>
     <div class="fg"><label>What's needed *</label><textarea id="rm-note" placeholder="e.g. RTU-3 down, no cooling — need tech ASAP"></textarea></div>
     <div class="fg"><label>Requested By</label><input type="text" id="rm-by" placeholder="Your name"></div>
+    <div class="fg"><label>Your Phone or Email <span style="font-size:9px;font-weight:400;color:var(--mu);text-transform:none">(so ops can notify you when confirmed)</span></label><input type="text" id="rm-contact" placeholder="e.g. (945) 555-0100 or you@ntdmechanical.com"></div>
     <button class="btn btn-nv" onclick="saveTechRequest()">Submit Request</button>
     <button class="btn btn-outline" onclick="closeModal('req-modal')" style="margin-top:6px">Cancel</button>
+  </div>
+</div>
+
+<!-- WHO ARE YOU PICKER -->
+<div class="modal-overlay" id="user-picker-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle" id="picker-handle" style="display:none"></div>
+    <div class="modal-title">Who are you?</div>
+    <div style="font-size:12px;color:var(--mu);margin-bottom:14px;line-height:1.5">This just personalizes Hub on this device — no password needed. You can switch anytime from the header.</div>
+    <div class="picker-list" id="picker-list"></div>
+    <button class="btn btn-outline" id="picker-cancel-btn" style="display:none;margin-top:12px" onclick="closeModal('user-picker-modal')">Cancel</button>
+  </div>
+</div>
+
+<!-- NOTIFICATIONS PANEL -->
+<div class="modal-overlay" id="notif-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Notifications</div>
+    <div id="notif-list-wrap"></div>
+    <button class="btn btn-outline" onclick="closeModal('notif-modal')" style="margin-top:6px">Close</button>
   </div>
 </div>
 
@@ -577,6 +621,13 @@ var calWeeksToShow = 1;
 var calFacilitiesCache = null;
 var isTvMode = false;
 var requestingFacilityId = null;
+var editingCalRequester = null;
+var editingCalContact = null;
+var editingCalOriginalStatus = null;
+
+// ── USER IDENTITY (Tier 1 — device-local, no password) ─────────────────────
+var STAFF_NAMES = ['Billy Davis','Braley Keen','Carmen Autry','Jason Ezell','Landon Cantrell','Steve Hopkins','Yesenia Garcia'];
+var notifPollTimer = null;
 
 // ── NAV ───────────────────────────────────────────────────────────────────
 function goPage(page) {
@@ -2231,7 +2282,8 @@ function openRequestTech(facilityId) {
   document.getElementById('rm-type').value = 'job';
   document.getElementById('rm-date').value = fmtDateISO(new Date());
   document.getElementById('rm-note').value = '';
-  document.getElementById('rm-by').value = '';
+  document.getElementById('rm-by').value = getCurrentUser() || '';
+  document.getElementById('rm-contact').value = '';
   document.getElementById('req-fac-fg').style.display = 'none';
   document.getElementById('req-fac-name').textContent = '';
   ntdStore.facilities.get(facilityId).then(function(f) {
@@ -2258,7 +2310,8 @@ function saveTechRequest() {
       note: note,
       facility_id: requestingFacilityId,
       status: 'pending',
-      requested_by: document.getElementById('rm-by').value.trim()
+      requested_by: document.getElementById('rm-by').value.trim(),
+      requested_by_contact: document.getElementById('rm-contact').value.trim()
     };
     return ntdStore.team_calendar.upsert(record);
   }).then(function() {
@@ -2333,14 +2386,14 @@ function renderCalendarWeek() {
       if (jobEntries.length) {
         out += '<div class="cal-section-lbl">Jobs Today</div>';
         var jobTypeMeta = {
-          job:            {icon:'🔧', label:''},
           site_visit:     {icon:'📍', label:'Site Visit — '},
           site_inspection:{icon:'🔍', label:'Site Inspection — '},
           job_walk:       {icon:'🤝', label:'Job Walk (Sales) — '}
         };
         jobEntries.forEach(function(e) {
-          var meta = jobTypeMeta[e.entry_type] || jobTypeMeta.job;
           var isPending = e.status === 'pending';
+          var meta = jobTypeMeta[e.entry_type];
+          if (!meta) meta = {icon:'🔧', label: isPending ? 'Tech Requested — ' : 'Service Call — '};
           out += '<div class="cal-job-row" onclick="openEditCalEntry(\''+e.id+'\')">' +
             '<div class="cal-job-dot'+(isPending?' pending':'')+'"></div>' +
             '<div class="cal-job-text">'+meta.icon+' <b>'+meta.label+esc(e.title)+'</b>'+
@@ -2464,8 +2517,12 @@ function openAddCalEntry() {
   document.getElementById('cm-note').value = '';
   document.getElementById('cm-status').value = 'confirmed';
   document.getElementById('cm-tech').value = '';
-  document.getElementById('cm-by').value = '';
+  document.getElementById('cm-by').value = getCurrentUser() || '';
   document.getElementById('cm-delete-btn').style.display = 'none';
+  document.getElementById('cm-notify-btn').style.display = 'none';
+  editingCalRequester = null;
+  editingCalContact = null;
+  editingCalOriginalStatus = null;
   calToggleFields();
   openModal('cal-modal');
 }
@@ -2484,11 +2541,35 @@ function openEditCalEntry(id) {
     document.getElementById('cm-note').value = e.note || '';
     document.getElementById('cm-status').value = e.status || 'confirmed';
     document.getElementById('cm-tech').value = e.assigned_tech || '';
-    document.getElementById('cm-by').value = e.entered_by || e.requested_by || '';
+    document.getElementById('cm-by').value = e.entered_by || getCurrentUser() || '';
     document.getElementById('cm-delete-btn').style.display = 'block';
+    editingCalRequester = e.requested_by || null;
+    editingCalContact = e.requested_by_contact || null;
+    editingCalOriginalStatus = e.status || 'confirmed';
+    document.getElementById('cm-notify-btn').style.display = editingCalContact ? 'block' : 'none';
     calToggleFields();
     openModal('cal-modal');
   });
+}
+
+function notifyRequester() {
+  if (!editingCalContact) return;
+  var facName = document.getElementById('cm-title').value || 'the job';
+  var date = document.getElementById('cm-date').value || '';
+  var tech = document.getElementById('cm-tech').value.trim();
+  var status = document.getElementById('cm-status').value;
+
+  var msg = status === 'confirmed'
+    ? 'NTD Hub: Your tech request for ' + facName + ' on ' + date + ' is confirmed' + (tech ? ' — ' + tech + ' is assigned.' : '.')
+    : 'NTD Hub: Your tech request for ' + facName + ' on ' + date + ' is still pending confirmation.';
+
+  var contact = editingCalContact.trim();
+  if (contact.indexOf('@') > -1) {
+    window.open('mailto:' + encodeURIComponent(contact) + '?subject=' + encodeURIComponent('Tech Request Update — ' + facName) + '&body=' + encodeURIComponent(msg), '_blank');
+  } else {
+    var digits = contact.replace(/[^\d+]/g, '');
+    window.open('sms:' + digits + '&body=' + encodeURIComponent(msg), '_blank');
+  }
 }
 
 function saveCalEntry() {
@@ -2514,9 +2595,15 @@ function saveCalEntry() {
   }
   if (editingCalId) record.id = editingCalId;
 
+  var justConfirmed = jobTypes[type] && editingCalOriginalStatus === 'pending' && record.status === 'confirmed' && editingCalRequester;
+
   ntdStore.team_calendar.upsert(record).then(function() {
     closeModal('cal-modal');
     showToast('Saved');
+    if (justConfirmed) {
+      var msg = 'Your tech request for ' + title + ' on ' + date + ' is confirmed' + (record.assigned_tech ? ' — ' + record.assigned_tech + ' is assigned.' : '.');
+      createNotification(editingCalRequester, msg, editingCalId, 'schedule_confirmed');
+    }
     renderCalendarWeek();
     refreshSchedReqBadge();
     if (currentScheduleView === 'requests') renderRequestsList();
@@ -2565,6 +2652,104 @@ function initTvModeIfRequested() {
 
   setInterval(function() { renderCalendarWeek(); }, 90000);
 }
+// ── USER IDENTITY (Tier 1 — device-local, no password) ─────────────────────
+function getCurrentUser() {
+  try { return localStorage.getItem('ntdCurrentUser') || null; } catch(e) { return null; }
+}
+function setCurrentUser(name) {
+  try { localStorage.setItem('ntdCurrentUser', name); } catch(e) {}
+}
+
+function showUserPicker(isSwitch) {
+  var list = document.getElementById('picker-list');
+  var current = getCurrentUser();
+  list.innerHTML = STAFF_NAMES.map(function(n) {
+    return '<button class="picker-item" onclick="selectUser(\''+esc(n).replace(/'/g,"\\'")+'\')">'+(n===current?'✓ ':'')+esc(n)+'</button>';
+  }).join('');
+  document.getElementById('picker-cancel-btn').style.display = isSwitch ? 'block' : 'none';
+  document.getElementById('picker-handle').style.display = isSwitch ? 'block' : 'none';
+  openModal('user-picker-modal');
+}
+
+function selectUser(name) {
+  setCurrentUser(name);
+  closeModal('user-picker-modal');
+  updateUserPillDisplay();
+  refreshNotifBadge();
+  showToast('Hi, ' + name.split(' ')[0] + '!');
+}
+
+function updateUserPillDisplay() {
+  var name = getCurrentUser();
+  var pill = document.getElementById('hdr-user-pill');
+  var bell = document.getElementById('hdr-bell-btn');
+  if (name) {
+    pill.textContent = '👤 ' + name.split(' ')[0];
+    pill.style.display = 'block';
+    bell.style.display = 'flex';
+  }
+}
+
+// ── IN-APP NOTIFICATIONS ────────────────────────────────────────────────────
+function createNotification(recipientName, message, relatedId, type) {
+  if (!recipientName) return Promise.resolve();
+  return ntdStore.notifications.upsert({
+    recipient_name: recipientName,
+    message: message,
+    related_id: relatedId || '',
+    type: type || '',
+    read: false
+  }).catch(function(err) { console.error('createNotification failed:', err); });
+}
+
+function refreshNotifBadge() {
+  var name = getCurrentUser();
+  var badge = document.getElementById('notif-badge');
+  if (!name || !badge) return;
+  ntdStore.notifications.list(function(n){ return n.recipient_name === name && !n.read; }).then(function(rows) {
+    var count = (rows||[]).length;
+    if (count) { badge.textContent = count > 9 ? '9+' : count; badge.style.display = 'flex'; }
+    else { badge.style.display = 'none'; }
+  }).catch(function(){});
+}
+
+function openNotifPanel() {
+  var name = getCurrentUser();
+  var wrap = document.getElementById('notif-list-wrap');
+  if (!name) { showUserPicker(true); return; }
+  wrap.innerHTML = '<div style="text-align:center;padding:24px;color:var(--mu);font-size:13px">Loading…</div>';
+  openModal('notif-modal');
+
+  ntdStore.notifications.list(function(n){ return n.recipient_name === name; }).then(function(rows) {
+    rows = (rows||[]).sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
+    if (!rows.length) { wrap.innerHTML = emptyState('🔔','No notifications yet','You\'ll see updates here when a tech request you submitted gets confirmed.'); return; }
+    wrap.innerHTML = rows.map(function(n) {
+      var when = n.ts ? new Date(n.ts).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : '';
+      return '<div class="notif-item'+(n.read?'':' unread')+'" onclick="notifItemClick(\''+n.id+'\',\''+(n.related_id||'')+'\')">' +
+        '<div class="notif-item-msg">'+esc(n.message)+'</div>' +
+        '<div class="notif-item-time">'+esc(when)+'</div>' +
+      '</div>';
+    }).join('');
+  }).catch(function(err) {
+    wrap.innerHTML = emptyState('⚠️','Couldn\'t load notifications', esc(err.message||'Please try again.'));
+  });
+}
+
+function notifItemClick(notifId, relatedId) {
+  ntdStore.notifications.get(notifId).then(function(n) {
+    if (n && !n.read) {
+      n.read = true;
+      ntdStore.notifications.upsert(n).then(refreshNotifBadge);
+    }
+  });
+  closeModal('notif-modal');
+  if (relatedId) {
+    currentScheduleView = 'calendar';
+    goPage('schedule');
+    setTimeout(function(){ openEditCalEntry(relatedId); }, 200);
+  }
+}
+
 // ── END SCHEDULING + TEAM CALENDAR ──────────────────────────────────────────
 
 // ── INIT ──────────────────────────────────────────────────────────────────
@@ -2596,6 +2781,15 @@ window.addEventListener('load', function() {
   renderDashboard();
   refreshSchedReqBadge();
   initTvModeIfRequested();
+
+  var tvRequested = (new URLSearchParams(window.location.search)).get('tv') === '1';
+  if (!tvRequested) {
+    updateUserPillDisplay();
+    if (!getCurrentUser()) { showUserPicker(false); }
+    refreshNotifBadge();
+    notifPollTimer = setInterval(refreshNotifBadge, 45000);
+  }
+
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(function(){});
   }

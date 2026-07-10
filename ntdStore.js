@@ -283,6 +283,7 @@ var ntdStore = {
   settings:       _makeStore('facilities'), // settings not needed with Supabase
   documents:      _makeStore('documents'),
   team_calendar:  _makeStore('team_calendar'),
+  notifications:  _makeStore('notifications'),
   migrate:        _migrate,
   exportAll:      _exportImport.exportAll,
   importAll:      _exportImport.importAll,
@@ -342,7 +343,7 @@ var ntdStore = {
 // This patch ensures filterFn still works on list() calls
 (function() {
   var stores = ['facilities','equipment','jobs','job_units','startup_records',
-                'pm_records','pm_unit_results','pm_quotes','service_quotes','documents','team_calendar'];
+                'pm_records','pm_unit_results','pm_quotes','service_quotes','documents','team_calendar','notifications'];
   stores.forEach(function(name) {
     var original = ntdStore[name].list;
     ntdStore[name].list = function(filterFn) {
