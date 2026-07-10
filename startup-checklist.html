@@ -613,6 +613,7 @@ function rtuHTML(){
     +mf('Control Xfmr Primary Voltage','rtu_v_pri','V')
     +mf('Control Xfmr Secondary Voltage','rtu_v_sec','V')
     +ynRow('Primary voltage matches unit supply voltage?','rtu_v_match',false)
+    +mf('Outside Air Temp (Ambient — Pre-Startup)','rtu_t0','°F')
     +sh('POWER ON — COOLING & HEATING TESTS','var(--gn-dark)')
     +'<div class="mf-row"><span class="mf-label">Refrigerant Type</span>'+'<select id="mf_rtu_ref_type" style="-webkit-appearance:none;font-size:14px;padding:8px 10px"><option value="">-- Select --</option><option>R-454B</option><option>R-410A</option><option>R-407C</option><option>R-22</option><option>R-32</option><option>R-134a</option><option>R-123</option><option>R-404A</option><option>R-448A</option><option>R-449A</option><option>R-422D</option><option>R-417A</option><option>R-438A</option><option>R-290 (Propane)</option><option>R-600a (Isobutane)</option><option>Other</option></select>'+'</div>'
     +mf('Record Blower Amps','rtu_blw_amps','A')
@@ -627,8 +628,8 @@ function rtuHTML(){
     +'</div>'
     +sh('MEASURED TEMPERATURES')
     +'<div class="r3">'
-    +['Outside Air','Space','Heat Supply','Cool Supply','Mixed Air'].map(function(t,i){
-      return '<div class="fg"><label>'+t+'</label><input type="text" id="mf_rtu_t'+i+'" style="text-align:center" placeholder="°F" oninput="updateProgress()"></div>';
+    +['Space','Heat Supply','Cool Supply','Mixed Air'].map(function(t,i){
+      return '<div class="fg"><label>'+t+'</label><input type="text" id="mf_rtu_t'+(i+1)+'" style="text-align:center" placeholder="°F" oninput="updateProgress()"></div>';
     }).join('')
     +'</div>'
     +sh('REFRIGERANT DATA — PER COMPRESSOR')
@@ -833,19 +834,19 @@ function boilerHTML(){
     +'</div>'
     +'<div class="yn-table-hdr"><span>Item</span><span>Y / N / NA</span><span>Comments</span></div>'
     +yn_html
-    +sh('POWER ON — GAS PRESSURES & COMBUSTION','var(--gn-dark)')
-    +mf('Gas Inlet Pressure — Unit OFF','blr_gin_off','in. WC')
-    +mf('Gas Inlet Pressure — Unit ON','blr_gin_on','in. WC')
-    +mf('Manifold Outlet Pressure','blr_man_press','in. WC')
-    +mf('Combustion Blower Amps 1st Stage','blr_cba1','A')
-    +mf('Combustion Blower Amps 2nd Stage','blr_cba2','A')
-    +sh('WATER TEMPERATURES')
+    +sh('WATER TEMPERATURES — PRE-STARTUP BASELINE','var(--gn-dark)')
     +tbl(['Measurement','Reading','Unit'],[
       tr(tc('label','Supply Water Temperature')+tc('blr_swt','')+tc('label','°F')),
       tr(tc('label','Return Water Temperature')+tc('blr_rwt','')+tc('label','°F')),
       tr(tc('label','Delta-T')+tc('blr_dt','')+tc('label','°F')),
       tr(tc('label','System Operating Pressure')+tc('blr_sop','')+tc('label','PSI')),
     ].join(''))
+    +sh('POWER ON — GAS PRESSURES & COMBUSTION')
+    +mf('Gas Inlet Pressure — Unit OFF','blr_gin_off','in. WC')
+    +mf('Gas Inlet Pressure — Unit ON','blr_gin_on','in. WC')
+    +mf('Manifold Outlet Pressure','blr_man_press','in. WC')
+    +mf('Combustion Blower Amps 1st Stage','blr_cba1','A')
+    +mf('Combustion Blower Amps 2nd Stage','blr_cba2','A')
     +sh('ELECTRICAL')
     +mf('Supply Voltage to Unit','blr_v_sup','V')
     +mf('Control Transformer Voltage','blr_v_ctrl','V')
@@ -902,6 +903,7 @@ function ahuHTML(){
     +yn_html
     +sh('POWER ON — MEASUREMENTS','var(--gn-dark)')
     +mf('Supply Voltage to Unit','ahu_v_sup','V')
+    +mf('Outside Air Temp (Ambient — Pre-Startup)','ahu_oat','°F')
     +mf('Blower Amps','ahu_blw_amps','A')
     +mf('VFD Output Frequency','ahu_vfd_hz','Hz')
     +'<div class="r3">'
@@ -911,7 +913,6 @@ function ahuHTML(){
     +'</div>'
     +sh('MEASURED TEMPERATURES & PRESSURES')
     +tbl(['Measurement','Reading','Unit'],[
-      tr(tc('label','Outside Air Temp')+tc('ahu_oat','')+tc('label','°F')),
       tr(tc('label','Mixed Air Temp')+tc('ahu_mat','')+tc('label','°F')),
       tr(tc('label','Supply Air Temp')+tc('ahu_sat','')+tc('label','°F')),
       tr(tc('label','Return Air Temp')+tc('ahu_rat','')+tc('label','°F')),
