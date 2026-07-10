@@ -218,6 +218,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .cal-job-text b{color:var(--tx)}
 .cal-job-text span{color:var(--mu)}
 .cal-pending-tag{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:var(--am);background:#FFF3E0;border-radius:6px;padding:1px 6px;margin-left:5px;vertical-align:middle}
+.cal-requested-tag{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:var(--nv);background:#E8F0FA;border-radius:6px;padding:1px 6px;margin-left:5px;vertical-align:middle}
 
 .cal-suggest{display:none;position:absolute;left:0;right:0;top:100%;background:#fff;border:1.5px solid var(--bd);border-top:none;border-radius:0 0 10px 10px;max-height:180px;overflow-y:auto;z-index:50;box-shadow:0 8px 16px rgba(0,0,0,.12)}
 .cal-suggest.on{display:block}
@@ -547,7 +548,19 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
           <option value="pending">Pending</option>
         </select>
       </div>
-      <div class="fg"><label>Assigned Tech</label><input type="text" id="cm-tech" placeholder="e.g. Mike R."></div>
+      <div class="fg"><label>Assigned Tech</label>
+        <select id="cm-tech">
+          <option value="">— Select Tech —</option>
+          <option value="Carlos Mendoza">Carlos Mendoza</option>
+          <option value="Conner Rouse">Conner Rouse</option>
+          <option value="Diego Preciado">Diego Preciado</option>
+          <option value="Geoff Grider">Geoff Grider</option>
+          <option value="Nicholas Hosack">Nicholas Hosack</option>
+          <option value="Raul Lopez">Raul Lopez</option>
+          <option value="Scott Adkins">Scott Adkins</option>
+          <option value="Tristan Black">Tristan Black</option>
+        </select>
+      </div>
     </div>
     <div class="fg"><label>Entered By</label><input type="text" id="cm-by" placeholder="Your name"></div>
     <button class="btn btn-or" id="cm-notify-btn" style="display:none" onclick="notifyRequester()">📱 Notify Requester</button>
@@ -626,7 +639,7 @@ var editingCalContact = null;
 var editingCalOriginalStatus = null;
 
 // ── USER IDENTITY (Tier 1 — device-local, no password) ─────────────────────
-var STAFF_NAMES = ['Billy Davis','Braley Keen','Carmen Autry','Jason Ezell','Landon Cantrell','Steve Hopkins','Yesenia Garcia'];
+var STAFF_NAMES = ['Amy Carreon','Billy Davis','Blake Orite','Cary Reese','Evyn Fairman','Jaidon Lacewell','Jason Ezell','Julie Shindoll','Kyle Mackey','Landon Cantrell','Liz Parker','Mari Torres','Toby Sharp','Valeria Ramirez','Yesenia Garcia'];
 var notifPollTimer = null;
 
 // ── NAV ───────────────────────────────────────────────────────────────────
@@ -2392,12 +2405,14 @@ function renderCalendarWeek() {
         };
         jobEntries.forEach(function(e) {
           var isPending = e.status === 'pending';
+          var wasRequested = !!e.requested_by;
           var meta = jobTypeMeta[e.entry_type];
           if (!meta) meta = {icon:'🔧', label: isPending ? 'Tech Requested — ' : 'Service Call — '};
           out += '<div class="cal-job-row" onclick="openEditCalEntry(\''+e.id+'\')">' +
             '<div class="cal-job-dot'+(isPending?' pending':'')+'"></div>' +
             '<div class="cal-job-text">'+meta.icon+' <b>'+meta.label+esc(e.title)+'</b>'+
               (isPending?'<span class="cal-pending-tag">Pending</span>':'')+
+              (!isPending && wasRequested?'<span class="cal-requested-tag">Requested</span>':'')+
               (e.assigned_tech?' <span>— '+esc(e.assigned_tech)+'</span>':'')+
               (e.note?' <span>— '+esc(e.note)+'</span>':'')+
             '</div>' +
