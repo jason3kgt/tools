@@ -175,104 +175,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .pinned-note-label{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--am);margin-bottom:4px}
 .pinned-note-text{font-size:13px;color:var(--tx);line-height:1.6;white-space:pre-wrap}
 .pinned-note-btn{background:none;border:none;font-size:11px;font-weight:700;color:var(--am);cursor:pointer;padding:4px 0;font-family:inherit;touch-action:manipulation}
-
-/* ── SCHEDULING SUB-NAV ── */
-.sched-subnav{display:flex;gap:8px;margin-bottom:14px}
-.sched-subnav-btn{flex:1;padding:10px;border-radius:11px;border:1.5px solid var(--bd);background:#fff;color:var(--mu);font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;text-align:center}
-.sched-subnav-btn.on{background:var(--nv);border-color:var(--nv);color:#fff}
-.sched-req-count{display:inline-block;min-width:16px;padding:0 5px;border-radius:8px;background:var(--rd);color:#fff;font-size:10px;font-weight:800;margin-left:5px;line-height:16px}
-.sched-subnav-btn.on .sched-req-count{background:rgba(255,255,255,.25)}
-
-/* ── SCHEDULE REQUEST CARDS ── */
-.sched-req-card{background:#fff;border-radius:14px;border:1px solid var(--bd);margin-bottom:10px;box-shadow:var(--card-shadow);padding:14px 16px;cursor:pointer}
-.sched-req-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px}
-.sched-req-fac{font-size:14px;font-weight:700;color:var(--nv)}
-.sched-req-date{font-size:11px;color:var(--mu);margin-top:2px}
-.sched-req-note{font-size:12.5px;color:var(--tx);line-height:1.5;margin-top:6px}
-.sched-req-meta{font-size:11px;color:var(--mu);margin-top:8px;padding-top:8px;border-top:1px solid var(--of)}
-.status-pending{background:#FFF3E0;color:var(--am)}
-.status-confirmed{background:#E6F4EA;color:var(--gn)}
-
-/* ── TEAM CALENDAR ── */
-.cal-week-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:8px}
-.cal-week-nav .btn-sm{margin:0}
-.cal-week-label{font-size:13px;font-weight:700;color:var(--tx);text-align:center;flex:1}
-.cal-day-card{background:#fff;border-radius:14px;border:1px solid var(--bd);margin-bottom:10px;box-shadow:var(--card-shadow);overflow:hidden}
-.cal-day-hdr{padding:9px 14px;background:var(--of);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--bd)}
-.cal-day-hdr.today{background:#EEF3FB}
-.cal-day-name{font-size:12px;font-weight:800;color:var(--nv);text-transform:uppercase;letter-spacing:.04em}
-.cal-day-date{font-size:11px;color:var(--mu);margin-top:1px}
-.cal-day-body{padding:10px 14px 12px}
-.cal-empty-day{font-size:11px;color:var(--mu);padding:4px 0;font-style:italic}
-.cal-section-lbl{font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mu);margin:8px 0 5px}
-.cal-section-lbl:first-child{margin-top:0}
-.chip-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:2px}
-.status-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:5px 10px;border-radius:20px;cursor:pointer}
-.status-chip.pto{background:#E8F0FA;color:var(--nv)}
-.status-chip.sick{background:#FDEDEC;color:var(--rd)}
-.status-chip.ooo{background:#F0F0F0;color:var(--mu)}
-.cal-job-row{display:flex;align-items:flex-start;gap:8px;padding:6px 0;cursor:pointer}
-.cal-job-dot{width:7px;height:7px;border-radius:50%;background:var(--or);margin-top:6px;flex-shrink:0}
-.cal-job-dot.pending{background:var(--am)}
-.cal-job-text{flex:1;font-size:12.5px;line-height:1.5}
-.cal-job-text b{color:var(--tx)}
-.cal-job-text span{color:var(--mu)}
-.cal-pending-tag{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:var(--am);background:#FFF3E0;border-radius:6px;padding:1px 6px;margin-left:5px;vertical-align:middle}
-.cal-requested-tag{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:var(--nv);background:#E8F0FA;border-radius:6px;padding:1px 6px;margin-left:5px;vertical-align:middle}
-
-.cal-suggest{display:none;position:absolute;left:0;right:0;top:100%;background:#fff;border:1.5px solid var(--bd);border-top:none;border-radius:0 0 10px 10px;max-height:180px;overflow-y:auto;z-index:50;box-shadow:0 8px 16px rgba(0,0,0,.12)}
-.cal-suggest.on{display:block}
-.cal-suggest-item{padding:9px 12px;font-size:13px;color:var(--tx);cursor:pointer;border-bottom:1px solid var(--of)}
-.cal-suggest-item:last-child{border-bottom:none}
-.cal-suggest-item:active,.cal-suggest-item:hover{background:var(--of)}
-
-/* ── TV / BIG SCREEN MODE ── */
-.hdr-clock{font-size:20px;font-weight:800;color:#fff;letter-spacing:.02em;font-variant-numeric:tabular-nums}
-body.tv-mode{padding-bottom:0}
-body.tv-mode .bnav{display:none !important}
-body.tv-mode .hdr{height:74px;padding:0 28px}
-body.tv-mode .hdr-title{font-size:24px}
-body.tv-mode .hdr-sub{font-size:13px}
-body.tv-mode .hdr-logo{width:48px;height:48px;font-size:24px;border-radius:11px}
-body.tv-mode .hdr-btn{display:none !important}
-body.tv-mode .hdr-icon-btn,body.tv-mode .hdr-user-pill{display:none !important}
-body.tv-mode .pg{max-width:1400px;padding:28px}
-body.tv-mode #pg-schedule{display:block !important}
-body.tv-mode .sched-subnav{display:none}
-body.tv-mode .cal-week-nav,body.tv-mode .cal-week-nav + .btn-outline{display:none}
-body.tv-mode #cal-week-wrap{min-width:1100px}
-body.tv-mode .pg{overflow-x:auto}
-.cal-week-row{display:block}
-body.tv-mode .cal-week-row{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:10px}
-body.tv-mode .cal-day-card{margin-bottom:0}
-body.tv-mode .cal-day-hdr{padding:10px 12px}
-body.tv-mode .cal-day-name{font-size:13.5px}
-body.tv-mode .cal-day-date{font-size:11px}
-body.tv-mode .cal-day-body{padding:10px 12px 12px}
-body.tv-mode .cal-section-lbl{font-size:9.5px}
-body.tv-mode .status-chip{font-size:11px;padding:4px 9px}
-body.tv-mode .cal-job-text{font-size:11.5px}
-body.tv-mode .cal-empty-day{font-size:10.5px}
-body.tv-mode .cal-day-slim{display:flex;align-items:center;justify-content:center;overflow:hidden}
-body.tv-mode .cal-day-slim .cal-day-hdr{background:none;border:none;padding:6px 2px;text-align:center;width:100%;display:block}
-body.tv-mode .cal-day-slim .cal-day-name{font-size:9.5px;white-space:nowrap}
-body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
-
-/* ── USER IDENTITY + NOTIFICATIONS ── */
-.hdr-icon-btn{position:relative;background:rgba(255,255,255,.12);border:none;border-radius:8px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;touch-action:manipulation;flex-shrink:0}
-.hdr-icon-btn:active{opacity:.8}
-.hdr-user-pill{background:rgba(255,255,255,.12);border:none;border-radius:20px;padding:6px 12px;font-size:11px;font-weight:700;color:#fff;cursor:pointer;font-family:inherit;touch-action:manipulation;white-space:nowrap;max-width:90px;overflow:hidden;text-overflow:ellipsis;flex-shrink:1}
-.hdr-right{display:flex;align-items:center;gap:7px;flex-shrink:0}
-.notif-badge{position:absolute;top:-3px;right:-3px;min-width:15px;height:15px;padding:0 3px;border-radius:8px;background:var(--rd);color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;line-height:1}
-
-.picker-list{display:flex;flex-direction:column;gap:8px;margin-top:4px}
-.picker-item{padding:14px 16px;border-radius:12px;border:1.5px solid var(--bd);background:#fff;font-size:15px;font-weight:700;color:var(--tx);cursor:pointer;touch-action:manipulation;text-align:left}
-.picker-item:active{background:var(--of)}
-
-.notif-item{padding:12px 14px;border-radius:12px;border:1px solid var(--bd);margin-bottom:8px;cursor:pointer;background:#fff}
-.notif-item.unread{background:#EEF3FB;border-color:var(--st)}
-.notif-item-msg{font-size:13px;color:var(--tx);line-height:1.5}
-.notif-item-time{font-size:10px;color:var(--mu);margin-top:5px}
 </style>
 </head>
 <body>
@@ -286,12 +188,7 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
       <div class="hdr-sub">NTD Mechanical · Garland TX</div>
     </div>
   </div>
-  <div class="hdr-clock" id="hdr-clock" style="display:none"></div>
-  <div class="hdr-right">
-    <button class="hdr-icon-btn" id="hdr-bell-btn" onclick="openNotifPanel()" style="display:none">🔔<span class="notif-badge" id="notif-badge" style="display:none">0</span></button>
-    <button class="hdr-user-pill" id="hdr-user-pill" onclick="showUserPicker(true)" style="display:none"></button>
-    <button class="hdr-btn" id="hdr-action-btn" onclick="hdrAction()" style="display:none">+ Facility</button>
-  </div>
+  <button class="hdr-btn" id="hdr-action-btn" onclick="hdrAction()" style="display:none">+ Facility</button>
 </div>
 
 <!-- PAGES -->
@@ -324,26 +221,6 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
     <input type="text" id="proj-search" placeholder="Search projects…" oninput="renderProjectList()" autocomplete="off">
   </div>
   <div id="proj-list-wrap"></div>
-</div>
-
-<!-- ④ SCHEDULING -->
-<div class="pg" id="pg-schedule">
-  <div class="sched-subnav">
-    <button class="sched-subnav-btn on" id="sched-tab-requests" onclick="switchScheduleView('requests')">Requests<span class="sched-req-count" id="sched-req-count" style="display:none">0</span></button>
-    <button class="sched-subnav-btn" id="sched-tab-calendar" onclick="switchScheduleView('calendar')">Calendar</button>
-  </div>
-  <div id="sched-requests-view">
-    <div id="sched-requests-wrap"></div>
-  </div>
-  <div id="sched-calendar-view" style="display:none">
-    <div class="cal-week-nav">
-      <button class="btn btn-outline btn-sm" onclick="calShiftWeek(-1)">◀ Prev</button>
-      <div class="cal-week-label" id="cal-week-label"></div>
-      <button class="btn btn-outline btn-sm" onclick="calShiftWeek(1)">Next ▶</button>
-    </div>
-    <button class="btn btn-outline btn-sm" style="width:100%;margin-bottom:14px" onclick="calGoToday()">Jump to This Week</button>
-    <div id="cal-week-wrap"></div>
-  </div>
 </div>
 
 <!-- ③ SEARCH -->
@@ -399,9 +276,6 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
   </button>
   <button class="bnav-btn" id="bnav-projects" onclick="goPage('projects')">
     <span class="bi">📁</span>Projects
-  </button>
-  <button class="bnav-btn" id="bnav-schedule" onclick="goPage('schedule')">
-    <span class="bi">🗓️</span>Schedule
   </button>
   <button class="bnav-btn" id="bnav-search" onclick="goPage('search')">
     <span class="bi">🔍</span>Search
@@ -474,6 +348,7 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
       <div class="fg"><label>Parts PO #</label><input type="text" id="pm-po-parts" placeholder=""></div>
     </div>
     <div class="fg"><label>Combined PO # <span style="font-size:9px;font-weight:400;color:var(--mu);text-transform:none">(if single PO covers both)</span></label><input type="text" id="pm-po" placeholder=""></div>
+    </div>
     <div class="r2">
       <div class="fg"><label>Start Date</label><input type="text" id="pm-start" placeholder="MM/DD/YYYY"></div>
       <div class="fg"><label>Target Completion</label><input type="text" id="pm-end" placeholder="MM/DD/YYYY"></div>
@@ -507,113 +382,9 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
         </select>
       </div>
     </div>
-    <div class="fg"><label>Contract Document URL (SharePoint)</label><input type="text" id="pm-agr-url" placeholder="https://…"></div>
+    <div class="fg"><label>Contract Document URL(s) <span style="font-size:9px;font-weight:400;color:var(--mu);text-transform:none">(one per line)</span></label><textarea id="pm-agr-url" placeholder="https://…" style="min-height:60px"></textarea></div>
     <button class="btn btn-nv" onclick="saveProject()">Save Project</button>
     <button class="btn btn-outline" onclick="closeModal('proj-modal')" style="margin-top:6px">Cancel</button>
-  </div>
-</div>
-
-<!-- ADD/EDIT TEAM CALENDAR ENTRY MODAL -->
-<div class="modal-overlay" id="cal-modal">
-  <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="cal-modal-title">Add Calendar Entry</div>
-    <div class="fg">
-      <label>Type</label>
-      <select id="cm-type" onchange="calToggleFields()">
-        <option value="job">Job — techs on-site today</option>
-        <option value="site_visit">Site Visit</option>
-        <option value="site_inspection">Site Inspection</option>
-        <option value="job_walk">Job Walk (Sales)</option>
-        <option value="pto">PTO</option>
-        <option value="sick">Sick</option>
-        <option value="ooo">Out of Office</option>
-      </select>
-    </div>
-    <div class="fg"><label>Date</label><input type="date" id="cm-date"></div>
-    <div class="fg" id="cm-title-fg" style="position:relative">
-      <label id="cm-title-lbl">Facility / Job Site *</label>
-      <input type="text" id="cm-title" placeholder="e.g. ILS Gummies" autocomplete="off" oninput="calFilterFacilities()" onfocus="calFilterFacilities()">
-      <div id="cm-title-suggest" class="cal-suggest"></div>
-    </div>
-    <div class="fg">
-      <label id="cm-note-lbl">Brief Description</label>
-      <textarea id="cm-note" placeholder="e.g. Two techs on-site for RTU replacement"></textarea>
-    </div>
-    <div class="r2" id="cm-job-fields">
-      <div class="fg">
-        <label>Status</label>
-        <select id="cm-status">
-          <option value="confirmed">Confirmed</option>
-          <option value="pending">Pending</option>
-        </select>
-      </div>
-      <div class="fg"><label>Assigned Tech</label>
-        <select id="cm-tech">
-          <option value="">— Select Tech —</option>
-          <option value="Carlos Mendoza">Carlos Mendoza</option>
-          <option value="Conner Rouse">Conner Rouse</option>
-          <option value="Diego Preciado">Diego Preciado</option>
-          <option value="Geoff Grider">Geoff Grider</option>
-          <option value="Nicholas Hosack">Nicholas Hosack</option>
-          <option value="Raul Lopez">Raul Lopez</option>
-          <option value="Scott Adkins">Scott Adkins</option>
-          <option value="Tristan Black">Tristan Black</option>
-        </select>
-      </div>
-    </div>
-    <div class="fg"><label>Entered By</label><input type="text" id="cm-by" placeholder="Your name"></div>
-    <button class="btn btn-or" id="cm-notify-btn" style="display:none" onclick="notifyRequester()">📱 Notify Requester</button>
-    <button class="btn btn-nv" onclick="saveCalEntry()">Save Entry</button>
-    <button class="btn btn-outline" onclick="closeModal('cal-modal')" style="margin-top:6px">Cancel</button>
-    <button class="btn btn-red" id="cm-delete-btn" style="display:none" onclick="deleteCalEntry()">Delete Entry</button>
-  </div>
-</div>
-
-<!-- REQUEST TECH MODAL (used from a Project card) -->
-<div class="modal-overlay" id="req-modal">
-  <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <div class="modal-title">Request a Tech</div>
-    <div class="fg" id="req-fac-fg" style="display:none">
-      <label>Facility</label>
-      <div style="font-size:14px;font-weight:700;color:var(--nv);padding:4px 0" id="req-fac-name"></div>
-    </div>
-    <div class="fg">
-      <label>Visit Type</label>
-      <select id="rm-type">
-        <option value="job">Job — tech(s) needed on-site</option>
-        <option value="site_visit">Site Visit</option>
-        <option value="site_inspection">Site Inspection</option>
-      </select>
-    </div>
-    <div class="fg"><label>Date Needed *</label><input type="date" id="rm-date"></div>
-    <div class="fg"><label>What's needed *</label><textarea id="rm-note" placeholder="e.g. RTU-3 down, no cooling — need tech ASAP"></textarea></div>
-    <div class="fg"><label>Requested By</label><input type="text" id="rm-by" placeholder="Your name"></div>
-    <div class="fg"><label>Your Phone or Email <span style="font-size:9px;font-weight:400;color:var(--mu);text-transform:none">(so ops can notify you when confirmed)</span></label><input type="text" id="rm-contact" placeholder="e.g. (945) 555-0100 or you@ntdmechanical.com"></div>
-    <button class="btn btn-nv" onclick="saveTechRequest()">Submit Request</button>
-    <button class="btn btn-outline" onclick="closeModal('req-modal')" style="margin-top:6px">Cancel</button>
-  </div>
-</div>
-
-<!-- WHO ARE YOU PICKER -->
-<div class="modal-overlay" id="user-picker-modal">
-  <div class="modal-sheet">
-    <div class="modal-handle" id="picker-handle" style="display:none"></div>
-    <div class="modal-title">Who are you?</div>
-    <div style="font-size:12px;color:var(--mu);margin-bottom:14px;line-height:1.5">This just personalizes Hub on this device — no password needed. You can switch anytime from the header.</div>
-    <div class="picker-list" id="picker-list"></div>
-    <button class="btn btn-outline" id="picker-cancel-btn" style="display:none;margin-top:12px" onclick="closeModal('user-picker-modal')">Cancel</button>
-  </div>
-</div>
-
-<!-- NOTIFICATIONS PANEL -->
-<div class="modal-overlay" id="notif-modal">
-  <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <div class="modal-title">Notifications</div>
-    <div id="notif-list-wrap"></div>
-    <button class="btn btn-outline" onclick="closeModal('notif-modal')" style="margin-top:6px">Close</button>
   </div>
 </div>
 
@@ -625,22 +396,6 @@ var currentDetailTab = 'timeline';
 var editingFacilityId = null;
 var editingProjectId = null;
 var editingProjectFacilityId = null;
-
-// ── SCHEDULING / TEAM CALENDAR STATE ────────────────────────────────────────
-var currentScheduleView = 'requests';
-var editingCalId = null;
-var calWeekStart = startOfWeek(new Date());
-var calWeeksToShow = 1;
-var calFacilitiesCache = null;
-var isTvMode = false;
-var requestingFacilityId = null;
-var editingCalRequester = null;
-var editingCalContact = null;
-var editingCalOriginalStatus = null;
-
-// ── USER IDENTITY (Tier 1 — device-local, no password) ─────────────────────
-var STAFF_NAMES = ['Amy Carreon','Billy Davis','Blake Orite','Cary Reese','Evyn Fairman','Jaidon Lacewell','Jason Ezell','Julie Shindoll','Kyle Mackey','Landon Cantrell','Liz Parker','Mari Torres','Toby Sharp','Valeria Ramirez','Yesenia Garcia'];
-var notifPollTimer = null;
 
 // ── NAV ───────────────────────────────────────────────────────────────────
 function goPage(page) {
@@ -664,10 +419,6 @@ function goPage(page) {
     hdrBtn.textContent = '+ Project';
     hdrBtn.style.display = 'block';
     renderProjectList();
-  } else if (page === 'schedule') {
-    hdrBtn.textContent = '+ Entry';
-    hdrBtn.style.display = 'block';
-    renderScheduleView();
   } else if (page === 'search') {
     hdrBtn.style.display = 'none';
     setTimeout(function(){ var el = document.getElementById('global-search'); if(el) el.focus(); }, 100);
@@ -696,7 +447,6 @@ function hdrAction() {
   }
   if (currentPage === 'facilities') openAddFacility();
   else if (currentPage === 'projects') openAddProject(null);
-  else if (currentPage === 'schedule') openAddCalEntry();
 }
 
 // ── FACILITY LIST ─────────────────────────────────────────────────────────
@@ -1359,11 +1109,16 @@ function renderDetailTab(f) {
                   '<span style="font-size:10px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.05em">Agreement</span>' +
                   (p.agr_num ? '<span style="font-size:11px;color:var(--tx);font-weight:600">#'+esc(p.agr_num)+'</span>' : '') +
                   (p.agr_status ? '<span class="status-badge '+(agrStatusClass[p.agr_status]||'status-bidding')+'">'+(agrStatusLabel[p.agr_status]||p.agr_status)+'</span>' : '') +
-                  (p.agr_url ? '<a href="'+esc(p.agr_url)+'" target="_blank" class="sp-link" style="font-size:11px">Document</a>' : '') +
+                  (function(){
+                    var urls = (p.agr_url||'').split('\n').map(function(u){return u.trim();}).filter(Boolean);
+                    if (!urls.length) return '';
+                    return urls.map(function(u,i){
+                      return '<a href="'+esc(u)+'" target="_blank" class="sp-link" style="font-size:11px">'+(urls.length>1?'Document '+(i+1):'Document')+'</a>';
+                    }).join('');
+                  })() +
                 '</div>';
               })() : '') +
-            '<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">' +
-              '<button class="btn btn-or btn-sm" onclick="openRequestTech(\''+fid+'\')">🔧 Request Tech</button>' +
+            '<div style="display:flex;gap:6px;margin-top:10px">' +
               '<button class="btn btn-outline btn-sm" onclick="openEditProject(\''+p.id+'\',\''+fid+'\')">✏️ Edit</button>' +
               '<button class="btn btn-red btn-sm" onclick="deleteProject(\''+p.id+'\')">Delete</button>' +
             '</div>' +
@@ -1492,9 +1247,6 @@ function confirmDeleteFacility(id) {
     ntdStore.facilities.delete(id).then(function() {
       showToast('Facility deleted');
       goPage('facilities');
-    }).catch(function(err) {
-      console.error('deleteFacility failed:', err);
-      showToast(err.message || 'Delete failed');
     });
   });
 }
@@ -1565,9 +1317,6 @@ function saveProject() {
     showToast(editingProjectId ? 'Project updated' : 'Project added');
     if (currentDetailTab === 'projects') ntdStore.facilities.get(currentFacilityId).then(renderDetailTab);
     renderProjectList();
-  }).catch(function(err) {
-    console.error('saveProject failed:', err);
-    showToast('Save failed: ' + (err.message || 'see console for details'));
   });
 }
 
@@ -1577,9 +1326,6 @@ function deleteProject(id) {
     showToast('Project deleted');
     ntdStore.facilities.get(currentFacilityId).then(renderDetailTab);
     renderProjectList();
-  }).catch(function(err) {
-    console.error('deleteProject failed:', err);
-    showToast('Delete failed: ' + (err.message || 'see console for details'));
   });
 }
 
@@ -1812,8 +1558,7 @@ function renderDashboard() {
     ntdStore.pm_quotes.list(),
     ntdStore.service_quotes.list(),
     ntdStore.jobs.list(),
-    ntdStore.documents ? ntdStore.documents.list() : Promise.resolve([]),
-    ntdStore.team_calendar ? ntdStore.team_calendar.list(function(e){ return e.status === 'pending'; }) : Promise.resolve([])
+    ntdStore.documents ? ntdStore.documents.list() : Promise.resolve([])
   ]).then(function(results) {
     var facilities = results[0];
     var startups   = results[1];
@@ -1822,7 +1567,6 @@ function renderDashboard() {
     var svcQuotes  = results[4];
     var jobs       = results[5];
     var docs       = results[6] || [];
-    var pendingReqs = results[7] || [];
 
     // ── Metrics ──
     var openFollowups = startups.filter(function(r){ return r.followup && r.followup.trim(); });
@@ -1863,26 +1607,8 @@ function renderDashboard() {
         statPill(openFollowups.length, 'Follow-ups', openFollowups.length ? 'var(--am)' : null) +
         statPill(activeProjects.length, 'Active Jobs') +
         statPill(pmUrgentCount, 'PM Due', pmUrgentCount ? 'var(--rd)' : null) +
-        statPill(pendingReqs.length, 'Tech Requests', pendingReqs.length ? 'var(--am)' : null) +
       '</div>';
     };
-
-    // ── Pending Tech Requests ──
-    if (pendingReqs.length) {
-      html += '<div class="section-label">🔧 Tech Requests Awaiting Confirmation</div>';
-      html += '<div class="card"><div class="card-body">';
-      pendingReqs.sort(function(a,b){ return (a.date||'').localeCompare(b.date||''); }).slice(0,5).forEach(function(e) {
-        html += '<div class="rec-row ntd-goto-schedule" style="cursor:pointer">'+
-          '<div class="rec-icon or">🔧</div>' +
-          '<div class="rec-body">' +
-            '<div class="rec-title">'+esc(facMap[e.facility_id]||e.title||'Facility')+'</div>' +
-            '<div class="rec-sub">'+esc(e.note||'')+'</div>' +
-            '<div class="rec-meta">Needed '+esc(e.date||'')+(e.requested_by?' · Requested by '+esc(e.requested_by):'')+'</div>' +
-          '</div></div>';
-      });
-      if (pendingReqs.length > 5) html += '<div class="ntd-goto-schedule" style="font-size:11px;color:var(--mu);padding-top:8px;text-align:center;cursor:pointer">View all '+pendingReqs.length+' requests →</div>';
-      html += '</div></div>';
-    }
 
     // ── Open Follow-ups ──
     if (openFollowups.length) {
@@ -2201,585 +1927,11 @@ function matches(q) {
   return fields.some(function(f){ return f && f.toString().toLowerCase().indexOf(q) > -1; });
 }
 // ── END GLOBAL SEARCH ──────────────────────────────────────────────────────
-
-// ── SCHEDULING + TEAM CALENDAR ──────────────────────────────────────────────
-
-function startOfWeek(d) {
-  var dt = new Date(d);
-  var day = dt.getDay(); // 0=Sun
-  var diff = day === 0 ? -6 : 1 - day; // week starts Monday
-  dt.setDate(dt.getDate() + diff);
-  dt.setHours(0,0,0,0);
-  return dt;
-}
-function fmtDateISO(d) {
-  var yr = d.getFullYear(), mo = ('0'+(d.getMonth()+1)).slice(-2), da = ('0'+d.getDate()).slice(-2);
-  return yr + '-' + mo + '-' + da;
-}
-
-function renderScheduleView() {
-  if (currentScheduleView === 'calendar') {
-    document.getElementById('sched-tab-requests').classList.remove('on');
-    document.getElementById('sched-tab-calendar').classList.add('on');
-    document.getElementById('sched-requests-view').style.display = 'none';
-    document.getElementById('sched-calendar-view').style.display = 'block';
-    renderCalendarWeek();
-  } else {
-    document.getElementById('sched-tab-requests').classList.add('on');
-    document.getElementById('sched-tab-calendar').classList.remove('on');
-    document.getElementById('sched-requests-view').style.display = 'block';
-    document.getElementById('sched-calendar-view').style.display = 'none';
-    renderRequestsList();
-  }
-  refreshSchedReqBadge();
-}
-
-function switchScheduleView(view) {
-  currentScheduleView = view;
-  renderScheduleView();
-}
-
-// ── PENDING REQUEST BADGE (sub-nav + dashboard) ─────────────────────────────
-function refreshSchedReqBadge() {
-  ntdStore.team_calendar.list(function(e){ return e.status === 'pending'; }).then(function(rows) {
-    var count = (rows || []).length;
-    var badge = document.getElementById('sched-req-count');
-    if (badge) {
-      if (count) { badge.textContent = count; badge.style.display = 'inline-block'; }
-      else { badge.style.display = 'none'; }
-    }
-  }).catch(function(){});
-}
-
-// ── REQUESTS LIST (pending, all facilities) ─────────────────────────────────
-function renderRequestsList() {
-  var wrap = document.getElementById('sched-requests-wrap');
-  wrap.innerHTML = '<div style="text-align:center;padding:24px;color:var(--mu);font-size:13px">Loading…</div>';
-
-  Promise.all([
-    ntdStore.team_calendar.list(function(e){ return e.status === 'pending'; }),
-    ntdStore.facilities.list()
-  ]).then(function(results) {
-    var pending = results[0] || [];
-    var facs = results[1] || [];
-    var facMap = {};
-    facs.forEach(function(f){ facMap[f.id] = f.name; });
-
-    if (!pending.length) {
-      wrap.innerHTML = emptyState('✅','No pending requests','Tech requests submitted from a Project will show up here for confirmation.');
-      return;
-    }
-
-    pending.sort(function(a,b){ return (a.date||'').localeCompare(b.date||''); });
-
-    var typeLabel = {job:'Job',site_visit:'Site Visit',site_inspection:'Site Inspection',job_walk:'Job Walk'};
-    var html = '';
-    pending.forEach(function(e) {
-      var facName = facMap[e.facility_id] || e.title || 'Unknown facility';
-      html += '<div class="sched-req-card" onclick="openEditCalEntry(\''+e.id+'\')">' +
-        '<div class="sched-req-hdr">' +
-          '<div><div class="sched-req-fac">'+esc(facName)+'</div>' +
-          '<div class="sched-req-date">'+esc(typeLabel[e.entry_type]||'Job')+' · '+esc(e.date||'')+'</div></div>' +
-          '<span class="status-badge status-pending">Pending</span>' +
-        '</div>' +
-        (e.note ? '<div class="sched-req-note">'+esc(e.note)+'</div>' : '') +
-        '<div class="sched-req-meta">'+(e.requested_by ? 'Requested by '+esc(e.requested_by) : 'Tap to confirm and assign a tech')+'</div>' +
-      '</div>';
-    });
-    wrap.innerHTML = html;
-  }).catch(function(err) {
-    wrap.innerHTML = emptyState('⚠️','Couldn\'t load requests', esc(err.message||'Please try again.'));
-  });
-}
-
-// ── REQUEST TECH (from a Project card) ──────────────────────────────────────
-function openRequestTech(facilityId) {
-  requestingFacilityId = facilityId;
-  document.getElementById('rm-type').value = 'job';
-  document.getElementById('rm-date').value = fmtDateISO(new Date());
-  document.getElementById('rm-note').value = '';
-  document.getElementById('rm-by').value = getCurrentUser() || '';
-  document.getElementById('rm-contact').value = '';
-  document.getElementById('req-fac-fg').style.display = 'none';
-  document.getElementById('req-fac-name').textContent = '';
-  ntdStore.facilities.get(facilityId).then(function(f) {
-    if (f) {
-      document.getElementById('req-fac-name').textContent = f.name || '';
-      document.getElementById('req-fac-fg').style.display = 'block';
-    }
-  });
-  openModal('req-modal');
-}
-
-function saveTechRequest() {
-  var date = document.getElementById('rm-date').value;
-  var note = document.getElementById('rm-note').value.trim();
-  if (!date) { showToast('Please pick a date needed'); return; }
-  if (!note) { showToast('Please describe what\'s needed'); return; }
-  if (!requestingFacilityId) { showToast('Missing facility — please try again'); return; }
-
-  ntdStore.facilities.get(requestingFacilityId).then(function(f) {
-    var record = {
-      entry_type: document.getElementById('rm-type').value,
-      date: date,
-      title: (f && f.name) || 'Facility',
-      note: note,
-      facility_id: requestingFacilityId,
-      status: 'pending',
-      requested_by: document.getElementById('rm-by').value.trim(),
-      requested_by_contact: document.getElementById('rm-contact').value.trim()
-    };
-    return ntdStore.team_calendar.upsert(record);
-  }).then(function() {
-    closeModal('req-modal');
-    showToast('Request submitted — ops will confirm');
-    refreshSchedReqBadge();
-  }).catch(function(err) {
-    showToast('Error: ' + (err.message||'could not submit request'));
-  });
-}
-
-// ── TEAM CALENDAR — WEEK VIEW ────────────────────────────────────────────────
-function calShiftWeek(dir) {
-  calWeekStart.setDate(calWeekStart.getDate() + dir*7);
-  renderCalendarWeek();
-}
-function calGoToday() {
-  calWeekStart = startOfWeek(new Date());
-  renderCalendarWeek();
-}
-
-function renderCalendarWeek() {
-  var wrap = document.getElementById('cal-week-wrap');
-  var lbl = document.getElementById('cal-week-label');
-  var totalDays = 7 * calWeeksToShow;
-  var days = [];
-  for (var i=0;i<totalDays;i++) {
-    var d = new Date(calWeekStart);
-    d.setDate(d.getDate()+i);
-    days.push(d);
-  }
-  lbl.textContent = days[0].toLocaleDateString('en-US',{month:'short',day:'numeric'}) + ' – ' +
-                     days[days.length-1].toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-
-  wrap.innerHTML = '<div style="text-align:center;padding:24px;color:var(--mu);font-size:13px">Loading…</div>';
-
-  ntdStore.team_calendar.list().then(function(all) {
-    var todayISO = fmtDateISO(new Date());
-    var html = '';
-
-    function renderDayCard(d, slim) {
-      var iso = fmtDateISO(d);
-      var dayEntries = (all||[]).filter(function(e){ return e.date === iso; });
-      var statusEntries = dayEntries.filter(function(e){ return e.entry_type==='pto'||e.entry_type==='sick'||e.entry_type==='ooo'; });
-      var jobEntries = dayEntries.filter(function(e){ return e.entry_type==='job'||e.entry_type==='site_visit'||e.entry_type==='site_inspection'||e.entry_type==='job_walk'; });
-      var isToday = iso === todayISO;
-
-      if (slim) {
-        return '<div class="cal-day-card cal-day-slim">' +
-          '<div class="cal-day-hdr'+(isToday?' today':'')+'">' +
-            '<div class="cal-day-name">'+d.toLocaleDateString('en-US',{weekday:'short'})+'</div>' +
-            '<div class="cal-day-date">'+d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+'</div>' +
-          '</div></div>';
-      }
-
-      var out = '<div class="cal-day-card">' +
-        '<div class="cal-day-hdr'+(isToday?' today':'')+'">' +
-          '<div><div class="cal-day-name">'+d.toLocaleDateString('en-US',{weekday:'long'})+(isToday?' · Today':'')+'</div>' +
-          '<div class="cal-day-date">'+d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+'</div></div>' +
-        '</div>' +
-        '<div class="cal-day-body">';
-
-      if (statusEntries.length) {
-        out += '<div class="cal-section-lbl">Out Today</div><div class="chip-row">';
-        statusEntries.forEach(function(e) {
-          out += '<span class="status-chip '+e.entry_type+'" onclick="openEditCalEntry(\''+e.id+'\')">'+
-            (e.entry_type==='pto'?'🏖️':e.entry_type==='sick'?'🤒':'🚫')+' '+esc(e.title)+'</span>';
-        });
-        out += '</div>';
-      }
-
-      if (jobEntries.length) {
-        out += '<div class="cal-section-lbl">Jobs Today</div>';
-        var jobTypeMeta = {
-          site_visit:     {icon:'📍', label:'Site Visit — '},
-          site_inspection:{icon:'🔍', label:'Site Inspection — '},
-          job_walk:       {icon:'🤝', label:'Job Walk (Sales) — '}
-        };
-        jobEntries.forEach(function(e) {
-          var isPending = e.status === 'pending';
-          var wasRequested = !!e.requested_by;
-          var meta = jobTypeMeta[e.entry_type];
-          if (!meta) meta = {icon:'🔧', label: isPending ? 'Tech Requested — ' : 'Service Call — '};
-          out += '<div class="cal-job-row" onclick="openEditCalEntry(\''+e.id+'\')">' +
-            '<div class="cal-job-dot'+(isPending?' pending':'')+'"></div>' +
-            '<div class="cal-job-text">'+meta.icon+' <b>'+meta.label+esc(e.title)+'</b>'+
-              (isPending?'<span class="cal-pending-tag">Pending</span>':'')+
-              (!isPending && wasRequested?'<span class="cal-requested-tag">Requested</span>':'')+
-              (e.assigned_tech?' <span>— '+esc(e.assigned_tech)+'</span>':'')+
-              (e.note?' <span>— '+esc(e.note)+'</span>':'')+
-            '</div>' +
-          '</div>';
-        });
-      }
-
-      if (!statusEntries.length && !jobEntries.length) {
-        out += '<div class="cal-empty-day">Nothing logged</div>';
-      }
-
-      out += '</div></div>';
-      return out;
-    }
-
-    for (var w=0; w<days.length; w+=7) {
-      var weekDays = days.slice(w, w+7);
-      var satDay = weekDays[5], sunDay = weekDays[6];
-      var hasSat = satDay && (all||[]).some(function(e){ return e.date === fmtDateISO(satDay); });
-      var hasSun = sunDay && (all||[]).some(function(e){ return e.date === fmtDateISO(sunDay); });
-
-      var rowStyleAttr = '';
-      if (isTvMode) {
-        var satW = hasSat ? '1fr' : '0.4fr';
-        var sunW = hasSun ? '1fr' : '0.4fr';
-        rowStyleAttr = ' style="grid-template-columns:1fr 1fr 1fr 1fr 1fr '+satW+' '+sunW+'"';
-      }
-
-      html += '<div class="cal-week-row"'+rowStyleAttr+'>';
-      weekDays.forEach(function(d, idx) {
-        var isWeekend = (idx === 5 || idx === 6);
-        var iso = fmtDateISO(d);
-        var hasEntries = (all||[]).some(function(e){ return e.date === iso; });
-        var slim = isTvMode && isWeekend && !hasEntries;
-        html += renderDayCard(d, slim);
-      });
-      html += '</div>';
-    }
-
-    wrap.innerHTML = html;
-  }).catch(function(err) {
-    wrap.innerHTML = emptyState('⚠️','Couldn\'t load calendar', esc(err.message||'Please try again.'));
-  });
-}
-
-function calToggleFields() {
-  var type = document.getElementById('cm-type').value;
-  var titleLbl = document.getElementById('cm-title-lbl');
-  var titleInput = document.getElementById('cm-title');
-  var noteLbl = document.getElementById('cm-note-lbl');
-  var jobTypes = {job:1, site_visit:1, site_inspection:1, job_walk:1};
-  if (jobTypes[type]) {
-    titleLbl.textContent = 'Facility / Job Site *';
-    titleInput.placeholder = 'e.g. ILS Gummies';
-    noteLbl.textContent = 'Brief Description';
-    document.getElementById('cm-note').placeholder = 'e.g. Two techs on-site for RTU replacement';
-    document.getElementById('cm-job-fields').style.display = 'grid';
-  } else {
-    titleLbl.textContent = 'Name *';
-    titleInput.placeholder = 'e.g. Mike R.';
-    noteLbl.textContent = 'Note (optional)';
-    document.getElementById('cm-note').placeholder = 'e.g. Back Thursday';
-    document.getElementById('cm-job-fields').style.display = 'none';
-  }
-  if (!jobTypes[type]) document.getElementById('cm-title-suggest').classList.remove('on');
-}
-
-function calLoadFacilitiesCache() {
-  if (calFacilitiesCache) return Promise.resolve(calFacilitiesCache);
-  return ntdStore.facilities.list().then(function(rows) {
-    calFacilitiesCache = rows || [];
-    return calFacilitiesCache;
-  }).catch(function(){ calFacilitiesCache = []; return calFacilitiesCache; });
-}
-
-function calFilterFacilities() {
-  var box = document.getElementById('cm-title-suggest');
-  var jobTypes = {job:1, site_visit:1, site_inspection:1, job_walk:1};
-  var type = document.getElementById('cm-type').value;
-  if (!jobTypes[type]) { box.classList.remove('on'); return; }
-
-  var q = (document.getElementById('cm-title').value || '').trim().toLowerCase();
-  calLoadFacilitiesCache().then(function(facilities) {
-    var matches = !q ? facilities.slice(0, 6) :
-      facilities.filter(function(f){ return (f.name||'').toLowerCase().indexOf(q) > -1; }).slice(0, 6);
-    if (!matches.length) { box.classList.remove('on'); return; }
-    box.innerHTML = matches.map(function(f) {
-      return '<div class="cal-suggest-item" onmousedown="event.preventDefault();calPickFacility(\''+esc(f.id)+'\',\''+esc(f.name).replace(/'/g,"\\'")+'\')">'+esc(f.name)+'</div>';
-    }).join('');
-    box.classList.add('on');
-  });
-}
-
-var calPickedFacilityId = null;
-function calPickFacility(id, name) {
-  calPickedFacilityId = id;
-  document.getElementById('cm-title').value = name;
-  document.getElementById('cm-title-suggest').classList.remove('on');
-}
-
-document.addEventListener('click', function(e) {
-  if (!e.target.closest('#cm-title-fg')) {
-    var box = document.getElementById('cm-title-suggest');
-    if (box) box.classList.remove('on');
-  }
-});
-
-function openAddCalEntry() {
-  editingCalId = null;
-  calFacilitiesCache = null;
-  calPickedFacilityId = null;
-  document.getElementById('cm-title-suggest').classList.remove('on');
-  document.getElementById('cal-modal-title').textContent = 'Add Calendar Entry';
-  document.getElementById('cm-type').value = 'job';
-  document.getElementById('cm-date').value = fmtDateISO(new Date());
-  document.getElementById('cm-title').value = '';
-  document.getElementById('cm-note').value = '';
-  document.getElementById('cm-status').value = 'confirmed';
-  document.getElementById('cm-tech').value = '';
-  document.getElementById('cm-by').value = getCurrentUser() || '';
-  document.getElementById('cm-delete-btn').style.display = 'none';
-  document.getElementById('cm-notify-btn').style.display = 'none';
-  editingCalRequester = null;
-  editingCalContact = null;
-  editingCalOriginalStatus = null;
-  calToggleFields();
-  openModal('cal-modal');
-}
-
-function openEditCalEntry(id) {
-  ntdStore.team_calendar.get(id).then(function(e) {
-    if (!e) return;
-    editingCalId = id;
-    calFacilitiesCache = null;
-    calPickedFacilityId = e.facility_id || null;
-    document.getElementById('cm-title-suggest').classList.remove('on');
-    document.getElementById('cal-modal-title').textContent = 'Edit Calendar Entry';
-    document.getElementById('cm-type').value = e.entry_type || 'job';
-    document.getElementById('cm-date').value = e.date || fmtDateISO(new Date());
-    document.getElementById('cm-title').value = e.title || '';
-    document.getElementById('cm-note').value = e.note || '';
-    document.getElementById('cm-status').value = e.status || 'confirmed';
-    document.getElementById('cm-tech').value = e.assigned_tech || '';
-    document.getElementById('cm-by').value = e.entered_by || getCurrentUser() || '';
-    document.getElementById('cm-delete-btn').style.display = 'block';
-    editingCalRequester = e.requested_by || null;
-    editingCalContact = e.requested_by_contact || null;
-    editingCalOriginalStatus = e.status || 'confirmed';
-    document.getElementById('cm-notify-btn').style.display = editingCalContact ? 'block' : 'none';
-    calToggleFields();
-    openModal('cal-modal');
-  });
-}
-
-function notifyRequester() {
-  if (!editingCalContact) return;
-  var facName = document.getElementById('cm-title').value || 'the job';
-  var date = document.getElementById('cm-date').value || '';
-  var tech = document.getElementById('cm-tech').value.trim();
-  var status = document.getElementById('cm-status').value;
-
-  var msg = status === 'confirmed'
-    ? 'NTD Hub: Your tech request for ' + facName + ' on ' + date + ' is confirmed' + (tech ? ' — ' + tech + ' is assigned.' : '.')
-    : 'NTD Hub: Your tech request for ' + facName + ' on ' + date + ' is still pending confirmation.';
-
-  var contact = editingCalContact.trim();
-  if (contact.indexOf('@') > -1) {
-    window.open('mailto:' + encodeURIComponent(contact) + '?subject=' + encodeURIComponent('Tech Request Update — ' + facName) + '&body=' + encodeURIComponent(msg), '_blank');
-  } else {
-    var digits = contact.replace(/[^\d+]/g, '');
-    window.open('sms:' + digits + '&body=' + encodeURIComponent(msg), '_blank');
-  }
-}
-
-function saveCalEntry() {
-  var title = document.getElementById('cm-title').value.trim();
-  var date = document.getElementById('cm-date').value;
-  if (!title) { showToast('Please enter a name or facility'); return; }
-  if (!date) { showToast('Please pick a date'); return; }
-
-  var type = document.getElementById('cm-type').value;
-  var jobTypes = {job:1, site_visit:1, site_inspection:1, job_walk:1};
-
-  var record = {
-    entry_type: type,
-    date: date,
-    title: title,
-    note: document.getElementById('cm-note').value.trim(),
-    entered_by: document.getElementById('cm-by').value.trim()
-  };
-  if (jobTypes[type]) {
-    record.status = document.getElementById('cm-status').value;
-    record.assigned_tech = document.getElementById('cm-tech').value.trim();
-    if (calPickedFacilityId) record.facility_id = calPickedFacilityId;
-  }
-  if (editingCalId) record.id = editingCalId;
-
-  var justConfirmed = jobTypes[type] && editingCalOriginalStatus === 'pending' && record.status === 'confirmed' && editingCalRequester;
-
-  ntdStore.team_calendar.upsert(record).then(function() {
-    closeModal('cal-modal');
-    showToast('Saved');
-    if (justConfirmed) {
-      var msg = 'Your tech request for ' + title + ' on ' + date + ' is confirmed' + (record.assigned_tech ? ' — ' + record.assigned_tech + ' is assigned.' : '.');
-      createNotification(editingCalRequester, msg, editingCalId, 'schedule_confirmed');
-    }
-    renderCalendarWeek();
-    refreshSchedReqBadge();
-    if (currentScheduleView === 'requests') renderRequestsList();
-  }).catch(function(err) {
-    showToast('Error: ' + (err.message||'could not save'));
-  });
-}
-
-function deleteCalEntry() {
-  if (!editingCalId) return;
-  if (!confirm('Delete this entry?')) return;
-  ntdStore.team_calendar.delete(editingCalId).then(function() {
-    closeModal('cal-modal');
-    showToast('Deleted');
-    renderCalendarWeek();
-    refreshSchedReqBadge();
-    if (currentScheduleView === 'requests') renderRequestsList();
-  }).catch(function(err) {
-    console.error('deleteCalEntry failed:', err);
-    showToast(err.message || 'Delete failed');
-  });
-}
-
-// ── TV / BIG SCREEN MODE ────────────────────────────────────────────────────
-// Load with ?tv=1&weeks=N in the URL on an office display for a hands-off,
-// auto-refreshing, large-text calendar view.
-function initTvModeIfRequested() {
-  var params = new URLSearchParams(window.location.search);
-  if (params.get('tv') !== '1') return;
-
-  isTvMode = true;
-  document.body.classList.add('tv-mode');
-  document.getElementById('hdr-clock').style.display = 'block';
-
-  var weeks = parseInt(params.get('weeks'), 10);
-  if (weeks >= 1 && weeks <= 4) calWeeksToShow = weeks;
-
-  currentScheduleView = 'calendar';
-  goPage('schedule');
-
-  function tickClock() {
-    var now = new Date();
-    document.getElementById('hdr-clock').textContent =
-      now.toLocaleTimeString('en-US', {hour:'numeric', minute:'2-digit'}) + ' · ' +
-      now.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'});
-  }
-  tickClock();
-  setInterval(tickClock, 15000);
-
-  setInterval(function() { renderCalendarWeek(); }, 90000);
-}
-// ── USER IDENTITY (Tier 1 — device-local, no password) ─────────────────────
-function getCurrentUser() {
-  try { return localStorage.getItem('ntdCurrentUser') || null; } catch(e) { return null; }
-}
-function setCurrentUser(name) {
-  try { localStorage.setItem('ntdCurrentUser', name); } catch(e) {}
-}
-
-function showUserPicker(isSwitch) {
-  var list = document.getElementById('picker-list');
-  var current = getCurrentUser();
-  list.innerHTML = STAFF_NAMES.map(function(n) {
-    return '<button class="picker-item" onclick="selectUser(\''+esc(n).replace(/'/g,"\\'")+'\')">'+(n===current?'✓ ':'')+esc(n)+'</button>';
-  }).join('');
-  document.getElementById('picker-cancel-btn').style.display = isSwitch ? 'block' : 'none';
-  document.getElementById('picker-handle').style.display = isSwitch ? 'block' : 'none';
-  openModal('user-picker-modal');
-}
-
-function selectUser(name) {
-  setCurrentUser(name);
-  closeModal('user-picker-modal');
-  updateUserPillDisplay();
-  refreshNotifBadge();
-  showToast('Hi, ' + name.split(' ')[0] + '!');
-}
-
-function updateUserPillDisplay() {
-  var name = getCurrentUser();
-  var pill = document.getElementById('hdr-user-pill');
-  var bell = document.getElementById('hdr-bell-btn');
-  if (name) {
-    pill.textContent = '👤 ' + name.split(' ')[0];
-    pill.style.display = 'block';
-    bell.style.display = 'flex';
-  }
-}
-
-// ── IN-APP NOTIFICATIONS ────────────────────────────────────────────────────
-function createNotification(recipientName, message, relatedId, type) {
-  if (!recipientName) return Promise.resolve();
-  return ntdStore.notifications.upsert({
-    recipient_name: recipientName,
-    message: message,
-    related_id: relatedId || '',
-    type: type || '',
-    read: false
-  }).catch(function(err) { console.error('createNotification failed:', err); });
-}
-
-function refreshNotifBadge() {
-  var name = getCurrentUser();
-  var badge = document.getElementById('notif-badge');
-  if (!name || !badge) return;
-  ntdStore.notifications.list(function(n){ return n.recipient_name === name && !n.read; }).then(function(rows) {
-    var count = (rows||[]).length;
-    if (count) { badge.textContent = count > 9 ? '9+' : count; badge.style.display = 'flex'; }
-    else { badge.style.display = 'none'; }
-  }).catch(function(){});
-}
-
-function openNotifPanel() {
-  var name = getCurrentUser();
-  var wrap = document.getElementById('notif-list-wrap');
-  if (!name) { showUserPicker(true); return; }
-  wrap.innerHTML = '<div style="text-align:center;padding:24px;color:var(--mu);font-size:13px">Loading…</div>';
-  openModal('notif-modal');
-
-  ntdStore.notifications.list(function(n){ return n.recipient_name === name; }).then(function(rows) {
-    rows = (rows||[]).sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
-    if (!rows.length) { wrap.innerHTML = emptyState('🔔','No notifications yet','You\'ll see updates here when a tech request you submitted gets confirmed.'); return; }
-    wrap.innerHTML = rows.map(function(n) {
-      var when = n.ts ? new Date(n.ts).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : '';
-      return '<div class="notif-item'+(n.read?'':' unread')+'" onclick="notifItemClick(\''+n.id+'\',\''+(n.related_id||'')+'\')">' +
-        '<div class="notif-item-msg">'+esc(n.message)+'</div>' +
-        '<div class="notif-item-time">'+esc(when)+'</div>' +
-      '</div>';
-    }).join('');
-  }).catch(function(err) {
-    wrap.innerHTML = emptyState('⚠️','Couldn\'t load notifications', esc(err.message||'Please try again.'));
-  });
-}
-
-function notifItemClick(notifId, relatedId) {
-  ntdStore.notifications.get(notifId).then(function(n) {
-    if (n && !n.read) {
-      n.read = true;
-      ntdStore.notifications.upsert(n).then(refreshNotifBadge);
-    }
-  });
-  closeModal('notif-modal');
-  if (relatedId) {
-    currentScheduleView = 'calendar';
-    goPage('schedule');
-    setTimeout(function(){ openEditCalEntry(relatedId); }, 200);
-  }
-}
-
-// ── END SCHEDULING + TEAM CALENDAR ──────────────────────────────────────────
-
 // ── INIT ──────────────────────────────────────────────────────────────────
 // Delegated click handler for ntd-goto elements
 document.addEventListener('click', function(e) {
   // Navigate to projects page
   if (e.target.closest('.ntd-goto-projects')) { goPage('projects'); return; }
-  // Navigate to Scheduling > Requests
-  if (e.target.closest('.ntd-goto-schedule')) { currentScheduleView = 'requests'; goPage('schedule'); return; }
   // Navigate to facility detail
   var el = e.target.closest('.ntd-goto');
   if (!el) return;
@@ -2800,17 +1952,6 @@ window.addEventListener('load', function() {
     return;
   }
   renderDashboard();
-  refreshSchedReqBadge();
-  initTvModeIfRequested();
-
-  var tvRequested = (new URLSearchParams(window.location.search)).get('tv') === '1';
-  if (!tvRequested) {
-    updateUserPillDisplay();
-    if (!getCurrentUser()) { showUserPicker(false); }
-    refreshNotifBadge();
-    notifPollTimer = setInterval(refreshNotifBadge, 45000);
-  }
-
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(function(){});
   }
