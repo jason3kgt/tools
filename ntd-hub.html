@@ -1498,6 +1498,9 @@ function saveProject() {
     showToast(editingProjectId ? 'Project updated' : 'Project added');
     if (currentDetailTab === 'projects') ntdStore.facilities.get(currentFacilityId).then(renderDetailTab);
     renderProjectList();
+  }).catch(function(err) {
+    console.error('saveProject failed:', err);
+    showToast('Save failed: ' + (err.message || 'see console for details'));
   });
 }
 
@@ -1507,6 +1510,9 @@ function deleteProject(id) {
     showToast('Project deleted');
     ntdStore.facilities.get(currentFacilityId).then(renderDetailTab);
     renderProjectList();
+  }).catch(function(err) {
+    console.error('deleteProject failed:', err);
+    showToast('Delete failed: ' + (err.message || 'see console for details'));
   });
 }
 
