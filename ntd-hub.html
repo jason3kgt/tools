@@ -1302,21 +1302,41 @@ function renderDetailTab(f) {
   else if (currentDetailTab === 'quotes') {
     Promise.all([
       ntdStore.pm_quotes.list(function(r){ return r.facility_id === fid; }),
-      ntdStore.service_quotes.list(function(r){ return r.facility_id === fid; })
+      ntdStore.service_quotes.list(function(r){ return r.facility_id === fid; }),
+      ntdStore.documents.list(function(d){ return d.facility_id === fid; })
     ]).then(function(results) {
-      var pmQ = results[0], svcQ = results[1];
+      var pmQ = results[0], svcQ = results[1], docs = results[2] || [];
       if (!pmQ.length && !svcQ.length) { content.innerHTML = emptyState('💲','No quotes on file','PM proposals and service quotes submitted from the HVAC Asset Survey appear here.'); return; }
+      // Match quotes to their uploaded PDF by form_type + date, same approach as the Timeline
+      function qNormDate(dt) {
+        if (!dt) return '';
+        var ymd = dt.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (ymd) return ymd[2]+'/'+ymd[3]+'/'+ymd[1];
+        var mdy = dt.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (mdy) return (mdy[1].length<2?'0':'')+mdy[1]+'/'+(mdy[2].length<2?'0':'')+mdy[2]+'/'+mdy[3];
+        return dt;
+      }
+      var qDocMap = {};
+      docs.forEach(function(d) {
+        var key = (d.form_type || '') + '|' + qNormDate(d.date || '');
+        if (!qDocMap[key] || (d.ts||0) > (qDocMap[key].ts||0)) qDocMap[key] = d;
+      });
       var html = '';
       if (pmQ.length) {
         html += '<div class="section-label">PM Proposals</div><div class="card"><div class="card-body">';
         pmQ.sort(function(a,b){return (b.ts||0)-(a.ts||0);}).forEach(function(q) {
+          var pmDoc = qDocMap['pm_proposal|'+qNormDate(q.date||'')];
+          var pmPdfLink = pmDoc && pmDoc.file_url
+            ? '<a href="'+esc(pmDoc.file_url)+'" target="_blank" style="color:var(--st);font-weight:600;text-decoration:none;font-size:11px">📥 View PDF</a>'
+            : '<span style="font-size:11px;color:var(--mu)">No PDF on file — generate one from the HVAC Asset Survey</span>';
           html += '<div class="rec-row">' +
             '<div class="rec-icon or">📄</div>' +
             '<div class="rec-body">' +
               '<div class="rec-title">'+esc(q.frequency||'PM')+ ' Proposal</div>' +
               '<div class="rec-sub">'+esc(q.date||'')+(q.unit_count?' · '+q.unit_count+' units':'')+'</div>' +
               '<div class="rec-meta">Annual: <strong>'+esc(q.annual_total||'—')+'</strong> · Quarterly: '+esc(q.quarterly_rate||'—')+'</div>' +
-              '<button class="btn btn-outline btn-sm" style="margin-top:8px" onclick="convertQuoteToProject(\'' + q.id + '\',\'pm\')" ontouchend="convertQuoteToProject(\'' + q.id + '\',\'pm\')">→ Convert to Project</button>' +
+              '<div style="margin-top:6px">'+pmPdfLink+'</div>' +
+              '<button class="btn btn-outline btn-sm" style="margin-top:8px" onclick="convertQuoteToProject(\'' + q.id + '\',\'pm\')">→ Convert to Project</button>' +
             '</div></div>';
         });
         html += '</div></div>';
@@ -1324,13 +1344,18 @@ function renderDetailTab(f) {
       if (svcQ.length) {
         html += '<div class="section-label">Service Quotes</div><div class="card"><div class="card-body">';
         svcQ.sort(function(a,b){return (b.ts||0)-(a.ts||0);}).forEach(function(q) {
+          var svcDoc = qDocMap['service_quote|'+qNormDate(q.date||'')];
+          var svcPdfLink = svcDoc && svcDoc.file_url
+            ? '<a href="'+esc(svcDoc.file_url)+'" target="_blank" style="color:var(--st);font-weight:600;text-decoration:none;font-size:11px">📥 View PDF</a>'
+            : '<span style="font-size:11px;color:var(--mu)">No PDF on file — generate one from the HVAC Asset Survey</span>';
           html += '<div class="rec-row">' +
             '<div class="rec-icon am">🔨</div>' +
             '<div class="rec-body">' +
               '<div class="rec-title">Service Quote</div>' +
               '<div class="rec-sub">'+esc(q.date||'')+(q.items?' · '+(q.items.length)+' line items':'')+'</div>' +
               '<div class="rec-meta">Total: <strong>'+esc(q.grand_total||'—')+'</strong></div>' +
-              '<button class="btn btn-outline btn-sm" style="margin-top:8px" onclick="convertQuoteToProject(\'' + q.id + '\',\'service\')" ontouchend="convertQuoteToProject(\'' + q.id + '\',\'service\')">→ Convert to Project</button>' +
+              '<div style="margin-top:6px">'+svcPdfLink+'</div>' +
+              '<button class="btn btn-outline btn-sm" style="margin-top:8px" onclick="convertQuoteToProject(\'' + q.id + '\',\'service\')">→ Convert to Project</button>' +
             '</div></div>';
         });
         html += '</div></div>';
@@ -1591,6 +1616,56 @@ function deleteProject(id) {
   }).catch(function(err) {
     console.error('deleteProject failed:', err);
     showToast('Delete failed: ' + (err.message || 'see console for details'));
+  });
+}
+
+// Convert a PM Proposal or Service Quote into a Project record.
+// Non-destructive — the original quote row is left untouched as a historical
+// record; this just creates a new job with type:'project' pre-filled from it.
+function convertQuoteToProject(quoteId, quoteType) {
+  var store = quoteType === 'pm' ? ntdStore.pm_quotes : ntdStore.service_quotes;
+  store.get(quoteId).then(function(q) {
+    if (!q) { alert('Could not find that quote.'); return; }
+    var isPm = quoteType === 'pm';
+    var value = isPm ? (q.annual_total || '') : (q.grand_total || '');
+    var name = isPm
+      ? (q.frequency || 'PM') + ' Contract Proposal — ' + (q.date || '')
+      : 'Service Project — ' + (q.date || '');
+    var notesLines = [];
+    if (isPm) {
+      notesLines.push('Converted from PM Proposal.');
+      if (q.unit_count) notesLines.push('Units: ' + q.unit_count);
+      if (q.frequency) notesLines.push('Frequency: ' + q.frequency);
+      if (q.quarterly_rate) notesLines.push('Quarterly rate: ' + q.quarterly_rate);
+      if (q.monthly_rate) notesLines.push('Monthly rate: ' + q.monthly_rate);
+    } else {
+      notesLines.push('Converted from Service Quote.');
+      if (q.items && q.items.length) notesLines.push('Line items: ' + q.items.length);
+      if (q.base_total) notesLines.push('Base total: ' + q.base_total);
+      if (q.tax_total) notesLines.push('Tax: ' + q.tax_total);
+    }
+    var data = {
+      facility_id: q.facility_id,
+      type: 'project',
+      name: name,
+      status: 'bidding',
+      value: value,
+      start_date: q.date || '',
+      notes: notesLines.join('\n')
+    };
+    ntdStore.jobs.upsert(data).then(function() {
+      showToast('Converted to project — see Projects tab');
+      if (currentDetailTab === 'quotes' || currentDetailTab === 'projects') {
+        ntdStore.facilities.get(currentFacilityId).then(renderDetailTab);
+      }
+      renderProjectList();
+    }).catch(function(err) {
+      console.error('convertQuoteToProject save failed:', err);
+      showToast('Convert failed: ' + (err.message || 'see console for details'));
+    });
+  }).catch(function(err) {
+    console.error('convertQuoteToProject fetch failed:', err);
+    alert('Could not load that quote: ' + (err.message || ''));
   });
 }
 
