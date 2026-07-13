@@ -1004,11 +1004,18 @@ function doSubmitToStore() {
   var origText = btn ? btn.innerHTML : '';
   if (btn) { btn.innerHTML = '⏳ Saving...'; btn.disabled = true; }
 
-  // Build site fields object
-  var siteFlds = ['j-date','j-wo','j-tech','j-cust','j-addr','j-fuel','j-fence','j-notes',
-                  'i-dmg','i-elec','i-ref','i-mech','i-mold','i-notes','i-signame','i-sigtitle','i-sigdate'];
-  var site = {};
-  siteFlds.forEach(function(f) { site[f] = gv(f); });
+  // Build site fields object — keys must match what
+  // ntdStore.migrate.fromEquipmentSurveyWithUnits expects (customer/address/etc),
+  // not the raw form field IDs.
+  var site = {
+    customer: gv('j-cust') || '',
+    address:  gv('j-addr') || '',
+    city:     gv('j-city') || '',
+    date:     gv('j-date') || '',
+    tech:     gv('j-tech') || '',
+    wo:       gv('j-wo') || '',
+    notes:    gv('j-notes') || ''
+  };
 
   // Build unit objects matching the migrate function's expected shape
   var unitObjects = units.map(function(u) {
@@ -1046,7 +1053,7 @@ function doSubmitToStore() {
       banner.style.display = 'block';
       banner.innerHTML = '✓ Survey saved to shared data store.<br>'
         + '<span style="font-size:12px;opacity:.8">Facility: <strong>' + result.facility.name + '</strong> &nbsp;|&nbsp; '
-        + result.equipment.length + ' unit(s) stored &nbsp;|&nbsp; Job ID: ' + result.job.id + '</span>';
+        + unitObjects.length + ' unit(s) stored &nbsp;|&nbsp; Job ID: ' + result.job.id + '</span>';
 
       // Re-enable button after 3s
       setTimeout(function() {

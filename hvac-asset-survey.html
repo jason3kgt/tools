@@ -73,6 +73,7 @@ textarea{resize:vertical;min-height:70px}
 /* Photo */
 .photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px}
 .photo-thumb{position:relative;border-radius:8px;overflow:hidden;aspect-ratio:1;background:var(--of);border:1px solid var(--bd)}
+.photo-thumb.backed:after{content:'✓';position:absolute;bottom:3px;left:3px;background:rgba(30,122,62,.9);color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;line-height:1}
 .photo-thumb img{width:100%;height:100%;object-fit:cover}
 .photo-del{position:absolute;top:3px;right:3px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
 .photo-add{border:2px dashed var(--bd);border-radius:8px;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:var(--of);color:var(--mu);font-size:11px;font-weight:600;gap:4px;touch-action:manipulation}
@@ -680,16 +681,86 @@ document.getElementById('photoInput').addEventListener('change',function(){
   var remaining=files.length;
   for(var i=0;i<files.length;i++){
     (function(file){
-      var reader=new FileReader();
-      reader.onload=function(ev){
-        eq.photos.push({data:ev.target.result,caption:''});
+      compressImage(file,1600,0.75).then(function(res){
+        var photoObj={data:res.dataUrl,caption:'',backedUp:false};
+        eq.photos.push(photoObj);
         remaining--;
         if(remaining<=0)renderPhotos(eq.id);
-      };
-      reader.readAsDataURL(file);
+        ntdBackupPhoto(res.blob,eq,photoObj);
+      }).catch(function(err){
+        console.warn('[NTD] Photo compression failed, using original:',err);
+        var reader=new FileReader();
+        reader.onload=function(ev){
+          var photoObj={data:ev.target.result,caption:'',backedUp:false};
+          eq.photos.push(photoObj);
+          remaining--;
+          if(remaining<=0)renderPhotos(eq.id);
+          ntdBackupPhoto(file,eq,photoObj);
+        };
+        reader.readAsDataURL(file);
+      });
     })(files[i]);
   }
 });
+
+// Resize + re-encode a photo before it ever touches localStorage, the PDF,
+// or Supabase — cuts a typical 3-6MB iPad camera photo down to ~150-350KB
+// with no visible quality loss for documentation purposes.
+function compressImage(file,maxDim,quality){
+  maxDim=maxDim||1600;quality=quality||0.75;
+  return new Promise(function(resolve,reject){
+    var url=URL.createObjectURL(file);
+    var img=new Image();
+    img.onload=function(){
+      URL.revokeObjectURL(url);
+      var w=img.width,h=img.height;
+      if(w>maxDim||h>maxDim){
+        if(w>=h){h=Math.round(h*maxDim/w);w=maxDim;}
+        else{w=Math.round(w*maxDim/h);h=maxDim;}
+      }
+      var canvas=document.createElement('canvas');
+      canvas.width=w;canvas.height=h;
+      var ctx=canvas.getContext('2d');
+      ctx.drawImage(img,0,0,w,h);
+      var dataUrl=canvas.toDataURL('image/jpeg',quality);
+      if(canvas.toBlob){
+        canvas.toBlob(function(blob){
+          resolve({dataUrl:dataUrl,blob:blob||dataURLtoBlob(dataUrl)});
+        },'image/jpeg',quality);
+      }else{
+        resolve({dataUrl:dataUrl,blob:dataURLtoBlob(dataUrl)});
+      }
+    };
+    img.onerror=function(e){URL.revokeObjectURL(url);reject(e);};
+    img.src=url;
+  });
+}
+function dataURLtoBlob(dataUrl){
+  var parts=dataUrl.split(',');
+  var mime=parts[0].match(/:(.*?);/)[1];
+  var bin=atob(parts[1]);
+  var arr=new Uint8Array(bin.length);
+  for(var i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+  return new Blob([arr],{type:mime});
+}
+
+// Silently back a photo up to Supabase Storage the moment it's taken, so it
+// survives even if the tech never finishes the form or the app is closed.
+// Independent of the equipment/facility tables — just raw file safety.
+function ntdBackupPhoto(blob,unit,photoObj){
+  if(typeof ntdStore==='undefined'||!ntdStore.files||!ntdStore.files.upload)return;
+  var custSlug=(gv('sf')||'unassigned').replace(/[^a-z0-9]+/gi,'-').toLowerCase().replace(/^-+|-+$/g,'').slice(0,40)||'unassigned';
+  var tagSlug=((unit.tag||'')||('unit-'+unit.id)).replace(/[^a-z0-9]+/gi,'-').toLowerCase().replace(/^-+|-+$/g,'').slice(0,30)||('unit-'+unit.id);
+  var path='photo-backups/'+custSlug+'/'+tagSlug+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,6)+'.jpg';
+  ntdStore.files.upload(path,blob,'image/jpeg').then(function(){
+    photoObj.backedUp=true;
+    photoObj.remotePath=path;
+    renderPhotos(unit.id);
+  }).catch(function(err){
+    console.warn('[NTD] Photo backup failed (will still work locally for this session):',err);
+  });
+}
+
 function renderPhotos(uid){
   var eq=eqs.find(function(e){return e.id===uid;});
   var pg=document.getElementById('pg-'+uid);
@@ -698,7 +769,7 @@ function renderPhotos(uid){
   var html='';
   for(var i=0;i<eq.photos.length;i++){
     var p=eq.photos[i];
-    html+='<div class="photo-thumb"><img src="'+p.data+'" alt="photo"><button class="photo-del" data-uid="'+uid+'" data-pidx="'+i+'" onclick="delPhoto(this)">×</button></div>';
+    html+='<div class="photo-thumb'+(p.backedUp?' backed':'')+'"><img src="'+p.data+'" alt="photo"><button class="photo-del" data-uid="'+uid+'" data-pidx="'+i+'" onclick="delPhoto(this)">×</button></div>';
   }
   pg.innerHTML=html;
 }
