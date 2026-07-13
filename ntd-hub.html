@@ -516,7 +516,7 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
         </select>
       </div>
     </div>
-    <div class="fg"><label>Contract Document URL (SharePoint)</label><input type="text" id="pm-agr-url" placeholder="https://…"></div>
+    <div class="fg"><label>Contract Document URL (SharePoint)</label><textarea id="pm-agr-url" placeholder="https://… (one URL per line for multiple documents)"></textarea></div>
     <button class="btn btn-nv" onclick="saveProject()">Save Project</button>
     <button class="btn btn-outline" onclick="closeModal('proj-modal')" style="margin-top:6px">Cancel</button>
   </div>
@@ -1368,7 +1368,9 @@ function renderDetailTab(f) {
                   '<span style="font-size:10px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.05em">Agreement</span>' +
                   (p.agr_num ? '<span style="font-size:11px;color:var(--tx);font-weight:600">#'+esc(p.agr_num)+'</span>' : '') +
                   (p.agr_status ? '<span class="status-badge '+(agrStatusClass[p.agr_status]||'status-bidding')+'">'+(agrStatusLabel[p.agr_status]||p.agr_status)+'</span>' : '') +
-                  (p.agr_url ? '<a href="'+esc(p.agr_url)+'" target="_blank" class="sp-link" style="font-size:11px">Document</a>' : '') +
+                  (p.agr_url ? (p.agr_url.split('\n').map(function(u){ return u.trim(); }).filter(Boolean).map(function(u,i,arr){
+                      return '<a href="'+esc(u)+'" target="_blank" class="sp-link" style="font-size:11px">'+(arr.length>1?'Document '+(i+1):'Document')+'</a>';
+                    }).join('')) : '') +
                 '</div>';
               })() : '') +
             '<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">' +
