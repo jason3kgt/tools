@@ -151,6 +151,13 @@ textarea{resize:vertical;min-height:70px}
 
 .back-btn{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:var(--nv,#1B3A6B);font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;padding:8px 0 4px;touch-action:manipulation}
 .back-btn:before{content:"‹";font-size:20px;line-height:1}
+/* Photo */
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px}
+.photo-thumb{position:relative;border-radius:8px;overflow:hidden;aspect-ratio:1;background:var(--of);border:1px solid var(--bd)}
+.photo-thumb.backed:after{content:'✓';position:absolute;bottom:3px;left:3px;background:rgba(30,122,62,.9);color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;line-height:1}
+.photo-thumb img{width:100%;height:100%;object-fit:cover}
+.photo-del{position:absolute;top:3px;right:3px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+.photo-btn{touch-action:manipulation;margin-top:6px;width:100%;justify-content:center;display:flex;gap:6px;align-items:center;padding:9px;border-radius:8px;font-size:12px;font-weight:600;border:1.5px dashed var(--nv);background:var(--of);color:var(--nv);font-family:inherit;cursor:pointer}
 
 /* ── AUTO-SAVE INDICATOR ── */
 .save-dot{width:8px;height:8px;border-radius:50%;background:#6B7280;display:inline-block;margin-left:6px;flex-shrink:0;transition:background .3s}
@@ -224,6 +231,7 @@ textarea{resize:vertical;min-height:70px}
 <button class="dlb" style="background:var(--nv);margin-top:8px" ontouchend="doSubmitToStore()" onclick="doSubmitToStore()">&#10003; Submit Survey</button>
 <div id="submit-banner"></div>
 <input type="file" id="lf" accept=".json" style="display:none" onchange="loadJ(this)">
+<input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none" multiple>
 </div>
 <div class="pg" id="pg2">
 <button class="back-btn" ontouchend="go(1)" onclick="go(1)">Back to Equipment</button>
@@ -342,6 +350,11 @@ function uH(u,i){
     +'<div class="fg"><label>Sign of Ref. Leak?</label>'+yn('u-leak-'+id,'Yes','No')+'</div>'
   +'</div>'
 
+  // ── PHOTOS ──
+  +'<div class="sh">Unit Photos</div>'
+  +'<div class="photo-grid" id="pg-'+id+'"></div>'
+  +'<button type="button" class="photo-btn" data-photoid="'+id+'" onclick="addPhoto(this)"><span>&#128247;</span> Add Photo</button>'
+
   // ── PER-UNIT QUESTIONS (formerly sections 2,3,4) ──
   +'<div class="sh">Unit Status — Controls &amp; Power</div>'
   +'<div class="fg"><label>Controls intact? Local or Remote?</label>'
@@ -405,7 +418,7 @@ function uH(u,i){
   +'</div></div>';
 }
 
-function addUnit(){units.push({id:uid++,tag:''});renderUnits();}
+function addUnit(){units.push({id:uid++,tag:'',photos:[]});renderUnits();}
 function rmUnit(id){units=units.filter(function(u){ return u.id!==id; });renderUnits();}
 function udf(id,f,v){
   var u=units.find(function(u){ return u.id===id; });if(u)u[f]=v;
@@ -415,6 +428,125 @@ function renderUnits(){
   var el=document.getElementById('uql');
   if(!units.length){el.innerHTML='<div class="empty">Tap below to add a unit</div>';return;}
   el.innerHTML=units.map(function(u,i){return uH(u,i);}).join('');
+  for(var i=0;i<units.length;i++)renderPhotos(units[i].id);
+}
+
+// ── PHOTOS ────────────────────────────────────────────────────
+var _photoTargetId=null;
+function addPhoto(btn){
+  _photoTargetId=parseInt(btn.dataset.photoid);
+  var inp=document.getElementById('photoInput');
+  inp.value='';
+  inp.click();
+}
+document.getElementById('photoInput').addEventListener('change',function(){
+  var u=units.find(function(u){return u.id===_photoTargetId;});
+  if(!u)return;
+  if(!u.photos)u.photos=[];
+  var files=this.files;
+  if(!files||!files.length)return;
+  var remaining=files.length;
+  for(var i=0;i<files.length;i++){
+    (function(file){
+      compressImage(file,1600,0.75).then(function(res){
+        var photoObj={data:res.dataUrl,caption:'',backedUp:false};
+        u.photos.push(photoObj);
+        remaining--;
+        if(remaining<=0)renderPhotos(u.id);
+        ntdBackupPhoto(res.blob,u,photoObj);
+      }).catch(function(err){
+        console.warn('[NTD] Photo compression failed, using original:',err);
+        var reader=new FileReader();
+        reader.onload=function(ev){
+          var photoObj={data:ev.target.result,caption:'',backedUp:false};
+          u.photos.push(photoObj);
+          remaining--;
+          if(remaining<=0)renderPhotos(u.id);
+          ntdBackupPhoto(file,u,photoObj);
+        };
+        reader.readAsDataURL(file);
+      });
+    })(files[i]);
+  }
+});
+
+// Resize + re-encode a photo before it ever touches localStorage, the PDF,
+// or Supabase — cuts a typical 3-6MB iPad camera photo down to ~150-350KB
+// with no visible quality loss for documentation purposes.
+function compressImage(file,maxDim,quality){
+  maxDim=maxDim||1600;quality=quality||0.75;
+  return new Promise(function(resolve,reject){
+    var url=URL.createObjectURL(file);
+    var img=new Image();
+    img.onload=function(){
+      URL.revokeObjectURL(url);
+      var w=img.width,h=img.height;
+      if(w>maxDim||h>maxDim){
+        if(w>=h){h=Math.round(h*maxDim/w);w=maxDim;}
+        else{w=Math.round(w*maxDim/h);h=maxDim;}
+      }
+      var canvas=document.createElement('canvas');
+      canvas.width=w;canvas.height=h;
+      var ctx=canvas.getContext('2d');
+      ctx.drawImage(img,0,0,w,h);
+      var dataUrl=canvas.toDataURL('image/jpeg',quality);
+      if(canvas.toBlob){
+        canvas.toBlob(function(blob){
+          resolve({dataUrl:dataUrl,blob:blob||dataURLtoBlob(dataUrl)});
+        },'image/jpeg',quality);
+      }else{
+        resolve({dataUrl:dataUrl,blob:dataURLtoBlob(dataUrl)});
+      }
+    };
+    img.onerror=function(e){URL.revokeObjectURL(url);reject(e);};
+    img.src=url;
+  });
+}
+function dataURLtoBlob(dataUrl){
+  var parts=dataUrl.split(',');
+  var mime=parts[0].match(/:(.*?);/)[1];
+  var bin=atob(parts[1]);
+  var arr=new Uint8Array(bin.length);
+  for(var i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+  return new Blob([arr],{type:mime});
+}
+
+// Silently back a photo up to Supabase Storage the moment it's taken, so it
+// survives even if the tech never finishes the form or the app is closed.
+// Independent of the equipment/facility tables — just raw file safety.
+function ntdBackupPhoto(blob,unit,photoObj){
+  if(typeof ntdStore==='undefined'||!ntdStore.files||!ntdStore.files.upload)return;
+  var custSlug=(gv('j-cust')||'unassigned').replace(/[^a-z0-9]+/gi,'-').toLowerCase().replace(/^-+|-+$/g,'').slice(0,40)||'unassigned';
+  var tagSlug=((unit.tag||'')||('unit-'+unit.id)).replace(/[^a-z0-9]+/gi,'-').toLowerCase().replace(/^-+|-+$/g,'').slice(0,30)||('unit-'+unit.id);
+  var path='photo-backups/'+custSlug+'/'+tagSlug+'_'+Date.now()+'_'+Math.random().toString(36).slice(2,6)+'.jpg';
+  ntdStore.files.upload(path,blob,'image/jpeg').then(function(){
+    photoObj.backedUp=true;
+    photoObj.remotePath=path;
+    renderPhotos(unit.id);
+  }).catch(function(err){
+    console.warn('[NTD] Photo backup failed (will still work locally for this session):',err);
+  });
+}
+
+function renderPhotos(uid){
+  var u=units.find(function(u){return u.id===uid;});
+  var pg=document.getElementById('pg-'+uid);
+  if(!u||!pg)return;
+  if(!u.photos)u.photos=[];
+  var html='';
+  for(var i=0;i<u.photos.length;i++){
+    var p=u.photos[i];
+    html+='<div class="photo-thumb'+(p.backedUp?' backed':'')+'"><img src="'+p.data+'" alt="photo"><button class="photo-del" data-uid="'+uid+'" data-pidx="'+i+'" onclick="delPhoto(this)">×</button></div>';
+  }
+  pg.innerHTML=html;
+}
+function delPhoto(btn){
+  var uid=parseInt(btn.dataset.uid);
+  var idx=parseInt(btn.dataset.pidx);
+  var u=units.find(function(u){return u.id===uid;});
+  if(!u||!u.photos)return;
+  u.photos.splice(idx,1);
+  renderPhotos(uid);
 }
 
 // ── PDF ──
@@ -594,6 +726,24 @@ function dlPDF(){
       doc.setFillColor(255,255,255);doc.rect(14,y,W-28,nh,'F');doc.setDrawColor(200,210,220);doc.rect(14,y,W-28,nh,'S');
       doc.setFont('helvetica','normal');doc.setTextColor(30,30,30);doc.setFontSize(9);
       doc.text(doc.splitTextToSize(un,W-36),18,y+10);
+      y+=nh+8;
+    }
+
+    // Unit photos — 2-up grid
+    if(u.photos&&u.photos.length){
+      if(y>H-140){doc.addPage();pg++;totalPgs++;y=hdr();}
+      y+=4;y=secHdr(y,'Unit Photos');
+      var pw=(W-28-8)/2,ph=pw*0.72,pcol=0;
+      for(var pi=0;pi<u.photos.length;pi++){
+        if(y+ph>H-30){doc.addPage();pg++;totalPgs++;y=hdr();pcol=0;}
+        var px=14+(pcol*(pw+8));
+        try{doc.addImage(u.photos[pi].data,'JPEG',px,y,pw,ph);}catch(er){
+          try{doc.addImage(u.photos[pi].data,'PNG',px,y,pw,ph);}catch(er2){}
+        }
+        pcol++;
+        if(pcol>=2){pcol=0;y+=ph+6;}
+      }
+      if(pcol===1)y+=ph+6;
     }
     footer();
   });
