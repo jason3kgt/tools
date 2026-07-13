@@ -1622,13 +1622,18 @@ function pmGenPDF(){
   var epLines=doc.splitTextToSize(execPre,IW);doc.text(epLines,M,y);y+=epLines.length*10+10;
 
   // Customer ack box
-  var ackItems=['✓ Condensate disclaimer (Sec. 3)','✓ Billing rates $115/$145/hr (Sec. 5)','✓ Liability cap (Sec. 7)','✓ Cancellation terms (Sec. 10)','✓ Non-transferable'];
-  var ackH=14+ackItems.length*11+6;
+  var ackHeaderText='CUSTOMER ACKNOWLEDGMENT \u2014 By signing, Customer confirms they have read and agree to all terms, including:';
+  doc.setFont('helvetica','bold');doc.setFontSize(7.5);
+  var ackHeaderLines=doc.splitTextToSize(ackHeaderText,IW-8);
+  var ackHeaderH=ackHeaderLines.length*9;
+  var ackItems=['\u2022 Condensate disclaimer (Sec. 3)','\u2022 Billing rates $115/$145/hr (Sec. 5)','\u2022 Liability cap (Sec. 7)','\u2022 Cancellation terms (Sec. 10)','\u2022 Non-transferable'];
+  var ackH=14+ackHeaderH+ackItems.length*11+6;
   doc.setFillColor(232,240,252);doc.rect(M,y,IW,ackH,'F');doc.setDrawColor(180,200,230);doc.rect(M,y,IW,ackH,'S');
   doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(NV[0],NV[1],NV[2]);
-  doc.text('CUSTOMER ACKNOWLEDGMENT \u2014 By signing, Customer confirms they have read and agree to all terms, including:',M+4,y+9,{maxWidth:IW-8});
+  doc.text(ackHeaderLines,M+4,y+9);
   doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(40,40,40);
-  for(var ai=0;ai<ackItems.length;ai++){doc.text(ackItems[ai],M+10,y+19+ai*11);}
+  var ackItemsY=y+9+ackHeaderH+8;
+  for(var ai=0;ai<ackItems.length;ai++){doc.text(ackItems[ai],M+10,ackItemsY+ai*11);}
   y+=ackH+6;
 
   // Signature blocks

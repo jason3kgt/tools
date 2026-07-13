@@ -1336,7 +1336,7 @@ function renderDetailTab(f) {
               '<div class="rec-sub">'+esc(q.date||'')+(q.unit_count?' · '+q.unit_count+' units':'')+'</div>' +
               '<div class="rec-meta">Annual: <strong>'+esc(q.annual_total||'—')+'</strong> · Quarterly: '+esc(q.quarterly_rate||'—')+'</div>' +
               '<div style="margin-top:6px">'+pmPdfLink+'</div>' +
-              '<button class="btn btn-outline btn-sm" style="margin-top:8px" onclick="convertQuoteToProject(\'' + q.id + '\',\'pm\')">→ Convert to Project</button>' +
+              '<button class="btn btn-outline btn-sm" style="margin-top:8px" onclick="convertQuoteToProject(\'' + q.id + '\',\'pm\')">→ Set as PM Contract</button>' +
             '</div></div>';
         });
         html += '</div></div>';
@@ -1619,37 +1619,63 @@ function deleteProject(id) {
   });
 }
 
-// Convert a PM Proposal or Service Quote into a Project record.
-// Non-destructive — the original quote row is left untouched as a historical
-// record; this just creates a new job with type:'project' pre-filled from it.
+// Convert a quote into either a PM Contract (facility.contract, shown on the
+// PM tab) or a Project (jobs table, type:'project') depending on quote type.
+// Non-destructive — the original quote row is left untouched either way.
 function convertQuoteToProject(quoteId, quoteType) {
-  var store = quoteType === 'pm' ? ntdStore.pm_quotes : ntdStore.service_quotes;
-  store.get(quoteId).then(function(q) {
+  if (quoteType === 'pm') {
+    ntdStore.pm_quotes.get(quoteId).then(function(q) {
+      if (!q) { alert('Could not find that quote.'); return; }
+      ntdStore.facilities.get(q.facility_id).then(function(fac) {
+        var existing = fac.contract || {};
+        var hasExisting = fac.pm_contract && (existing.annual_value || existing.frequency);
+        if (hasExisting) {
+          var ok = confirm('This facility already has PM Contract details on file (' +
+            (existing.annual_value || existing.frequency || 'existing contract') +
+            '). Setting this proposal as the contract will overwrite those details. Continue?');
+          if (!ok) return;
+        }
+        var freqVisits = {Monthly:12, Quarterly:4, 'Semi-Annual':2, Annual:1};
+        fac.pm_contract = true;
+        fac.contract = {
+          agreement_num:   existing.agreement_num || '',
+          annual_value:    q.annual_total || '',
+          frequency:       q.frequency || '',
+          visits_per_year: freqVisits[q.frequency] ? String(freqVisits[q.frequency]) : (existing.visits_per_year || ''),
+          start_date:      q.date || existing.start_date || '',
+          renewal_date:    existing.renewal_date || '',
+          scope:           (q.unit_count ? q.unit_count + ' units under PM contract. ' : '') + 'Converted from PM Proposal dated ' + (q.date || '') + '.'
+        };
+        return ntdStore.facilities.upsert(fac);
+      }).then(function() {
+        showToast('Set as PM Contract — see PM tab');
+        if (currentDetailTab === 'quotes' || currentDetailTab === 'pm' || currentDetailTab === 'pm_contract') {
+          ntdStore.facilities.get(currentFacilityId).then(renderDetailTab);
+        }
+      }).catch(function(err) {
+        console.error('convertQuoteToProject (pm) failed:', err);
+        showToast('Convert failed: ' + (err.message || 'see console for details'));
+      });
+    }).catch(function(err) {
+      console.error('convertQuoteToProject fetch failed:', err);
+      alert('Could not load that quote: ' + (err.message || ''));
+    });
+    return;
+  }
+
+  // Service quotes still convert into a Project record, as before.
+  ntdStore.service_quotes.get(quoteId).then(function(q) {
     if (!q) { alert('Could not find that quote.'); return; }
-    var isPm = quoteType === 'pm';
-    var value = isPm ? (q.annual_total || '') : (q.grand_total || '');
-    var name = isPm
-      ? (q.frequency || 'PM') + ' Contract Proposal — ' + (q.date || '')
-      : 'Service Project — ' + (q.date || '');
-    var notesLines = [];
-    if (isPm) {
-      notesLines.push('Converted from PM Proposal.');
-      if (q.unit_count) notesLines.push('Units: ' + q.unit_count);
-      if (q.frequency) notesLines.push('Frequency: ' + q.frequency);
-      if (q.quarterly_rate) notesLines.push('Quarterly rate: ' + q.quarterly_rate);
-      if (q.monthly_rate) notesLines.push('Monthly rate: ' + q.monthly_rate);
-    } else {
-      notesLines.push('Converted from Service Quote.');
-      if (q.items && q.items.length) notesLines.push('Line items: ' + q.items.length);
-      if (q.base_total) notesLines.push('Base total: ' + q.base_total);
-      if (q.tax_total) notesLines.push('Tax: ' + q.tax_total);
-    }
+    var notesLines = ['Converted from Service Quote.'];
+    if (q.items && q.items.length) notesLines.push('Line items: ' + q.items.length);
+    if (q.base_total) notesLines.push('Base total: ' + q.base_total);
+    if (q.tax_total) notesLines.push('Tax: ' + q.tax_total);
     var data = {
       facility_id: q.facility_id,
       type: 'project',
-      name: name,
+      name: 'Service Project — ' + (q.date || ''),
       status: 'bidding',
-      value: value,
+      value: q.grand_total || '',
       start_date: q.date || '',
       notes: notesLines.join('\n')
     };
@@ -1660,7 +1686,7 @@ function convertQuoteToProject(quoteId, quoteType) {
       }
       renderProjectList();
     }).catch(function(err) {
-      console.error('convertQuoteToProject save failed:', err);
+      console.error('convertQuoteToProject (service) save failed:', err);
       showToast('Convert failed: ' + (err.message || 'see console for details'));
     });
   }).catch(function(err) {
