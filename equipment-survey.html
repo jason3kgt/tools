@@ -252,7 +252,7 @@ textarea{resize:vertical;min-height:70px}
   <div class="cb">
     <p style="font-size:12px;color:var(--mu);line-height:1.5;margin-bottom:10px">Customer acknowledges pre-existing conditions were documented prior to NTD Mechanical performing any work.</p>
     <div class="r2">
-      <div class="fg"><label>Customer Name</label><input type="text" id="i-signame" placeholder="Print name"></div>
+      <div class="fg"><label>Signed By</label><input type="text" id="i-signame" placeholder="Print name"></div>
       <div class="fg"><label>Title</label><input type="text" id="i-sigtitle" placeholder="Title / Role"></div>
     </div>
     <div class="fg"><label>Date</label><input type="text" id="i-sigdate" placeholder="MM/DD/YYYY"></div>
@@ -778,7 +778,7 @@ function dlPDF(){
   doc.setFont('helvetica','normal');doc.setTextColor(60,60,60);doc.setFontSize(8);
   doc.text('Customer acknowledges the above pre-existing conditions were observed and documented prior to NTD Mechanical performing any work.',18,y+9,{maxWidth:W-36});
   var hw2=(W-28)/3;
-  [['Customer Name',gv('i-signame'),0],['Title',gv('i-sigtitle'),1],['Date',gv('i-sigdate'),2]].forEach(function(f){
+  [['Signed By',gv('i-signame'),0],['Title',gv('i-sigtitle'),1],['Date',gv('i-sigdate'),2]].forEach(function(f){
     var x=14+f[2]*hw2;
     doc.setFont('helvetica','bold');doc.setTextColor(...NV);doc.setFontSize(7);doc.text(f[0].toUpperCase(),x+4,y+24);
     doc.setFont('helvetica','normal');doc.setTextColor(30,30,30);doc.setFontSize(9);doc.text(f[1]||'—',x+4,y+36,{maxWidth:hw2-8});
