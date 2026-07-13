@@ -901,7 +901,7 @@ function renderDetailTab(f) {
         return dt;
       }
       var docMap = {};
-      var formLabels = {asset_survey:'Asset Survey',pm_checklist:'PM Visit Report',pm_proposal:'PM Proposal',service_quote:'Service Quote',startup:'Startup Checklist',equipment_survey:'Equipment Survey'};
+      var formLabels = {asset_survey:'Asset Survey',pm_checklist:'PM Visit Report',pm_proposal:'PM Proposal',equipment_log:'Equipment Log',capital_forecast:'Capital Forecast',service_quote:'Service Quote',startup:'Startup Checklist',equipment_survey:'Equipment Survey'};
       docs.forEach(function(d) {
         var key = (d.form_type || '') + '|' + normDate(d.date || '');
         if (!docMap[key] || (d.ts||0) > (docMap[key].ts||0)) {
@@ -1025,7 +1025,7 @@ function renderDetailTab(f) {
           ts:    j.ts || 0,
           icon:  '📊',
           color: 'or',
-          title: j.name || 'Asset Assessment',
+          title: j.name || 'Executive Summary',
           sub:   [j.date, j.tech ? 'Tech: '+esc(j.tech) : ''].filter(Boolean).join(' · '),
           meta:  (unitCount ? unitCount + ' units assessed' : '') + pdfLink,
           date:  j.date || ''
@@ -1856,7 +1856,7 @@ function renderDashboard() {
     pmQuotes.forEach(function(r){ allActivity.push({ts:r.ts||0, icon:'📄', label:'PM Proposal — '+esc(r.frequency||'PM'), fid:r.facility_id, tab:'quotes'}); });
     svcQuotes.forEach(function(r){ allActivity.push({ts:r.ts||0, icon:'🔨', label:'Service Quote', fid:r.facility_id, tab:'quotes'}); });
     jobs.filter(function(j){return j.type==='project';}).forEach(function(p){ allActivity.push({ts:p.ts||0, icon:'📁', label:'Project — '+esc(p.name||'Project'), fid:p.facility_id, tab:'projects'}); });
-    jobs.filter(function(j){return j.type==='asset_survey';}).forEach(function(j){ allActivity.push({ts:j.ts||0, icon:'📊', label:'Asset Survey — '+esc((j.name||'').replace('Asset Assessment — ','')), fid:j.facility_id, tab:'timeline'}); });
+    jobs.filter(function(j){return j.type==='asset_survey';}).forEach(function(j){ allActivity.push({ts:j.ts||0, icon:'📊', label:'Asset Survey — '+esc((j.name||'').replace('Executive Summary — ','')), fid:j.facility_id, tab:'timeline'}); });
     // Documents intentionally excluded from dashboard — they appear in facility Timeline only
     allActivity.sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
     var recentActivity = allActivity.slice(0, 6);

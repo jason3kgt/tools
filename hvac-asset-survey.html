@@ -242,7 +242,7 @@ textarea{resize:vertical;min-height:70px}
     <div class="cb"><div class="fg"><label>Overall Narrative</label><textarea id="esnotes" placeholder="Overall site condition, priority findings, recommendations..." style="min-height:100px"></textarea></div></div>
   </div>
   <button class="dlb" onclick="dlSummary()">Download Executive Summary PDF</button>
-  <button class="dlb sec" onclick="ntdSubmitAssessment()" ontouchend="ntdSubmitAssessment()">&#10003; Submit Assessment to Store</button>
+  <button class="dlb sec" onclick="ntdSubmitAssessment()">&#10003; Submit Assessment to Store</button>
 </div>
 
 <!-- TAB 3: FORECAST -->
@@ -345,7 +345,7 @@ textarea{resize:vertical;min-height:70px}
     </div>
   </div>
   <button class="dlb" onclick="pmGenPDF()">📄 Generate PM Proposal PDF</button>
-  <button class="dlb sec" onclick="ntdSubmitPMQuote()" ontouchend="ntdSubmitPMQuote()">&#10003; Submit PM Quote to Store</button>
+  <button class="dlb sec" onclick="ntdSubmitPMQuote()">&#10003; Submit PM Quote to Store</button>
   <button class="dlb sec" onclick="pmExportJSON()">📧 Email Quote for Excel Import</button>
 </div>
 
@@ -437,7 +437,7 @@ textarea{resize:vertical;min-height:70px}
     </div>
   </div>
   <button class="dlb" onclick="sqGeneratePDF()">&#128196; Generate Service Proposal PDF</button>
-  <button class="dlb sec" onclick="ntdSubmitServiceQuote()" ontouchend="ntdSubmitServiceQuote()">&#10003; Submit Service Quote to Store</button>
+  <button class="dlb sec" onclick="ntdSubmitServiceQuote()">&#10003; Submit Service Quote to Store</button>
   <button class="dlb sec" onclick="sqClearItems()" style="margin-top:6px;background:#C0392B">&#128465; Clear Line Items</button>
 </div>
 
@@ -1166,7 +1166,7 @@ function dlForecast(){
   var blob=doc.output('blob');var url=URL.createObjectURL(blob);
   window.open(url,'_blank');setTimeout(function(){URL.revokeObjectURL(url);},60000);
   ntdUpsertAssetFacility(function(facilityId) {
-    ntdUploadPDFWithFeedback(blob,'asset_survey','Asset Survey — '+(gv('sf')||'Site')+' — Capital Forecast',{unitCount:eqs.length},facilityId);
+    ntdUploadPDFWithFeedback(blob,'capital_forecast','Capital Forecast — '+(gv('sf')||'Site'),{unitCount:eqs.length},facilityId);
   });
 }
 
@@ -1783,7 +1783,7 @@ function dlSiteRecord(){
   var blob=doc.output('blob');var url=URL.createObjectURL(blob);
   window.open(url,'_blank');setTimeout(function(){URL.revokeObjectURL(url);},60000);
   ntdUpsertAssetFacility(function(facilityId) {
-    ntdUploadPDFWithFeedback(blob,'pm_proposal','PM Proposal — '+(gv('sf')||'Site')+' (Detail)',{unitCount:pmUnits.length},facilityId);
+    ntdUploadPDFWithFeedback(blob,'equipment_log','Equipment Log — '+(gv('sf')||'Site'),{unitCount:pmUnits.length},facilityId);
   });
 }
 
@@ -2216,7 +2216,7 @@ function ntdSubmitAssessment() {
     });
     var assessSave = ntdStore.jobs.upsert({
       facility_id: facilityId, type: 'asset_survey',
-      name: 'Asset Assessment — ' + (gv('sf')||''),
+      name: 'Executive Summary — ' + (gv('sf')||''),
       date: gv('sd'), tech: gv('stch'), status: 'complete',
       notes: gv('esnotes'),
       units: eqs.map(function(eq){ return {tag:eq.tag,type:eq.type,condition:eq.ov}; })
@@ -2362,7 +2362,7 @@ function ntdAutoSubmitAssessment() {
     });
     var assessSave = ntdStore.jobs.upsert({
       facility_id: facilityId, type: 'asset_survey',
-      name: 'Asset Assessment — ' + (gv('sf')||''),
+      name: 'Executive Summary — ' + (gv('sf')||''),
       date: gv('sd'), tech: gv('stch'), status: 'complete',
       notes: gv('esnotes'),
       units: eqs.map(function(eq){ return {tag:eq.tag,type:eq.type,condition:eq.ov}; })

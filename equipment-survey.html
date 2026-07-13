@@ -182,8 +182,8 @@ textarea{resize:vertical;min-height:70px}
   <strong>⚠️ Unsaved draft found</strong>
   A survey draft was found from a previous session. Would you like to restore it?
   <div class="banner-btns">
-    <button class="banner-btn primary" ontouchend="restoreDraft()" onclick="restoreDraft()">Restore Draft</button>
-    <button class="banner-btn secondary" ontouchend="discardDraft()" onclick="discardDraft()">Start Fresh</button>
+    <button class="banner-btn primary" onclick="restoreDraft()">Restore Draft</button>
+    <button class="banner-btn secondary" onclick="discardDraft()">Start Fresh</button>
   </div>
 </div>
 <div class="card">
@@ -219,7 +219,7 @@ textarea{resize:vertical;min-height:70px}
 </div>
 </div>
 <div class="pg" id="pg1">
-<button class="back-btn" ontouchend="go(0)" onclick="go(0)">Back to Job Info</button>
+<button class="back-btn" onclick="go(0)">Back to Job Info</button>
 <div class="card">
   <div class="ch"><span class="cn">U</span><h2>Equipment Units</h2></div>
   <div class="cb">
@@ -227,14 +227,14 @@ textarea{resize:vertical;min-height:70px}
     <button class="addb" onclick="addUnit()">+ Add Unit</button>
   </div>
 </div>
-<button class="dlb" ontouchend="dlPDF()" onclick="dlPDF()">&#8681; Download Survey PDF</button>
-<button class="dlb" style="background:var(--nv);margin-top:8px" ontouchend="doSubmitToStore()" onclick="doSubmitToStore()">&#10003; Submit Survey</button>
+<button class="dlb" onclick="dlPDF()">&#8681; Download Survey PDF</button>
+<button class="dlb" style="background:var(--nv);margin-top:8px" onclick="doSubmitToStore()">&#10003; Submit Survey</button>
 <div id="submit-banner"></div>
 <input type="file" id="lf" accept=".json" style="display:none" onchange="loadJ(this)">
 <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none" multiple>
 </div>
 <div class="pg" id="pg2">
-<button class="back-btn" ontouchend="go(1)" onclick="go(1)">Back to Equipment</button>
+<button class="back-btn" onclick="go(1)">Back to Equipment</button>
 <div class="card">
   <div class="ch"><span class="cn">!</span><h2>Pre-Job Inspection Summary</h2></div>
   <div class="cb">
@@ -258,7 +258,7 @@ textarea{resize:vertical;min-height:70px}
     <div class="fg"><label>Date</label><input type="text" id="i-sigdate" placeholder="MM/DD/YYYY"></div>
   </div>
 </div>
-<button class="dlb"  ontouchend="dlPDF()" onclick="dlPDF()">&#8681; Download Survey PDF</button>
+<button class="dlb"  onclick="dlPDF()">&#8681; Download Survey PDF</button>
 </div>
 <script>
 
@@ -996,6 +996,10 @@ function doSubmitToStore() {
     alert('ntdStore.js not loaded. Make sure ntdStore.js is in the same folder as this file.');
     return;
   }
+  if (_ntdAutoSubmitted) {
+    alert('This survey was already saved to NTD Hub this session (either via this button or automatically on PDF download). To avoid duplicate records, submit is now locked for this session — re-download the PDF if you need another copy.');
+    return;
+  }
   var cust = gv('j-cust');
   var wo = gv('j-wo');
   if (!cust) { alert('Please enter a Customer Name before submitting.'); go(0); return; }
@@ -1003,6 +1007,7 @@ function doSubmitToStore() {
   var btn = event.currentTarget || event.target;
   var origText = btn ? btn.innerHTML : '';
   if (btn) { btn.innerHTML = '⏳ Saving...'; btn.disabled = true; }
+  _ntdAutoSubmitted = true;
 
   // Build site fields object — keys must match what
   // ntdStore.migrate.fromEquipmentSurveyWithUnits expects (customer/address/etc),
@@ -1061,6 +1066,7 @@ function doSubmitToStore() {
       }, 3000);
     })
     .catch(function(err) {
+      _ntdAutoSubmitted = false;
       if (btn) { btn.innerHTML = origText; btn.disabled = false; }
       setSaveDot('error');
       alert('Submit failed: ' + (err && err.message ? err.message : err));
@@ -1147,10 +1153,13 @@ function ntdUploadPDF(blob, formType, description, extraParams) {
 // ── END NTD PDF UPLOAD HELPER ─────────────────────────────────────────────
 
 // ── AUTO-SUBMIT ON PDF DOWNLOAD ───────────────────────────────────────────
+var _ntdAutoSubmitted = false;
 function ntdAutoSubmitSurvey() {
   if (typeof ntdStore === 'undefined') return;
+  if (_ntdAutoSubmitted) { console.log('[NTD] Already submitted this session, skipping duplicate'); return; }
   var facName = gv('j-cust') || '';
   if (!facName) return;
+  _ntdAutoSubmitted = true;
   ntdStore.migrate.fromEquipmentSurveyWithUnits(
     {
       customer: facName,
@@ -1162,7 +1171,7 @@ function ntdAutoSubmitSurvey() {
     },
     typeof unitData !== 'undefined' ? unitData : []
   ).then(function(){ console.log('[NTD] Survey auto-saved'); })
-   .catch(function(e){ console.warn('[NTD] Survey auto-save failed:', e.message); });
+   .catch(function(e){ _ntdAutoSubmitted = false; console.warn('[NTD] Survey auto-save failed:', e.message); });
 }
 // ── END AUTO-SUBMIT ───────────────────────────────────────────────────────
 if('serviceWorker' in navigator){
@@ -1175,7 +1184,7 @@ if('serviceWorker' in navigator){
           if(newSW.state === 'installed' && navigator.serviceWorker.controller){
             var n = document.createElement('div');
             n.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1B3A6B;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,.3)';
-            n.innerHTML = '&#128260; Update available — <button  ontouchend="location.reload()" onclick="location.reload()" style="background:#E8531A;color:#fff;border:none;border-radius:8px;padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer;touch-action:manipulation;cursor:pointer;font-family:inherit">Reload</button>';
+            n.innerHTML = '&#128260; Update available — <button  onclick="location.reload()" style="background:#E8531A;color:#fff;border:none;border-radius:8px;padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer;touch-action:manipulation;cursor:pointer;font-family:inherit">Reload</button>';
             document.body.appendChild(n);
           }
         });
