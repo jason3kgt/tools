@@ -796,7 +796,7 @@ function dlPDF(){
   var fn='NTD_Equipment_Survey_'+(gv('j-cust')||'Survey').replace(/\s+/g,'_')+'_'+(gv('j-date')||'draft').replace(/\//g,'-')+'.pdf';
   var _blob=doc.output('blob');
   var _burl=URL.createObjectURL(_blob);
-  ntdUploadPDF(_blob,'equipment_survey','Equipment Survey — '+(gv('j-cust')||'Site')+' — '+(gv('j-date')||''),{unitCount:(typeof unitData!=='undefined'?unitData.length:0)});
+  ntdUploadPDF(_blob,'equipment_survey','Equipment Survey — '+(gv('j-cust')||'Site')+' — '+(gv('j-date')||''),{unitCount:(typeof units!=='undefined'?units.length:0)});
   ntdAutoSubmitSurvey();
   var _win=window.open(_burl,'_blank');
   if(!_win){
@@ -990,6 +990,36 @@ renderUnits = function() {
   }, 60);
 };
 
+// Build unit objects matching ntdStore.migrate.fromEquipmentSurveyWithUnits's
+// expected shape. Shared by doSubmitToStore() and ntdAutoSubmitSurvey() so
+// both write the same rich per-unit data — this used to only be built inside
+// doSubmitToStore(), which meant auto-submit-on-PDF-download was silently
+// sending an empty unit list (a stale, out-of-scope 'unitData' reference).
+function ntdBuildUnitObjects() {
+  return units.map(function(u) {
+    var id = u.id;
+    function gf(f) { var el = document.getElementById('u-' + f + '-' + id); return el ? el.value || '' : ''; }
+    return {
+      tag:        gf('tag') || ('Unit ' + id),
+      type:       gf('type'),
+      model1:     gf('mod1'),
+      serial1:    gf('ser1'),
+      model2:     gf('mod2'),
+      serial2:    gf('ser2'),
+      tonnage:    gf('ton'),
+      btu:        gf('btu'),
+      kw:         gf('kw'),
+      refrigerant:gf('ref'),
+      voltage:    gf('volt'),
+      heat_type:  gf('heat'),
+      filter_size:gf('filt'),
+      belt_size:  gf('belt'),
+      condition:  gf('cond'),
+      notes:      gf('notes')
+    };
+  });
+}
+
 // ── STORE SUBMIT ──────────────────────────────────────────────────────────
 function doSubmitToStore() {
   if (typeof ntdStore === 'undefined') {
@@ -1022,29 +1052,7 @@ function doSubmitToStore() {
     notes:    gv('j-notes') || ''
   };
 
-  // Build unit objects matching the migrate function's expected shape
-  var unitObjects = units.map(function(u) {
-    var id = u.id;
-    function gf(f) { var el = document.getElementById('u-' + f + '-' + id); return el ? el.value || '' : ''; }
-    return {
-      tag:        gf('tag') || ('Unit ' + id),
-      type:       gf('type'),
-      model1:     gf('mod1'),
-      serial1:    gf('ser1'),
-      model2:     gf('mod2'),
-      serial2:    gf('ser2'),
-      tonnage:    gf('ton'),
-      btu:        gf('btu'),
-      kw:         gf('kw'),
-      refrigerant:gf('ref'),
-      voltage:    gf('volt'),
-      heat_type:  gf('heat'),
-      filter_size:gf('filt'),
-      belt_size:  gf('belt'),
-      condition:  gf('cond'),
-      notes:      gf('notes')
-    };
-  });
+  var unitObjects = ntdBuildUnitObjects();
 
   ntdStore.migrate.fromEquipmentSurveyWithUnits(site, unitObjects)
     .then(function(result) {
@@ -1165,7 +1173,7 @@ function ntdAutoSubmitSurvey() {
       tech: gv('j-tech') || '',
       wo: gv('j-wo') || ''
     },
-    typeof unitData !== 'undefined' ? unitData : []
+    ntdBuildUnitObjects()
   ).then(function(){ console.log('[NTD] Survey auto-saved'); })
    .catch(function(e){ _ntdAutoSubmitted = false; console.warn('[NTD] Survey auto-save failed:', e.message); });
 }
