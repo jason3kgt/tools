@@ -1432,8 +1432,13 @@ function dlPDF(){
   var fn='NTD_Startup_'+(EQ_TYPES[currentType]||'').replace(/[^a-zA-Z0-9]/g,'_')+'_'+(gv('unit_num')||gv('job_po')||'draft')+'.pdf';
   var _blob=doc.output('blob');
   var _burl=URL.createObjectURL(_blob);
-  ntdUploadPDF(_blob,'startup','Startup — '+(gv('unit_num')||'Unit')+' — '+(gv('facility')||''));
-  ntdAutoSubmitStartup(null);
+  if (typeof ntdEnsureFacility === 'function') {
+    ntdEnsureFacility(function(fid) {
+      if (!fid) return;
+      ntdUploadPDF(_blob,'startup','Startup — '+(gv('unit_num')||'Unit')+' — '+(gv('facility')||''));
+      ntdAutoSubmitStartup(null);
+    });
+  }
   var _win=window.open(_burl,'_blank');
   if(!_win){
     // Fallback if popup blocked
@@ -1748,8 +1753,13 @@ function saveUnitToSession(){
   persistSession();
   renderSessionLog();
 
-  // Also save to ntdStore
-  ntdSaveStartupRecord(snap);
+  // Also save to ntdStore — resolve/create the facility right away instead of
+  // waiting until "Finish Job." Local session state above is already saved
+  // regardless, so this only affects whether the Hub record + PDF uploads can
+  // attach to a real facility_id this early in the visit.
+  if (typeof ntdEnsureFacility === 'function') {
+    ntdEnsureFacility(function(fid) { if (fid) ntdSaveStartupRecord(snap); });
+  }
 
   // Reset edit state
   editingIndex = -1;
@@ -2318,6 +2328,19 @@ function ntdUpsertFacility(name, address, callback) {
       _ntdFacilityId = fac.id;
       if (callback) callback(fac);
     }).catch(function() { if(callback) callback(null); });
+}
+
+/**
+ * Resolve _ntdFacilityId if it isn't already set, creating the facility if
+ * needed. Used by mid-session saves and single-unit PDF downloads so they
+ * don't have to wait until "Finish Job" for the facility to exist.
+ */
+function ntdEnsureFacility(callback) {
+  if (_ntdFacilityId) { callback(_ntdFacilityId); return; }
+  var facName = gv('facility');
+  if (!facName || typeof ntdUpsertFacility !== 'function') { callback(null); return; }
+  var facAddr = [gv('address'), gv('city_state')].filter(Boolean).join(', ');
+  ntdUpsertFacility(facName, facAddr, function(fac) { callback(fac ? fac.id : null); });
 }
 
 /**
