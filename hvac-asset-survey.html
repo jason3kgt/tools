@@ -186,6 +186,13 @@ textarea{resize:vertical;min-height:70px}
       <div class="fg"><label>Building / Site Notes</label><textarea id="sn" placeholder="Building age, general condition, access notes, # floors..."></textarea></div>
     </div>
   </div>
+  <div class="card" id="shCard">
+    <div class="ch"><div class="cn">&#8635;</div><h2>Site History (NTD Hub)</h2></div>
+    <div class="cb">
+      <button class="dlb sec" onclick="lookupSiteHistory()" style="margin-bottom:10px">Look Up Prior Visits</button>
+      <div id="shResults"><div class="empty">Enter the Customer / Facility name above, then tap Look Up to check NTD Hub for prior visits, projects, and condition history at this site.</div></div>
+    </div>
+  </div>
   <div class="card">
     <div class="ch"><div class="cn">i</div><h2>Quick Counts</h2></div>
     <div class="cb">
@@ -560,6 +567,93 @@ function go(n){
 }
 function gv(id){return(document.getElementById(id)||{}).value||'';}
 function se(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
+function esc2(s){return(s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ── SITE HISTORY (NTD Hub lookup) ───────────────────────────────
+function lookupSiteHistory(){
+  var name=gv('sf').trim();
+  var rw=document.getElementById('shResults');
+  if(!name){rw.innerHTML='<div class="empty">Enter a Customer / Facility name first.</div>';return;}
+  if(typeof ntdStore==='undefined'){rw.innerHTML='<div class="empty">NTD Hub connection not available on this device.</div>';return;}
+  rw.innerHTML='<div class="empty">Searching NTD Hub\u2026</div>';
+  ntdStore.matchFacility.find(name).then(function(result){
+    if(result.exact){loadSiteHistory(result.exact.id);return;}
+    if(!result.candidates.length){rw.innerHTML='<div class="empty">No matching site found in NTD Hub \u2014 this may be a new site, or try a shorter/simpler name.</div>';return;}
+    rw.innerHTML='<div style="font-size:11px;color:var(--mu);margin-bottom:6px">No exact match \u2014 possible matches, tap the correct site:</div>'
+      +result.candidates.map(function(f){return'<button class="addb" style="margin-bottom:6px;text-align:left" onclick="loadSiteHistory(\''+f.id+'\')">'+esc2(f.name)+(f.address?' \u2014 '+esc2(f.address):'')+'</button>';}).join('');
+  }).catch(function(err){
+    rw.innerHTML='<div class="empty">Lookup failed \u2014 '+esc2(err.message||'connection error')+'</div>';
+  });
+}
+
+function loadSiteHistory(facilityId){
+  var rw=document.getElementById('shResults');
+  rw.innerHTML='<div class="empty">Loading history\u2026</div>';
+  Promise.all([
+    ntdStore.equipment.list(function(e){return e.facility_id===facilityId;}),
+    ntdStore.jobs.list(function(j){return j.facility_id===facilityId;}),
+    ntdStore.pm_records.list(function(p){return p.facility_id===facilityId;}),
+    ntdStore.startup_records.list(function(s){return s.facility_id===facilityId;})
+  ]).then(function(res){
+    renderSiteHistory(res[0]||[],res[1]||[],res[2]||[],res[3]||[]);
+  }).catch(function(err){
+    rw.innerHTML='<div class="empty">Could not load history \u2014 '+esc2(err.message||'connection error')+'</div>';
+  });
+}
+
+function renderSiteHistory(prevEquip,jobs,pmRecs,startups){
+  var rw=document.getElementById('shResults');
+  if(!prevEquip.length&&!jobs.length&&!pmRecs.length&&!startups.length){
+    rw.innerHTML='<div class="empty">Site found in NTD Hub, but no prior visit history is on file yet.</div>';
+    return;
+  }
+  // Most recent activity across all visit types (jobs.ts is set on every upsert)
+  var visits=[];
+  jobs.forEach(function(j){if(j.type!=='project')visits.push({ts:j.ts||0,label:j.type==='survey'?'Equipment Survey':j.type==='startup_job'?'Startup Job':(j.type||'Visit'),tech:j.tech||''});});
+  pmRecs.forEach(function(p){visits.push({ts:p.ts||0,label:'PM Visit',tech:p.tech||''});});
+  startups.forEach(function(s){visits.push({ts:s.ts||0,label:'Startup',tech:s.tech||''});});
+  visits.sort(function(a,b){return(b.ts||0)-(a.ts||0);});
+  var last=visits[0];
+
+  // Prior condition per tag \u2014 most recent equipment record for each tag on file
+  var byTag={};
+  prevEquip.forEach(function(e){
+    var t=(e.tag||'').trim().toUpperCase();
+    if(!t)return;
+    if(!byTag[t]||(e.ts||0)>(byTag[t].ts||0))byTag[t]=e;
+  });
+  var drift=[];
+  eqs.forEach(function(cur){
+    if(!cur.ov)return;
+    var t=(cur.tag||'').trim().toUpperCase();
+    var prev=t&&byTag[t];
+    if(prev&&prev.condition&&prev.condition!==cur.ov)drift.push({tag:cur.tag,from:prev.condition,to:cur.ov});
+  });
+
+  var projects=jobs.filter(function(j){return j.type==='project';});
+
+  var h='';
+  if(last){
+    h+='<div style="font-size:12px;margin-bottom:8px"><b>Last visit:</b> '+esc2(last.label)+(last.tech?' by '+esc2(last.tech):'')+(last.ts?' \u2014 '+new Date(last.ts).toLocaleDateString():'')+'</div>';
+  }
+  if(Object.keys(byTag).length){
+    h+='<div style="font-size:12px;margin-bottom:8px"><b>'+Object.keys(byTag).length+'</b> unit'+(Object.keys(byTag).length===1?'':'s')+' on file from prior visits.</div>';
+  }
+  if(drift.length){
+    h+='<div style="font-size:9px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.04em;margin:8px 0 4px">Condition Change vs. Prior Visit</div>';
+    h+=drift.map(function(d){
+      var worse=(d.from==='good'&&d.to!=='good')||(d.from==='fair'&&d.to==='poor');
+      var clr=worse?'var(--rd)':'var(--gn)';
+      return'<div style="font-size:11px;padding:4px 0;border-bottom:1px solid var(--bd)"><b>'+esc2(d.tag)+'</b>: '+esc2(d.from)+' &rarr; <span style="color:'+clr+';font-weight:700">'+esc2(d.to)+'</span></div>';
+    }).join('');
+  }
+  if(projects.length){
+    h+='<div style="font-size:9px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.04em;margin:8px 0 4px">Projects On File</div>';
+    h+=projects.map(function(p){return'<div style="font-size:11px;padding:4px 0;border-bottom:1px solid var(--bd)">'+esc2(p.name||'Project')+(p.status?' \u2014 <span style="color:var(--am);font-weight:600">'+esc2(p.status)+'</span>':'')+'</div>';}).join('');
+  }
+  if(!h)h='<div class="empty">Site found, but no comparable prior visit details are on file yet.</div>';
+  rw.innerHTML=h;
+}
 function fc(n){if(!n)return'$0';if(Math.abs(n)>=1000)return'$'+Math.round(n/1000)+'K';return'$'+Math.round(n);}
 function fcc(n){if(!n)return'$0';return'$'+Math.round(n).toLocaleString();}
 function pc(v){var s=(v||'').toString();var n=parseFloat(s.replace(/[$,\s]/g,''));if(isNaN(n))return 0;if(s.toUpperCase().indexOf('K')!==-1)return n*1000;return n;}
@@ -2335,18 +2429,9 @@ function ntdUpsertAssetFacility(callback) {
   var address = [gv('sa'), gv('sct')].filter(Boolean).join(', ');
   if (!name) { alert('Please enter a Customer name on the Site tab first.'); if(callback) callback(null); return; }
   if (_ntdAssetFacilityId) { if(callback) callback(_ntdAssetFacilityId); return; }
-  ntdStore.facilities.list(function(f){
-    return (f.name||'').toLowerCase().trim() === name.toLowerCase().trim();
-  }).then(function(matches){
-    if (matches.length) {
-      _ntdAssetFacilityId = matches[0].id;
-      if(callback) callback(_ntdAssetFacilityId);
-    } else {
-      ntdStore.facilities.upsert({ name: name, address: address })
-        .then(function(fac){ _ntdAssetFacilityId = fac.id; if(callback) callback(fac.id); })
-        .catch(function(){ if(callback) callback(null); });
-    }
-  }).catch(function(){ if(callback) callback(null); });
+  ntdStore.matchFacility.resolveOrCreate(name, { address: address })
+    .then(function(fac){ _ntdAssetFacilityId = fac.id; if(callback) callback(fac.id); })
+    .catch(function(){ if(callback) callback(null); });
 }
 
 function ntdSubmitAssessment() {
@@ -2458,10 +2543,8 @@ function ntdUploadPDFWithFeedback(blob, formType, description, extraParams, faci
   if (facilityId) { doUpload(facilityId); return; }
   var facName = (typeof gv === 'function') ? (gv('sf')||gv('facility')||gv('j-cust')||'') : '';
   if (!facName) { ntdShowToast('⚠ Enter customer name to save', '#D4820A'); return; }
-  ntdStore.facilities.list(function(f){
-    return (f.name||'').toLowerCase().trim() === facName.toLowerCase().trim();
-  }).then(function(matches) {
-    doUpload(matches.length ? matches[0].id : null);
+  ntdStore.matchFacility.find(facName).then(function(r) {
+    doUpload(r.exact ? r.exact.id : null);
   }).catch(function(){ ntdShowToast('⚠ Not saved — check connection', '#D4820A'); });
 }
 // ── END NTD UPLOAD WITH FEEDBACK ─────────────────────────────────────────
@@ -2483,10 +2566,8 @@ function ntdUploadPDF(blob, formType, description, extraParams) {
     });
   };
   if (_ntdAssetFacilityId) { doUpload(_ntdAssetFacilityId); return; }
-  ntdStore.facilities.list(function(f){
-    return (f.name||'').toLowerCase().trim() === facName.toLowerCase().trim();
-  }).then(function(matches) {
-    doUpload(matches.length ? matches[0].id : null);
+  ntdStore.matchFacility.find(facName).then(function(r) {
+    doUpload(r.exact ? r.exact.id : null);
   }).catch(function(){});
 }
 // ── END NTDSTORE INTEGRATION ──────────────────────────────────────────────────

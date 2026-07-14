@@ -2313,25 +2313,11 @@ var _ntdJobId = null;
  */
 function ntdUpsertFacility(name, address, callback) {
   if (typeof ntdStore === 'undefined') { if(callback) callback(null); return; }
-  var nameLower = (name || '').toLowerCase().trim();
-  ntdStore.facilities.list(function(f) {
-    return (f.name || '').toLowerCase().trim() === nameLower;
-  }).then(function(matches) {
-    if (matches.length > 0) {
-      // Found existing facility
-      _ntdFacilityId = matches[0].id;
-      if (callback) callback(matches[0]);
-    } else {
-      // Create new facility
-      ntdStore.facilities.upsert({
-        name: name || '',
-        address: address || ''
-      }).then(function(fac) {
-        _ntdFacilityId = fac.id;
-        if (callback) callback(fac);
-      }).catch(function() { if(callback) callback(null); });
-    }
-  }).catch(function() { if(callback) callback(null); });
+  ntdStore.matchFacility.resolveOrCreate(name, { address: address || '' })
+    .then(function(fac) {
+      _ntdFacilityId = fac.id;
+      if (callback) callback(fac);
+    }).catch(function() { if(callback) callback(null); });
 }
 
 /**
@@ -2701,10 +2687,8 @@ function ntdUploadPDFWithFeedback(blob, formType, description, extraParams, faci
   if (facilityId) { doUpload(facilityId); return; }
   var facName = (typeof gv === 'function') ? (gv('sf')||gv('facility')||gv('j-cust')||'') : '';
   if (!facName) { ntdShowToast('⚠ Enter customer name to save', '#D4820A'); return; }
-  ntdStore.facilities.list(function(f){
-    return (f.name||'').toLowerCase().trim() === facName.toLowerCase().trim();
-  }).then(function(matches) {
-    doUpload(matches.length ? matches[0].id : null);
+  ntdStore.matchFacility.find(facName).then(function(r) {
+    doUpload(r.exact ? r.exact.id : null);
   }).catch(function(){ ntdShowToast('⚠ Not saved — check connection', '#D4820A'); });
 }
 // ── END NTD UPLOAD WITH FEEDBACK ─────────────────────────────────────────
@@ -2713,10 +2697,8 @@ function ntdUploadPDF(blob, formType, description, extraParams) {
   if (typeof ntdStore === 'undefined' || !ntdStore.uploadPDF) return;
   var facName = gv('facility') || gv('sf') || '';
   if (!facName) { console.warn('[NTD] No facility name for PDF upload'); return; }
-  ntdStore.facilities.list(function(f){
-    return (f.name||'').toLowerCase().trim() === facName.toLowerCase().trim();
-  }).then(function(matches) {
-    var facilityId = matches.length ? matches[0].id : (_ntdFacilityId || null);
+  ntdStore.matchFacility.find(facName).then(function(r) {
+    var facilityId = r.exact ? r.exact.id : (_ntdFacilityId || null);
     if (!facilityId) return;
     return ntdStore.uploadPDF(Object.assign({
       blob: blob,
@@ -2756,10 +2738,8 @@ function ntdAutoSubmitStartup(snap) {
       .catch(function(e){ console.warn('[NTD] Startup auto-save failed:', e.message); });
   };
   if (facilityId) { doSave(facilityId); return; }
-  ntdStore.facilities.list(function(f){
-    return (f.name||'').toLowerCase().trim() === facName.toLowerCase().trim();
-  }).then(function(matches) {
-    if (matches.length) doSave(matches[0].id);
+  ntdStore.matchFacility.find(facName).then(function(r) {
+    if (r.exact) doSave(r.exact.id);
   }).catch(function(){});
 }
 // ── END AUTO-SUBMIT ───────────────────────────────────────────────────────

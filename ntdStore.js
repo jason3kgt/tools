@@ -85,6 +85,56 @@ var _sb = (function() {
   };
 })();
 
+// ── FACILITY MATCHING ──────────────────────────────────────────────────────
+// Single source of truth for "which facility is this?" — used by every tool
+// instead of each one rolling its own match logic. Normalizes common naming
+// noise (LLC/Inc/Corp suffixes, punctuation, spacing) so "ABC Warehouse",
+// "ABC Warehouse LLC", and "ABC Warehouse, LLC." all resolve to the same
+// facility_id instead of silently creating duplicates.
+function _normalizeFacName(name) {
+  return (name || '')
+    .toLowerCase()
+    .replace(/[.,'"]/g, '')
+    .replace(/\b(llc|inc|incorporated|corp|corporation|co|ltd|company)\b/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+var ntdFacilityMatch = {
+  // Read-only lookup. Returns { exact: facility|null, candidates: [facility,...] }
+  // candidates = other facilities that partially match but aren't an exact
+  // normalized match — useful for a human-confirm picker (e.g. Site History),
+  // never auto-selected on a write path.
+  find: function(name) {
+    var norm = _normalizeFacName(name);
+    if (!norm) return Promise.resolve({ exact: null, candidates: [] });
+    return _sb.list('facilities').then(function(facs) {
+      facs = facs || [];
+      var exact = null, candidates = [];
+      facs.forEach(function(f) {
+        var fn = _normalizeFacName(f.name);
+        if (!fn) return;
+        if (fn === norm) { exact = f; }
+        else if (fn.indexOf(norm) > -1 || norm.indexOf(fn) > -1) { candidates.push(f); }
+      });
+      return { exact: exact, candidates: candidates };
+    });
+  },
+  // Write-path helper: resolve to an existing facility via EXACT normalized
+  // match only, or create a new one. Deliberately never auto-attaches to a
+  // fuzzy candidate — that's the one thing that could silently merge two
+  // different sites' data together, so a write only ever matches exactly or
+  // creates fresh. `extra` (e.g. {address:...}) is only applied when creating.
+  resolveOrCreate: function(name, extra) {
+    var cleanName = (name || '').trim();
+    return this.find(cleanName).then(function(result) {
+      if (result.exact) return result.exact;
+      var rec = Object.assign({ name: cleanName }, extra || {});
+      return _sb.upsert('facilities', rec);
+    });
+  }
+};
+
 // ── UID GENERATOR ─────────────────────────────────────────────────────────────
 function _uid(prefix) {
   return (prefix || 'rec') + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -165,18 +215,10 @@ var _migrate = {
     var facName = (site.customer || site.facility || '').trim();
     if (!facName) return Promise.reject(new Error('No facility name'));
 
-    return _sb.list('facilities', 'name=ilike.' + encodeURIComponent(facName))
-      .then(function(matches) {
-        var facData = {
-          name: facName,
-          address: site.address || '',
-          city: site.city || '',
-          notes: site.notes || ''
-        };
-        if (matches && matches.length) {
-          facData.id = matches[0].id;
-        }
-        return _sb.upsert('facilities', facData);
+    return ntdFacilityMatch.resolveOrCreate(facName, {
+        address: site.address || '',
+        city: site.city || '',
+        notes: site.notes || ''
       })
       .then(function(fac) {
         var jobData = {
@@ -210,15 +252,7 @@ var _migrate = {
     var facName = (jobData.job_name || '').trim();
     if (!facName) return Promise.reject(new Error('No job name'));
 
-    return _sb.list('facilities', 'name=ilike.' + encodeURIComponent(facName))
-      .then(function(matches) {
-        var facRecord = {
-          name: facName,
-          address: jobData.address || ''
-        };
-        if (matches && matches.length) facRecord.id = matches[0].id;
-        return _sb.upsert('facilities', facRecord);
-      })
+    return ntdFacilityMatch.resolveOrCreate(facName, { address: jobData.address || '' })
       .then(function(fac) {
         var jobRecord = {
           facility_id: fac.id,
@@ -293,6 +327,7 @@ var ntdStore = {
   team_calendar:  _makeStore('team_calendar'),
   notifications:  _makeStore('notifications'),
   migrate:        _migrate,
+  matchFacility:  ntdFacilityMatch,
   exportAll:      _exportImport.exportAll,
   importAll:      _exportImport.importAll,
   clearAll:       _exportImport.clearAll,

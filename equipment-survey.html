@@ -1120,10 +1120,8 @@ function ntdUploadPDFWithFeedback(blob, formType, description, extraParams, faci
   if (facilityId) { doUpload(facilityId); return; }
   var facName = (typeof gv === 'function') ? (gv('sf')||gv('facility')||gv('j-cust')||'') : '';
   if (!facName) { ntdShowToast('⚠ Enter customer name to save', '#D4820A'); return; }
-  ntdStore.facilities.list(function(f){
-    return (f.name||'').toLowerCase().trim() === facName.toLowerCase().trim();
-  }).then(function(matches) {
-    doUpload(matches.length ? matches[0].id : null);
+  ntdStore.matchFacility.find(facName).then(function(r) {
+    doUpload(r.exact ? r.exact.id : null);
   }).catch(function(){ ntdShowToast('⚠ Not saved — check connection', '#D4820A'); });
 }
 // ── END NTD UPLOAD WITH FEEDBACK ─────────────────────────────────────────
@@ -1132,13 +1130,11 @@ function ntdUploadPDF(blob, formType, description, extraParams) {
   if (typeof ntdStore === 'undefined' || !ntdStore.uploadPDF) return;
   var facName = gv('j-cust') || gv('facility') || '';
   if (!facName) return;
-  ntdStore.facilities.list(function(f){
-    return (f.name||'').toLowerCase().trim() === facName.toLowerCase().trim();
-  }).then(function(matches) {
-    if (!matches.length) return;
+  ntdStore.matchFacility.find(facName).then(function(r) {
+    if (!r.exact) return;
     return ntdStore.uploadPDF(Object.assign({
       blob: blob,
-      facilityId: matches[0].id,
+      facilityId: r.exact.id,
       formType: formType,
       description: description,
       date: gv('j-date') || new Date().toISOString().substring(0,10),
