@@ -220,7 +220,21 @@ textarea{resize:vertical;min-height:70px}
   <div class="card">
     <div class="ch"><div class="cn">+</div><h2>Portfolio Snapshot</h2></div>
     <div class="cb">
-      <div style="margin-bottom:10px"><div id="esf" style="font-size:16px;font-weight:700;color:var(--nv)">-</div><div id="esm" style="font-size:11px;color:var(--mu);margin-top:2px"></div></div>
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px">
+        <div id="hsbadge" style="width:64px;height:64px;border-radius:50%;background:var(--of);border:3px solid var(--bd);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0">
+          <div id="hsgrade" style="font-size:22px;font-weight:800;line-height:1;color:var(--mu)">-</div>
+          <div id="hsscore" style="font-size:8px;color:var(--mu);margin-top:1px;letter-spacing:.03em">SCORE</div>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div id="esf" style="font-size:16px;font-weight:700;color:var(--nv)">-</div>
+          <div id="esm" style="font-size:11px;color:var(--mu);margin-top:2px"></div>
+          <div style="font-size:9px;color:var(--mu);text-transform:uppercase;letter-spacing:.04em;margin-top:3px">Portfolio Asset Health</div>
+        </div>
+      </div>
+      <div style="background:var(--of);border:1px solid var(--bd);border-radius:8px;padding:10px 12px;margin-bottom:10px">
+        <div style="font-size:9px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Executive Summary (auto-generated)</div>
+        <div id="execsum" style="font-size:12px;line-height:1.5;color:var(--tx)">Score equipment on the Units tab to generate a summary.</div>
+      </div>
       <div class="stats">
         <div class="stat" id="s-tot"><div class="snum" id="sn-tot">0</div><div class="slbl">Total Units</div></div>
         <div class="stat" id="s-avg"><div class="snum" id="sn-avg">-</div><div class="slbl">Avg Condition</div></div>
@@ -483,6 +497,54 @@ function getPMAnnual(eq){
   var rate=mapped&&PM_RATES[mapped]?PM_RATES[mapped].q:0; // base quarterly rate, no add-on plans
   if(!rate)return Math.round(getReplCost(eq)*0.03); // fallback if type/tonnage doesn't map
   return rate*4; // quarterly visits/year baseline
+}
+
+// Portfolio-level rollup shared by the Health Score badge, the auto-generated
+// executive summary paragraph, and the PDF exports. Mirrors the per-unit logic
+// in updF()/dlForecast() but computed fresh from eqs (not the editable table).
+function getForecastSummary(){
+  var scored=eqs.filter(function(e){return e.ov!=='';});
+  var r1=0,r2=0,r3=0,imm=0;
+  scored.forEach(function(e){
+    var repl=getReplCost(e);var rpct=REPAIR_PCT[e.ov]||REPAIR_PCT['good'];
+    var pr1=Math.round(repl*rpct[0]),pr2=Math.round(repl*rpct[1]),pr35=Math.round(repl*rpct[2]*3);
+    var yr=getReplYear(e);
+    var dueSoon=e.ov==='poor'||(e.ov==='fair'&&yr!==-1);
+    if(!dueSoon){
+      var pm1=getPMAnnual(e),pm35v=pm1*3;
+      r1+=pm1+pr1;r2+=pm1+pr2;r3+=pm35v+pr35;
+    }else{
+      if(yr===0||yr===1)r1+=repl;else if(yr===2)r2+=repl;else if(yr===3)r3+=repl;
+    }
+    if(e.ov==='poor')imm+=repl;
+  });
+  return{
+    r1:r1,r2:r2,r3:r3,total:r1+r2+r3,immediate:imm,
+    poor:eqs.filter(function(e){return e.ov==='poor';}).length,
+    fair:eqs.filter(function(e){return e.ov==='fair';}).length,
+    good:eqs.filter(function(e){return e.ov==='good';}).length,
+    scoredCount:scored.length,totalUnits:eqs.length
+  };
+}
+
+// Portfolio Asset Health Score (0-100, A-F). Blends condition rating (65%) with
+// remaining-life fraction (35%), so a "Good" unit that's 14 of its 15-year life
+// still drags the score down a bit \u2014 not just the walk-around finding alone.
+function getHealthScore(){
+  var scored=eqs.filter(function(e){return e.ov!=='';});
+  if(!scored.length)return null;
+  var CBASE={good:100,fair:60,poor:20};
+  var total=0;
+  scored.forEach(function(e){
+    var lifeBase=LIFE_BASE[e.type]||15;
+    var lifeFrac=Math.max(0,Math.min(1,getLife(e)/lifeBase));
+    total+=(CBASE[e.ov]||60)*0.65+(lifeFrac*100)*0.35;
+  });
+  var score=Math.round(total/scored.length);
+  var grade=score>=90?'A':score>=80?'B':score>=65?'C':score>=50?'D':'F';
+  var colorVar=score>=80?'--gn':score>=65?'--am':score>=50?'--or':'--rd';
+  var rgb=score>=80?[30,122,62]:score>=65?[212,130,10]:score>=50?[232,83,26]:[192,57,43];
+  return{score:score,grade:grade,colorVar:colorVar,rgb:rgb};
 }
 
 function go(n){
@@ -836,6 +898,39 @@ function updS(){
   document.getElementById('s-fair').className='stat'+(fair>0?' wn':'');
   document.getElementById('s-poor').className='stat'+(poor>0?' bd':'');
 
+  // Health Score badge
+  var hs=getHealthScore();
+  var hb=document.getElementById('hsbadge');
+  if(hs){
+    se('hsgrade',hs.grade);se('hsscore',hs.score+' / 100');
+    hb.style.borderColor='var('+hs.colorVar+')';
+    document.getElementById('hsgrade').style.color='var('+hs.colorVar+')';
+  }else{
+    se('hsgrade','-');se('hsscore','SCORE');
+    hb.style.borderColor='var(--bd)';
+    document.getElementById('hsgrade').style.color='var(--mu)';
+  }
+
+  // Auto-generated executive summary
+  var fs=getForecastSummary();
+  var esEl=document.getElementById('execsum');
+  if(!fs.scoredCount){
+    esEl.textContent='Score equipment on the Units tab to generate a summary.';
+  }else{
+    var siteName=gv('sf')||'This site';
+    var parts=[];
+    parts.push(siteName+' has '+fs.totalUnits+' unit'+(fs.totalUnits===1?'':'s')+' surveyed'+(fs.scoredCount<fs.totalUnits?' ('+fs.scoredCount+' condition-scored)':'')+'.');
+    if(fs.poor>0){
+      parts.push(fs.poor+' unit'+(fs.poor===1?' is':'s are')+' in poor condition, representing '+fcc(fs.immediate)+' in immediate replacement exposure.');
+    }else{
+      parts.push('No units are currently in poor condition.');
+    }
+    if(fs.fair>0){parts.push(fs.fair+' unit'+(fs.fair===1?' is':'s are')+' fair and should be monitored for near-term replacement.');}
+    parts.push('Recommended 3-year capital reserve: '+fcc(fs.total)+' (Yr 1: '+fcc(fs.r1)+', Yr 2: '+fcc(fs.r2)+', Yr 3\u20135: '+fcc(fs.r3)+').');
+    if(hs)parts.push('Portfolio Asset Health Score: '+hs.grade+' ('+hs.score+'/100).');
+    esEl.textContent=parts.join(' ');
+  }
+
   // Asset register
   var aw=document.getElementById('esar');
   if(!eqs.length){aw.innerHTML='<div class="empty">Add equipment to populate</div>';}
@@ -1059,6 +1154,26 @@ function dlSummary(){
   var av=asd.length?Math.round(asd.reduce(function(a,e){return a+(mp[e.ov]||0);},0)/asd.length*10)/10:null;
   var al=av===null?'-':av<=1.4?'Good':av<=2.3?'Fair':'Poor';
   var avgClr=av===null?[80,80,80]:(av<=1.4?[30,122,62]:(av<=2.3?[212,130,10]:[192,57,43]));
+  // Health Score badge + auto-generated narrative
+  var hs=getHealthScore();
+  var fs=getForecastSummary();
+  if(hs){
+    var bx=14,by=y,bw=64,bh=48;
+    doc.setFillColor(248,250,252);doc.roundedRect(bx,by,bw,bh,4,4,'F');doc.setDrawColor(hs.rgb[0],hs.rgb[1],hs.rgb[2]);doc.setLineWidth(1.4);doc.roundedRect(bx,by,bw,bh,4,4,'S');
+    doc.setTextColor(hs.rgb[0],hs.rgb[1],hs.rgb[2]);doc.setFont('helvetica','bold');doc.setFontSize(20);doc.text(hs.grade,bx+bw/2,by+26,{align:'center'});
+    doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(100,100,100);doc.text(hs.score+'/100',bx+bw/2,by+40,{align:'center'});
+    if(fs.scoredCount){
+      var siteName=gv('sf')||'This site';
+      var narrative=siteName+' has '+fs.totalUnits+' unit'+(fs.totalUnits===1?'':'s')+' surveyed'+(fs.scoredCount<fs.totalUnits?' ('+fs.scoredCount+' condition-scored)':'')+'. '
+        +(poor>0?(poor+' unit'+(poor===1?' is':'s are')+' in poor condition, representing '+fcc(fs.immediate)+' in immediate replacement exposure. '):'No units are currently in poor condition. ')
+        +(fair>0?(fair+' unit'+(fair===1?' is':'s are')+' fair and should be monitored. '):'')
+        +'Recommended 3-year capital reserve: '+fcc(fs.total)+'.';
+      doc.setFillColor(247,248,250);doc.rect(bx+bw+10,by,W-28-bw-10,bh,'F');doc.setDrawColor(221,226,234);doc.rect(bx+bw+10,by,W-28-bw-10,bh,'S');
+      doc.setFont('helvetica','normal');doc.setTextColor(30,30,30);doc.setFontSize(8.5);
+      doc.text(doc.splitTextToSize(narrative,W-28-bw-22),bx+bw+16,by+13);
+    }
+    y+=bh+10;
+  }
   var stats=[['Total Units',String(eqs.length),[27,58,107]],['Avg Condition',al,avgClr],['Good Condition',String(good),[30,122,62]],['Fair Condition',String(fair),[212,130,10]],['Poor / Action',String(poor),[192,57,43]]];
   var sw=(W-28)/stats.length;
   stats.forEach(function(s,i){
