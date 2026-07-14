@@ -169,7 +169,7 @@ textarea{resize:vertical;min-height:70px}
   <div class="ch"><span class="cn">1</span><h2>Unit Information</h2></div>
   <div class="cb" id="unit_info">
     <div class="r3">
-      <div class="fg"><label>Facility Name</label><input type="text" id="facility" placeholder="Facility name"></div>
+      <div class="fg"><label>Facility Name</label><input type="text" id="facility" placeholder="Facility name" autocomplete="off"></div>
       <div class="fg"><label class="req-label">Date</label><input type="text" id="u_date" placeholder="MM/DD/YYYY"></div>
       <div class="fg"><label>Job / PO #</label><input type="text" id="job_po" placeholder="Job / PO number"></div>
     </div>
@@ -527,7 +527,7 @@ function tc(id, label, w){
 // ── UNIT INFO BLOCK (shared) ──
 function unitInfoHTML(){
   return '<div class="r3">'
-    +'<div class="fg"><label>Facility Name</label><input type="text" id="facility" placeholder="Facility name"></div>'
+    +'<div class="fg"><label>Facility Name</label><input type="text" id="facility" placeholder="Facility name" autocomplete="off"></div>'
     +'<div class="fg"><label class="req-label">Date</label><input type="text" id="u_date" placeholder="MM/DD/YYYY"></div>'
     +'<div class="fg"><label>Job / PO #</label><input type="text" id="job_po" placeholder="Job / PO number"></div>'
     +'</div>'
