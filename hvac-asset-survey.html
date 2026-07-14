@@ -2423,6 +2423,19 @@ function sqGeneratePDF(){
 var _ntdAssetFacilityId = null;
 var _ntdAutoSubmitted = false; // Prevent duplicate auto-submits
 
+function ntdEqRecord(eq, facilityId) {
+  var filterParts = [];
+  if (eq.f1s) filterParts.push((eq.f1q ? eq.f1q + 'x ' : '') + eq.f1s);
+  if (eq.f2s) filterParts.push((eq.f2q ? eq.f2q + 'x ' : '') + eq.f2s);
+  return {
+    facility_id: facilityId, tag: eq.tag||'', type: eq.type||'',
+    condition: eq.ov||'', install_year: eq.age||'', notes: eq.notes||'',
+    manufacturer: eq.manuf||'', model: eq.model||'', serial: eq.serial||'',
+    tonnage: eq.tonnage||'', filter_size: filterParts.join(', '), belt_size: eq.bs||'',
+    area: eq.area||''
+  };
+}
+
 function ntdUpsertAssetFacility(callback) {
   if (typeof ntdStore === 'undefined') { if(callback) callback(null); return; }
   var name    = gv('sf');
@@ -2443,10 +2456,7 @@ function ntdSubmitAssessment() {
     var fair  = eqs.filter(function(e){ return e.ov==='fair'; }).length;
     var poor  = eqs.filter(function(e){ return e.ov==='poor'; }).length;
     var eqSaves = eqs.map(function(eq) {
-      return ntdStore.equipment.upsert({
-        facility_id: facilityId, tag: eq.tag||'', type: eq.type||'',
-        condition: eq.ov||'', install_year: eq.yr||'', notes: eq.notes||''
-      });
+      return ntdStore.equipment.upsert(ntdEqRecord(eq, facilityId));
     });
     var assessSave = ntdStore.jobs.upsert({
       facility_id: facilityId, type: 'asset_survey',
@@ -2585,10 +2595,7 @@ function ntdAutoSubmitAssessment() {
     var fair = eqs.filter(function(e){ return e.ov==='fair'; }).length;
     var poor = eqs.filter(function(e){ return e.ov==='poor'; }).length;
     var eqSaves = eqs.map(function(eq) {
-      return ntdStore.equipment.upsert({
-        facility_id: facilityId, tag: eq.tag||'', type: eq.type||'',
-        condition: eq.ov||'', install_year: eq.yr||'', notes: eq.notes||''
-      });
+      return ntdStore.equipment.upsert(ntdEqRecord(eq, facilityId));
     });
     var assessSave = ntdStore.jobs.upsert({
       facility_id: facilityId, type: 'asset_survey',

@@ -230,6 +230,12 @@ var _migrate = {
         };
         return _sb.upsert('jobs', jobData).then(function(job) {
           var saves = (units || []).map(function(u) {
+            var notesParts = [u.notes || ''];
+            if (u.model2 || u.serial2) notesParts.push('2nd component: ' + [u.model2, u.serial2].filter(Boolean).join(' / '));
+            if (u.btu) notesParts.push('BTU: ' + u.btu);
+            if (u.kw) notesParts.push('KW: ' + u.kw);
+            if (u.voltage) notesParts.push('Voltage: ' + u.voltage);
+            if (u.heat_type) notesParts.push('Heat: ' + u.heat_type);
             return _sb.upsert('equipment', {
               facility_id: fac.id,
               job_id: job.id,
@@ -237,7 +243,14 @@ var _migrate = {
               type: u.type || '',
               condition: u.condition || '',
               install_year: u.install_year || u.yr || '',
-              notes: u.notes || ''
+              manufacturer: u.manufacturer || '',
+              model: u.model1 || u.model || '',
+              serial: u.serial1 || u.serial || '',
+              tonnage: u.tonnage || '',
+              filter_size: u.filter_size || '',
+              belt_size: u.belt_size || '',
+              refrigerant: u.refrigerant || '',
+              notes: notesParts.filter(Boolean).join(' | ')
             });
           });
           return Promise.all(saves).then(function() {

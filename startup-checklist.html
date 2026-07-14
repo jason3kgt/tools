@@ -2349,6 +2349,31 @@ function ntdEnsureFacility(callback) {
 }
 
 /**
+ * Build an equipment-table record from a unit snapshot. Only RTU/AHU forms
+ * collect filter/belt data today (that's what the tool currently asks for),
+ * so those come back blank for other types — that's accurate, not a bug.
+ */
+function ntdEqRecordFromSnap(snap, facilityId) {
+  var f = snap.fields || {};
+  var type = snap.type || '';
+  var f1q = f[type+'_f1q']||'', f1s = f[type+'_f1s']||'';
+  var f2q = f[type+'_f2q']||'', f2s = f[type+'_f2s']||'';
+  var filterParts = [];
+  if (f1s) filterParts.push((f1q ? f1q+'x ' : '') + f1s);
+  if (f2s) filterParts.push((f2q ? f2q+'x ' : '') + f2s);
+  return {
+    facility_id: facilityId,
+    tag:         f.unit_num || snap.label || '',
+    type:        type,
+    model:       f.model || '',
+    serial:      f.serial || '',
+    filter_size: filterParts.join(', '),
+    belt_size:   f[type+'_blt'] || '',
+    notes:       snap.notes || f.notes || ''
+  };
+}
+
+/**
  * Save a single unit snapshot to ntdStore.startup_records.
  * Called alongside the existing sessionUnits save.
  */
@@ -2367,8 +2392,15 @@ function ntdSaveStartupRecord(snap) {
       sig_name:     (snap.sig && snap.sig.name) || '',
       sig_date:     (snap.sig && snap.sig.date) || ''
     }).catch(function(e) { console.warn('[NTD] startup_record save failed:', e); });
+    // Also roll this unit's specs into the shared equipment roster, not just
+    // this tool's own startup_records table.
+    if (_ntdFacilityId) {
+      ntdStore.equipment.upsert(ntdEqRecordFromSnap(snap, _ntdFacilityId))
+        .catch(function(e) { console.warn('[NTD] equipment upsert failed:', e); });
+    }
   } catch(e) { console.warn('[NTD] ntdSaveStartupRecord error:', e); }
 }
+
 
 /**
  * Called when a job-prep job+unit is loaded.
