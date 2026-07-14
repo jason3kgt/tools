@@ -2026,8 +2026,9 @@ function dlSiteRecord(){
   var blob=doc.output('blob');var url=URL.createObjectURL(blob);
   window.open(url,'_blank');setTimeout(function(){URL.revokeObjectURL(url);},60000);
   ntdUpsertAssetFacility(function(facilityId) {
-    ntdUploadPDFWithFeedback(blob,'equipment_log','Equipment Log — '+(gv('sf')||'Site'),{unitCount:pmUnits.length},facilityId);
+    ntdUploadPDFWithFeedback(blob,'equipment_log','Equipment Log — '+(gv('sf')||'Site'),{unitCount:eqs.length},facilityId);
   });
+  ntdAutoSubmitAssessment();
 }
 
 
