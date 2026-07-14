@@ -2216,7 +2216,12 @@ function dlPDFFromSnap(snap){
   var fn='NTD_Startup_'+(EQ_TYPES[snap.type]||'').replace(/[^a-zA-Z0-9]/g,'_')+'_'+(sf('unit_num')||'unit')+'.pdf';
   var blob=doc.output('blob');
   var url=URL.createObjectURL(blob);
-  ntdUploadPDFWithFeedback(blob,'startup','Startup Preview — '+(gv('unit_num')||'Unit')+' — '+(gv('facility')||''));
+  if (typeof ntdEnsureFacility === 'function') {
+    ntdEnsureFacility(function(fid) {
+      if (!fid) return;
+      ntdUploadPDFWithFeedback(blob,'startup','Startup Preview — '+(sf('unit_num')||'Unit')+' — '+(sf('facility')||gv('facility')||''));
+    });
+  }
   var w=window.open(url,'_blank');
   if(!w){ alert('Allow popups to open PDFs.'); }
   setTimeout(function(){ URL.revokeObjectURL(url); },60000);
