@@ -476,6 +476,15 @@ var BASE_COST={'RTU':12000,'Split System':8000,'Air Handler':10000,'Chiller':400
 var LIFE_BASE={'RTU':15,'Split System':15,'Air Handler':18,'Chiller':25,'Boiler':25,'Mini Split':12,'Exhaust Fan':15,'VRF/VRV':15,'Other':15};
 var REPAIR_PCT={'poor':[0.20,0.25,0.30],'fair':[0.10,0.12,0.14],'good':[0.05,0.05,0.06]};
 
+// Real PM contract annual estimate, driven by the same rate table as the PM Quote tab
+// (pmMapType/PM_RATES are defined further down but function declarations are hoisted).
+function getPMAnnual(eq){
+  var mapped=pmMapType(eq.type,eq.tonnage);
+  var rate=mapped&&PM_RATES[mapped]?PM_RATES[mapped].q:0; // base quarterly rate, no add-on plans
+  if(!rate)return Math.round(getReplCost(eq)*0.03); // fallback if type/tonnage doesn't map
+  return rate*4; // quarterly visits/year baseline
+}
+
 function go(n){
   var pgs=document.querySelectorAll('.pg');
   for(var i=0;i<pgs.length;i++){pgs[i].style.display=(i===n)?'block':'none';}
@@ -911,24 +920,30 @@ function updF(){
     var life=getLife(e);var age=getAge(e);
     var lifeDisplay=e.ov==='fair'?Math.max(2,life)+'y+':life+'y';
     var r1=Math.round(repl*rpct[0]);var r2=Math.round(repl*rpct[1]);var r35=Math.round(repl*rpct[2]*3);
-    var pm1=Math.round(repl*0.03);var pm2=Math.round(repl*0.03);var pm35=Math.round(repl*0.03*3);
+    var pmA=getPMAnnual(e);var pm1=pmA;var pm2=pmA;var pm35=pmA*3;
     var cc2=e.ov==='good'?'var(--gn)':e.ov==='fair'?'var(--am)':'var(--rd)';
     var ovLabel2=e.ov.charAt(0).toUpperCase()+e.ov.slice(1);
     var unitCell='<td rowspan="3" style="font-weight:600;font-size:11px;vertical-align:top;padding-top:8px;border-bottom:2px solid var(--bd)">'
       +(e.tag||'U'+e.id)+(e.area?'<br><span style="font-size:9px;color:var(--mu)">'+e.area+'</span>':'')+'</td>'
       +'<td rowspan="3" style="text-align:center;font-size:11px;vertical-align:top;padding-top:8px;border-bottom:2px solid var(--bd)">'+(age?age+'y':'-')+'</td>'
       +'<td rowspan="3" style="text-align:center;font-weight:700;color:'+cc2+';font-size:10px;vertical-align:top;padding-top:8px;border-bottom:2px solid var(--bd)">'+ovLabel2+'<br><span style="font-size:8px;color:var(--mu);font-weight:400">Life: '+lifeDisplay+'</span></td>';
-    if(e.ov==='good'){
+    // A unit only gets the Replace-vs-Repair/PM comparison if it's actually projected
+    // to need replacement inside the 3-yr window (poor is always due; fair only if
+    // getReplYear() found a year). Everything else (good, or a fair unit with plenty
+    // of life left) gets the PM Contract + Est. Repairs budget template instead of a
+    // blank "Replace" row.
+    var dueSoon=e.ov==='poor'||(e.ov==='fair'&&replYr!==-1);
+    if(!dueSoon){
       rows+='<tr style="background:#F0FDF4">'+unitCell
         +'<td style="font-size:9px;font-weight:700;color:var(--gn);text-align:left;padding-left:4px">PM CONTRACT</td>'
-        +'<td><input type="text" class="ci" value="'+fcc(pm1)+'" id="y1r'+e.id+'" oninput="updT()" style="color:var(--gn)"></td>'
-        +'<td><input type="text" class="ci" value="'+fcc(pm2)+'" id="y2r'+e.id+'" oninput="updT()" style="color:var(--gn)"></td>'
-        +'<td><input type="text" class="ci" value="'+fcc(pm35)+'" id="y3r'+e.id+'" oninput="updT()" style="color:var(--gn)"></td></tr>';
+        +'<td><input type="text" class="ci" value="'+fcc(pm1)+'" id="pmY1_'+e.id+'" oninput="updT()" style="color:var(--gn)"></td>'
+        +'<td><input type="text" class="ci" value="'+fcc(pm2)+'" id="pmY2_'+e.id+'" oninput="updT()" style="color:var(--gn)"></td>'
+        +'<td><input type="text" class="ci" value="'+fcc(pm35)+'" id="pmY3_'+e.id+'" oninput="updT()" style="color:var(--gn)"></td></tr>';
       rows+='<tr style="background:#FFFBEB">'
         +'<td style="font-size:9px;font-weight:700;color:var(--am);text-align:left;padding-left:4px">EST. REPAIRS</td>'
-        +'<td><input type="text" class="ci" value="'+fcc(r1)+'" id="y1p'+e.id+'" oninput="updT()" style="color:var(--am)"></td>'
-        +'<td><input type="text" class="ci" value="'+fcc(r2)+'" id="y2p'+e.id+'" oninput="updT()" style="color:var(--am)"></td>'
-        +'<td><input type="text" class="ci" value="'+fcc(r35)+'" id="y3p'+e.id+'" oninput="updT()" style="color:var(--am)"></td></tr>';
+        +'<td><input type="text" class="ci" value="'+fcc(r1)+'" id="rpY1_'+e.id+'" oninput="updT()" style="color:var(--am)"></td>'
+        +'<td><input type="text" class="ci" value="'+fcc(r2)+'" id="rpY2_'+e.id+'" oninput="updT()" style="color:var(--am)"></td>'
+        +'<td><input type="text" class="ci" value="'+fcc(r35)+'" id="rpY3_'+e.id+'" oninput="updT()" style="color:var(--am)"></td></tr>';
       rows+='<tr style="background:#F0FDF4;border-bottom:2px solid var(--bd)">'
         +'<td style="font-size:9px;font-weight:700;color:var(--gn);text-align:left;padding-left:4px">STATUS</td>'
         +'<td colspan="3" style="text-align:center;font-size:11px;padding:4px 6px;color:var(--gn);font-weight:600">No replacement projected \u2014 continue PM</td></tr>';
@@ -944,14 +959,14 @@ function updF(){
       var savingsLabel=savings>=0?'<span style="color:var(--gn);font-weight:700">Save '+fcc(savings)+' by replacing now</span>':'<span style="color:var(--mu);font-weight:600">Repair cheaper by '+fcc(Math.abs(savings))+' over period*</span>';
       rows+='<tr style="background:'+replBg+'">'+unitCell
         +'<td style="font-size:9px;font-weight:700;color:'+replClr+';text-align:left;padding-left:4px">REPLACE</td>'
-        +'<td><input type="text" class="ci" value="'+replVals[0]+'" id="y1r'+e.id+'" oninput="updT()" style="color:'+(replVals[0]!=='-'?replClr:'var(--mu)')+'"></td>'
-        +'<td><input type="text" class="ci" value="'+replVals[1]+'" id="y2r'+e.id+'" oninput="updT()" style="color:'+(replVals[1]!=='-'?replClr:'var(--mu)')+'"></td>'
-        +'<td><input type="text" class="ci" value="'+replVals[2]+'" id="y3r'+e.id+'" oninput="updT()" style="color:'+(replVals[2]!=='-'?replClr:'var(--mu)')+'"></td></tr>';
+        +'<td><input type="text" class="ci" value="'+replVals[0]+'" id="replY1_'+e.id+'" oninput="updT()" style="color:'+(replVals[0]!=='-'?replClr:'var(--mu)')+'"></td>'
+        +'<td><input type="text" class="ci" value="'+replVals[1]+'" id="replY2_'+e.id+'" oninput="updT()" style="color:'+(replVals[1]!=='-'?replClr:'var(--mu)')+'"></td>'
+        +'<td><input type="text" class="ci" value="'+replVals[2]+'" id="replY3_'+e.id+'" oninput="updT()" style="color:'+(replVals[2]!=='-'?replClr:'var(--mu)')+'"></td></tr>';
       rows+='<tr style="background:#FFF8ED">'
         +'<td style="font-size:9px;font-weight:700;color:var(--am);text-align:left;padding-left:4px">REPAIR/PM</td>'
-        +'<td><input type="text" class="ci" value="'+fcc(r1)+'" id="y1p'+e.id+'" oninput="updT()" style="color:var(--am)"></td>'
-        +'<td><input type="text" class="ci" value="'+fcc(r2)+'" id="y2p'+e.id+'" oninput="updT()" style="color:var(--am)"></td>'
-        +'<td><input type="text" class="ci" value="'+fcc(r35)+'" id="y3p'+e.id+'" oninput="updT()" style="color:var(--am)"></td></tr>';
+        +'<td><input type="text" class="ci" value="'+fcc(r1)+'" id="rpmY1_'+e.id+'" oninput="updT()" style="color:var(--am)"></td>'
+        +'<td><input type="text" class="ci" value="'+fcc(r2)+'" id="rpmY2_'+e.id+'" oninput="updT()" style="color:var(--am)"></td>'
+        +'<td><input type="text" class="ci" value="'+fcc(r35)+'" id="rpmY3_'+e.id+'" oninput="updT()" style="color:var(--am)"></td></tr>';
       rows+='<tr style="background:#F0F9F0;border-bottom:2px solid var(--bd)">'
         +'<td style="font-size:9px;font-weight:700;color:var(--gn);text-align:left;padding-left:4px">SAVINGS</td>'
         +'<td colspan="3" style="text-align:center;font-size:11px;padding:4px 6px">'+savingsLabel+'</td></tr>';
@@ -975,13 +990,23 @@ function updT(){
   var poor=eqs.filter(function(e){return e.ov==='poor';});
   for(var i=0;i<poor.length;i++){var el=document.getElementById('fi'+poor[i].id);im+=pc(el?el.value:fcc(getReplCost(poor[i])));}
   var r1=0,r2=0,r3=0,p1=0,p2=0,p3=0;
+  var gv2=function(id){return pc((document.getElementById(id)||{}).value);};
   eqs.forEach(function(e){
-    r1+=pc((document.getElementById('y1r'+e.id)||{}).value);
-    r2+=pc((document.getElementById('y2r'+e.id)||{}).value);
-    r3+=pc((document.getElementById('y3r'+e.id)||{}).value);
-    p1+=pc((document.getElementById('y1p'+e.id)||{}).value);
-    p2+=pc((document.getElementById('y2p'+e.id)||{}).value);
-    p3+=pc((document.getElementById('y3p'+e.id)||{}).value);
+    if(!e.ov)return;
+    var stableEl=document.getElementById('pmY1_'+e.id);
+    if(stableEl){
+      // Good / not-due-soon fair: same baseline (PM contract + repair budget) counts
+      // toward BOTH scenario totals, since there's no replace-vs-repair decision here.
+      var base1=gv2('pmY1_'+e.id)+gv2('rpY1_'+e.id);
+      var base2=gv2('pmY2_'+e.id)+gv2('rpY2_'+e.id);
+      var base3=gv2('pmY3_'+e.id)+gv2('rpY3_'+e.id);
+      r1+=base1;r2+=base2;r3+=base3;
+      p1+=base1;p2+=base2;p3+=base3;
+    }else{
+      // Poor / due-soon fair: genuine decision between replacing and repairing-in-place.
+      r1+=gv2('replY1_'+e.id);r2+=gv2('replY2_'+e.id);r3+=gv2('replY3_'+e.id);
+      p1+=gv2('rpmY1_'+e.id);p2+=gv2('rpmY2_'+e.id);p3+=gv2('rpmY3_'+e.id);
+    }
   });
   se('ts1r',r1?fc(r1):'\u2014');se('ts2r',r2?fc(r2):'\u2014');se('ts3r',r3?fc(r3):'\u2014');
   se('ts1p',p1?fc(p1):'\u2014');se('ts2p',p2?fc(p2):'\u2014');se('ts3p',p3?fc(p3):'\u2014');
@@ -1112,14 +1137,18 @@ function dlForecast(){
     var repl=getReplCost(e);var rpct=REPAIR_PCT[e.ov]||REPAIR_PCT['good'];
     var pr1=Math.round(repl*rpct[0]),pr2=Math.round(repl*rpct[1]),pr35=Math.round(repl*rpct[2]*3);
     var age=getAge(e);
-    if(e.ov==='good'){
-      var pm1=Math.round(repl*0.03),pm35v=Math.round(repl*0.03*3);
-      r1t+=pm1;r2t+=pm1;r3t+=pm35v;p1t+=pr1;p2t+=pr2;p3t+=pr35;
+    var yr=getReplYear(e);
+    var dueSoon=e.ov==='poor'||(e.ov==='fair'&&yr!==-1);
+    if(!dueSoon){
+      var pm1=getPMAnnual(e),pm35v=pm1*3;
+      // Baseline PM + repair budget counts toward both scenario totals \u2014 there's no
+      // replace-vs-repair decision for a unit that isn't due for replacement.
+      r1t+=pm1+pr1;r2t+=pm1+pr2;r3t+=pm35v+pr35;p1t+=pm1+pr1;p2t+=pm1+pr2;p3t+=pm35v+pr35;
       fcBody.push([e.tag||'U'+e.id,e.type||'-',age?age+'y':'-','PM CONTRACT',fcc(pm1),fcc(pm1),fcc(pm35v)]);
       fcBody.push(['','','','EST. REPAIRS',fcc(pr1),fcc(pr2),fcc(pr35)]);
       fcBody.push(['','','','STATUS','No replacement projected \u2014 continue PM program','','']);
     }else{
-      var rv=['-','-','-'],yr=getReplYear(e);
+      var rv=['-','-','-'];
       if(yr===0||yr===1){rv[0]=fcc(repl);r1t+=repl;}else if(yr===2){rv[1]=fcc(repl);r2t+=repl;}else if(yr===3){rv[2]=fcc(repl);r3t+=repl;}
       p1t+=pr1;p2t+=pr2;p3t+=pr35;
       var totalR=pr1+pr2+pr35,savings=totalR-repl;
