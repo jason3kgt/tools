@@ -2422,6 +2422,7 @@ function sqGeneratePDF(){
 
 // ── NTDSTORE INTEGRATION ──────────────────────────────────────────────────────
 var _ntdAssetFacilityId = null;
+var _ntdAssetFacilityPromise = null; // in-flight resolution, shared by concurrent callers
 var _ntdAutoSubmitted = false; // Prevent duplicate auto-submits
 
 function ntdEqRecord(eq, facilityId) {
@@ -2443,10 +2444,17 @@ function ntdUpsertAssetFacility(callback) {
   var address = [gv('sa'), gv('sct')].filter(Boolean).join(', ');
   if (!name) { alert('Please enter a Customer name on the Site tab first.'); if(callback) callback(null); return; }
   if (_ntdAssetFacilityId) { if(callback) callback(_ntdAssetFacilityId); return; }
-  ntdStore.matchFacility.resolveOrCreate(name, { address: address })
-    .then(function(fac){ _ntdAssetFacilityId = fac.id; if(callback) callback(fac.id); })
-    .catch(function(){ if(callback) callback(null); });
+  // Multiple functions (PDF upload + auto-submit) can call this within the
+  // same click before either finishes resolving. Share one in-flight promise
+  // so they don't race each other into creating two separate facility rows.
+  if (!_ntdAssetFacilityPromise) {
+    _ntdAssetFacilityPromise = ntdStore.matchFacility.resolveOrCreate(name, { address: address })
+      .then(function(fac){ _ntdAssetFacilityId = fac.id; return fac.id; })
+      .catch(function(){ _ntdAssetFacilityPromise = null; return null; });
+  }
+  _ntdAssetFacilityPromise.then(function(id){ if(callback) callback(id); });
 }
+
 
 function ntdSubmitAssessment() {
   if (typeof ntdStore === 'undefined') { alert('ntdStore not available.'); return; }
@@ -2472,6 +2480,36 @@ function ntdSubmitAssessment() {
   });
 }
 
+// Writes PM visit frequency back to the shared equipment roster for every
+// unit in the current PM Quote, so PM Checklist can eventually read "who
+// needs PM and how often" directly from Supabase instead of a hand-maintained
+// site file. Matches existing equipment rows by tag (case/whitespace
+// insensitive); units with no matching row get a minimal new equipment
+// record so PM coverage is never silently lost.
+function ntdWritePMFrequency(facilityId) {
+  if (typeof ntdStore === 'undefined' || !pmUnits.length || !facilityId) return;
+  ntdStore.equipment.list(function(e){ return e.facility_id === facilityId; })
+    .then(function(existing) {
+      existing = existing || [];
+      var byTag = {};
+      existing.forEach(function(e) {
+        var t = (e.tag||'').trim().toUpperCase();
+        if (t) byTag[t] = e;
+      });
+      var saves = pmUnits.map(function(u) {
+        var t = (u.tag||'').trim().toUpperCase();
+        var match = t && byTag[t];
+        var rec = { facility_id: facilityId, pm_frequency: pmFreq, pm_covered: true };
+        if (match) { rec.id = match.id; }
+        else { rec.tag = u.tag || ''; rec.type = u.type || ''; }
+        return ntdStore.equipment.upsert(rec);
+      });
+      return Promise.all(saves);
+    })
+    .then(function(){ console.log('[NTD] PM frequency synced to equipment roster'); })
+    .catch(function(e){ console.warn('[NTD] PM frequency sync failed:', e.message); });
+}
+
 function ntdSubmitPMQuote() {
   if (typeof ntdStore === 'undefined') { alert('ntdStore not available.'); return; }
   if (!pmUnits.length) { alert('No units in PM Quote. Build the quote first.'); return; }
@@ -2488,6 +2526,7 @@ function ntdSubmitPMQuote() {
     }).then(function() {
       alert('\u2713 PM Quote submitted for ' + gv('sf') + '.');
     }).catch(function(){ alert('Submit failed.'); });
+    ntdWritePMFrequency(facilityId);
   });
 }
 
@@ -2628,6 +2667,7 @@ function ntdAutoSubmitPMQuote() {
       units: pmUnits
     }).then(function(){ console.log('[NTD] PM Quote auto-saved to store'); })
       .catch(function(e){ console.warn('[NTD] PM Quote auto-save failed:', e.message); });
+    ntdWritePMFrequency(facilityId);
   });
 }
 
@@ -2695,8 +2735,8 @@ window.onload=function(){
   // Reset auto-submit flag when customer name changes
   var sfEl = document.getElementById('sf');
   if (sfEl) {
-    sfEl.addEventListener('change', function(){ _ntdAutoSubmitted = false; _ntdAssetFacilityId = null; });
-    sfEl.addEventListener('input', function(){ _ntdAutoSubmitted = false; _ntdAssetFacilityId = null; });
+    sfEl.addEventListener('change', function(){ _ntdAutoSubmitted = false; _ntdAssetFacilityId = null; _ntdAssetFacilityPromise = null; });
+    sfEl.addEventListener('input', function(){ _ntdAutoSubmitted = false; _ntdAssetFacilityId = null; _ntdAssetFacilityPromise = null; });
   }
   var t=new Date();
   document.getElementById('sd').value=String(t.getMonth()+1).padStart(2,'0')+'/'+String(t.getDate()).padStart(2,'0')+'/'+t.getFullYear();

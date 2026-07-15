@@ -1461,6 +1461,23 @@ function ntdShowToast(msg, color) {
   }, 3000);
 }
 
+// ── SHARED FACILITY RESOLUTION (prevents PDF upload and visit auto-submit
+// from racing each other into creating two separate facility records) ──────
+var _ntdPmFacilityId = null;
+var _ntdPmFacilityPromise = null;
+function ntdResolvePmFacility(callback) {
+  if (typeof ntdStore === 'undefined') { callback(null); return; }
+  var facName = gv('sf') || '';
+  if (!facName) { callback(null); return; }
+  if (_ntdPmFacilityId) { callback(_ntdPmFacilityId); return; }
+  if (!_ntdPmFacilityPromise) {
+    _ntdPmFacilityPromise = ntdStore.matchFacility.resolveOrCreate(facName, { address: gv('sa')||'', pm_contract: true })
+      .then(function(fac){ _ntdPmFacilityId = fac.id; return fac.id; })
+      .catch(function(){ _ntdPmFacilityPromise = null; return null; });
+  }
+  _ntdPmFacilityPromise.then(function(id){ callback(id); });
+}
+
 function ntdUploadPDFWithFeedback(blob, formType, description, extraParams, facilityId) {
   if (typeof ntdStore === 'undefined' || !ntdStore.uploadPDF) return;
   var doUpload = function(fid) {
@@ -1481,32 +1498,29 @@ function ntdUploadPDFWithFeedback(blob, formType, description, extraParams, faci
     });
   };
   if (facilityId) { doUpload(facilityId); return; }
-  var facName = (typeof gv === 'function') ? (gv('sf')||gv('facility')||gv('j-cust')||'') : '';
-  if (!facName) { ntdShowToast('⚠ Enter customer name to save', '#D4820A'); return; }
-  ntdStore.matchFacility.find(facName).then(function(r) {
-    doUpload(r.exact ? r.exact.id : null);
-  }).catch(function(){ ntdShowToast('⚠ Not saved — check connection', '#D4820A'); });
+  ntdResolvePmFacility(function(fid) {
+    if (!fid) { ntdShowToast('⚠ Not saved — check connection', '#D4820A'); return; }
+    doUpload(fid);
+  });
 }
 // ── END NTD UPLOAD WITH FEEDBACK ─────────────────────────────────────────
 
 function ntdUploadPDF(blob, formType, description, extraParams) {
   if (typeof ntdStore === 'undefined' || !ntdStore.uploadPDF) return;
-  var facName = gv('sf') || '';
-  if (!facName) return;
-  ntdStore.matchFacility.find(facName).then(function(r) {
-    if (!r.exact) return;
-    return ntdStore.uploadPDF(Object.assign({
+  ntdResolvePmFacility(function(facilityId) {
+    if (!facilityId) return;
+    ntdStore.uploadPDF(Object.assign({
       blob: blob,
-      facilityId: r.exact.id,
+      facilityId: facilityId,
       formType: formType,
       description: description,
       date: gv('sd') || new Date().toISOString().substring(0,10),
       tech: gv('stch') || gv('tech') || ''
-    }, extraParams || {}));
-  }).then(function(doc) {
-    if(doc) console.log('[NTD] PDF uploaded:', doc.file_path);
-  }).catch(function(e) {
-    console.warn('[NTD] PDF upload failed:', e.message);
+    }, extraParams || {})).then(function(doc) {
+      if(doc) console.log('[NTD] PDF uploaded:', doc.file_path);
+    }).catch(function(e) {
+      console.warn('[NTD] PDF upload failed:', e.message);
+    });
   });
 }
 // ── END NTD PDF UPLOAD HELPER ─────────────────────────────────────────────
@@ -1515,25 +1529,21 @@ function ntdUploadPDF(blob, formType, description, extraParams) {
 // ── AUTO-SUBMIT ON PDF DOWNLOAD ───────────────────────────────────────────
 function ntdAutoSubmitPMVisit() {
   if (typeof ntdStore === 'undefined' || !eqs.length) return;
-  var facName = gv('sf') || '';
-  if (!facName) return;
-  ntdStore.matchFacility.resolveOrCreate(facName, { address: gv('sa')||'', pm_contract: true })
-  .then(function(fac) {
-    var facilityId = fac.id;
+  ntdResolvePmFacility(function(facilityId) {
     if (!facilityId) return;
     var good = eqs.filter(function(e){ return e.ov==='good'; }).length;
     var fair = eqs.filter(function(e){ return e.ov==='fair'; }).length;
     var poor = eqs.filter(function(e){ return e.ov==='poor'; }).length;
-    return ntdStore.pm_records.upsert({
+    ntdStore.pm_records.upsert({
       facility_id: facilityId,
       date: gv('sd'), tech: gv('stch'),
       visit_label: gv('sv') || 'PM Visit',
       unit_count: eqs.length,
       good_count: good, fair_count: fair, poor_count: poor,
       units: eqs.map(function(e){ return {tag:e.tag,type:e.type,condition:e.ov,notes:e.notes}; })
-    });
-  }).then(function(){ console.log('[NTD] PM visit auto-saved'); })
-    .catch(function(e){ console.warn('[NTD] PM visit auto-save failed:', e.message); });
+    }).then(function(){ console.log('[NTD] PM visit auto-saved'); })
+      .catch(function(e){ console.warn('[NTD] PM visit auto-save failed:', e.message); });
+  });
 }
 // ── END AUTO-SUBMIT ───────────────────────────────────────────────────────
 

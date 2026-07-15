@@ -1134,24 +1134,39 @@ function ntdUploadPDFWithFeedback(blob, formType, description, extraParams, faci
 }
 // ── END NTD UPLOAD WITH FEEDBACK ─────────────────────────────────────────
 
+// ── SHARED FACILITY RESOLUTION (prevents PDF upload and equipment submit
+// from racing each other into creating two separate facility records) ──────
+var _ntdEqSurveyFacilityId = null;
+var _ntdEqSurveyFacilityPromise = null;
+function ntdResolveSurveyFacility(callback) {
+  if (typeof ntdStore === 'undefined') { callback(null); return; }
+  var facName = gv('j-cust') || gv('facility') || '';
+  if (!facName) { callback(null); return; }
+  if (_ntdEqSurveyFacilityId) { callback(_ntdEqSurveyFacilityId); return; }
+  if (!_ntdEqSurveyFacilityPromise) {
+    _ntdEqSurveyFacilityPromise = ntdStore.matchFacility.resolveOrCreate(facName, { address: gv('j-addr') || '' })
+      .then(function(fac){ _ntdEqSurveyFacilityId = fac.id; return fac.id; })
+      .catch(function(){ _ntdEqSurveyFacilityPromise = null; return null; });
+  }
+  _ntdEqSurveyFacilityPromise.then(function(id){ callback(id); });
+}
+
 function ntdUploadPDF(blob, formType, description, extraParams) {
   if (typeof ntdStore === 'undefined' || !ntdStore.uploadPDF) return;
-  var facName = gv('j-cust') || gv('facility') || '';
-  if (!facName) return;
-  ntdStore.matchFacility.find(facName).then(function(r) {
-    if (!r.exact) return;
-    return ntdStore.uploadPDF(Object.assign({
+  ntdResolveSurveyFacility(function(facilityId) {
+    if (!facilityId) return;
+    ntdStore.uploadPDF(Object.assign({
       blob: blob,
-      facilityId: r.exact.id,
+      facilityId: facilityId,
       formType: formType,
       description: description,
       date: gv('j-date') || new Date().toISOString().substring(0,10),
       tech: gv('j-tech') || gv('tech') || ''
-    }, extraParams || {}));
-  }).then(function(doc) {
-    if(doc) console.log('[NTD] PDF uploaded:', doc.file_path);
-  }).catch(function(e) {
-    console.warn('[NTD] PDF upload failed:', e.message);
+    }, extraParams || {})).then(function(doc) {
+      if(doc) console.log('[NTD] PDF uploaded:', doc.file_path);
+    }).catch(function(e) {
+      console.warn('[NTD] PDF upload failed:', e.message);
+    });
   });
 }
 // ── END NTD PDF UPLOAD HELPER ─────────────────────────────────────────────
@@ -1164,18 +1179,22 @@ function ntdAutoSubmitSurvey() {
   var facName = gv('j-cust') || '';
   if (!facName) return;
   _ntdAutoSubmitted = true;
-  ntdStore.migrate.fromEquipmentSurveyWithUnits(
-    {
-      customer: facName,
-      address: gv('j-addr') || '',
-      city: gv('j-city') || '',
-      date: gv('j-date') || '',
-      tech: gv('j-tech') || '',
-      wo: gv('j-wo') || ''
-    },
-    ntdBuildUnitObjects()
-  ).then(function(){ console.log('[NTD] Survey auto-saved'); })
-   .catch(function(e){ _ntdAutoSubmitted = false; console.warn('[NTD] Survey auto-save failed:', e.message); });
+  // Resolve the facility first so this shares the same record as the PDF
+  // upload above, instead of each independently racing to create one.
+  ntdResolveSurveyFacility(function() {
+    ntdStore.migrate.fromEquipmentSurveyWithUnits(
+      {
+        customer: facName,
+        address: gv('j-addr') || '',
+        city: gv('j-city') || '',
+        date: gv('j-date') || '',
+        tech: gv('j-tech') || '',
+        wo: gv('j-wo') || ''
+      },
+      ntdBuildUnitObjects()
+    ).then(function(){ console.log('[NTD] Survey auto-saved'); })
+     .catch(function(e){ _ntdAutoSubmitted = false; console.warn('[NTD] Survey auto-save failed:', e.message); });
+  });
 }
 // ── END AUTO-SUBMIT ───────────────────────────────────────────────────────
 if('serviceWorker' in navigator){
