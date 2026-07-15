@@ -745,7 +745,7 @@ function eqH(eq, idx) {
      + '<span style="font-size:11px;color:var(--mu);margin-right:3px">Qty</span>'
      + '<input type="text" class="qi" value="' + (eq.filterQty || '') + '" placeholder="#" oninput="udf(' + eq.id + ',\'filterQty\',this.value)">'
      + '<span style="font-size:11px;color:var(--mu);margin:0 3px">Size</span>'
-     + '<input type="text" class="si" value="' + (eq.filterSize || '') + '" placeholder="20x20x2" oninput="udf(' + eq.id + ',\'filterSize\',this.value)">'
+     + pmFilterSizeDrop(eq.id, eq.filterSize || '')
      + cb('filt_chg') + '</div>';
   h += '<div class="sh">Belts</div>';
   h += '<div class="ir"><span class="il">Belts / Pulleys</span>'
@@ -879,6 +879,32 @@ function tacc(id, sec) {
 // ─── FIELD HELPERS ───────────────────────────────────────────────
 function sv(id, val) { var el = document.getElementById(id); if(el) el.value = val; }
 function gv(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
+// Filter size dropdown (shared list from ntdStore.js) with a Custom fallback.
+function pmFilterSizeDrop(eqId, curVal) {
+  var sizes = window.NTD_FILTER_SIZES || [];
+  var isCustom = curVal && sizes.indexOf(curVal) === -1 && curVal.indexOf('---') !== 0;
+  var opts = '<option value="">-- Select --</option>';
+  sizes.forEach(function(s){
+    if (s.indexOf('---') === 0) { opts += '<option value="" disabled>'+s+'</option>'; return; }
+    var selAttr = (curVal === s && !isCustom) ? ' selected' : '';
+    opts += '<option value="'+s+'"'+selAttr+'>'+s+'</option>';
+  });
+  opts += '<option value="__custom__"'+(isCustom?' selected':'')+'>-- Custom Size --</option>';
+  var html = '<select class="si" onchange="pmFilterSizeChg(this,'+eqId+')">'+opts+'</select>';
+  html += '<input type="text" class="si" style="margin-left:4px;display:'+(isCustom?'inline-block':'none')+'" value="'+(isCustom?curVal:'')+'" placeholder="e.g. 18x30x2" oninput="udf('+eqId+',\'filterSize\',this.value)">';
+  return html;
+}
+function pmFilterSizeChg(sel, eqId) {
+  var next = sel.nextElementSibling;
+  if (sel.value === '__custom__') {
+    if (next) { next.style.display = 'inline-block'; next.value = ''; next.focus(); }
+    udf(eqId, 'filterSize', '');
+  } else {
+    if (next) { next.style.display = 'none'; next.value = ''; }
+    udf(eqId, 'filterSize', sel.value);
+  }
+}
+
 function udf(id, f, v) {
   var eq = eqs.find(function(e) { return e.id === id; });
   if (eq) eq[f] = v;

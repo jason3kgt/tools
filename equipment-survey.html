@@ -340,8 +340,11 @@ function uH(u,i){
     +'<div class="fg"><label>KW</label><input type="text" id="u-kw-'+id+'" placeholder="KW"></div>'
     +'<div class="fg"><label>Voltage / Phase</label><input type="text" id="u-volt-'+id+'" placeholder="e.g. 208/3"></div>'
   +'</div>'
-  +'<div class="r3">'
-    +'<div class="fg"><label>Filters</label><input type="text" id="u-filt-'+id+'" placeholder="Size / qty"></div>'
+  +'<div class="r2">'
+    +'<div class="fg"><label>Filter Qty</label><input type="text" id="u-filtq-'+id+'" placeholder="#"></div>'
+    +'<div class="fg"><label>Filter Size</label>'+eqFilterDrop(id)+'</div>'
+  +'</div>'
+  +'<div class="r2">'
     +'<div class="fg"><label>Belts</label><input type="text" id="u-belt-'+id+'" placeholder="Size / qty"></div>'
     +'<div class="fg"><label>Disconnect</label><input type="text" id="u-disc-'+id+'" placeholder="Amps / type"></div>'
   +'</div>'
@@ -416,6 +419,35 @@ function uH(u,i){
   +'<div class="sh">Unit Notes / Pre-Existing Conditions</div>'
   +'<div class="fg"><textarea id="u-notes-'+id+'" placeholder="Pre-existing conditions, damage observed, anything relevant to this specific unit before work began..." rows="3"></textarea></div>'
   +'</div></div>';
+}
+
+// Filter size dropdown (shared list from ntdStore.js) with a Custom fallback.
+function eqFilterDrop(id){
+  var sizes = window.NTD_FILTER_SIZES || [];
+  var opts = '<option value="">-- Select --</option>';
+  sizes.forEach(function(s){
+    if (s.indexOf('---') === 0) { opts += '<option value="" disabled>'+s+'</option>'; return; }
+    opts += '<option value="'+s+'">'+s+'</option>';
+  });
+  opts += '<option value="__custom__">-- Custom Size --</option>';
+  return '<select id="u-filts-'+id+'" onchange="eqFilterCustomToggle('+id+')">'+opts+'</select>'
+    + '<input type="text" id="u-filts-custom-'+id+'" placeholder="e.g. 18x30x2" style="display:none;margin-top:4px">';
+}
+function eqFilterCustomToggle(id){
+  var sel = document.getElementById('u-filts-'+id);
+  var custom = document.getElementById('u-filts-custom-'+id);
+  if (!sel || !custom) return;
+  custom.style.display = (sel.value === '__custom__') ? 'block' : 'none';
+}
+// Resolves the actual filter size text (dropdown pick, or the custom field if "Custom" was chosen)
+function eqFilterSizeValue(id){
+  var sel = document.getElementById('u-filts-'+id);
+  if (!sel) return '';
+  if (sel.value === '__custom__') {
+    var c = document.getElementById('u-filts-custom-'+id);
+    return c ? c.value || '' : '';
+  }
+  return sel.value || '';
 }
 
 function addUnit(){units.push({id:uid++,tag:'',photos:[]});renderUnits();}
@@ -683,7 +715,7 @@ function dlPDF(){
     y=rowN(y,[['Unit Model #',gf('u-mod1-')],['Unit Serial #',gf('u-ser1-')]],false);
     y=rowN(y,[['Model # (2nd)',gf('u-mod2-')],['Serial # (2nd)',gf('u-ser2-')]],true);
     y=rowN(y,[['Tonnage',gf('u-ton-')],['BTU',gf('u-btu-')],['KW',gf('u-kw-')],['Voltage / Phase',gf('u-volt-')]],false);
-    y=rowN(y,[['Filters',gf('u-filt-')],['Belts',gf('u-belt-')],['Disconnect',gf('u-disc-')]],true);
+    y=rowN(y,[['Filters',(gf('u-filtq-')?gf('u-filtq-')+'x ':'')+eqFilterSizeValue(u.id)],['Belts',gf('u-belt-')],['Disconnect',gf('u-disc-')]],true);
     y=rowN(y,[['Drain Lines Connected',gf('u-drain-')],['Sign of Ref. Leak',gf('u-leak-')]],false);
     y+=4;
 
@@ -858,7 +890,7 @@ function captureFormState() {
   var unitData = units.map(function(u) {
     var id = u.id;
     var fields = ['tag','type','cond','mod1','ser1','mod2','ser2','ton','ref','heat',
-                  'btu','kw','volt','filt','belt','disc','drain','leak',
+                  'btu','kw','volt','filtq','filts','filts-custom','belt','disc','drain','leak',
                   'ctrl','pwr','ctrlok','nopwr','issues','wire','shmt','dmg',
                   'cond-vis','condwhere','sup','ret','dt',
                   'suc1','suc2','suc3','suc4','dis1','dis2','dis3','dis4',
@@ -921,6 +953,7 @@ function restoreDraft() {
             var el = document.getElementById('u-' + f + '-' + u.id);
             if (el) el.value = u[f] || '';
           });
+          eqFilterCustomToggle(u.id);
         });
         setSaveDot('saved');
       }, 50);
@@ -1012,7 +1045,7 @@ function ntdBuildUnitObjects() {
       refrigerant:gf('ref'),
       voltage:    gf('volt'),
       heat_type:  gf('heat'),
-      filter_size:gf('filt'),
+      filter_size: (gf('filtq') ? gf('filtq')+'x ' : '') + eqFilterSizeValue(id),
       belt_size:  gf('belt'),
       condition:  gf('cond'),
       notes:      gf('notes')

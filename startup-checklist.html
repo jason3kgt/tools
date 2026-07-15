@@ -311,6 +311,35 @@ function FUEL_SELECT(id){
     +'</select>';
 }
 
+// Filter size dropdown (shared list from ntdStore.js) with a Custom fallback.
+function FILTER_SIZE_SELECT(id){
+  var sizes = window.NTD_FILTER_SIZES || [];
+  var opts = '<option value="">-- Select --</option>';
+  sizes.forEach(function(s){
+    if (s.indexOf('---') === 0) { opts += '<option value="" disabled>'+s+'</option>'; return; }
+    opts += '<option value="'+s+'">'+s+'</option>';
+  });
+  opts += '<option value="__custom__">-- Custom Size --</option>';
+  return '<select id="'+id+'" onchange="filterSizeCustomToggle(\''+id+'\')" style="-webkit-appearance:none;font-size:14px;padding:8px 10px;width:100%;border:1.5px solid var(--bd);border-radius:8px;background:var(--of);color:var(--tx);font-family:inherit">'+opts+'</select>'
+    +'<input type="text" id="'+id+'-custom" placeholder="e.g. 18x30x2" style="display:none;margin-top:4px;font-size:14px;padding:8px 10px;width:100%;border:1.5px solid var(--bd);border-radius:8px;background:var(--of);color:var(--tx);font-family:inherit">';
+}
+function filterSizeCustomToggle(id){
+  var sel = document.getElementById(id);
+  var custom = document.getElementById(id+'-custom');
+  if (!sel || !custom) return;
+  custom.style.display = (sel.value === '__custom__') ? 'block' : 'none';
+}
+// Resolves the actual filter size text (dropdown pick, or the custom field if "Custom" was chosen)
+function filterSizeValue(id){
+  var sel = document.getElementById(id);
+  if (!sel) return '';
+  if (sel.value === '__custom__') {
+    var c = document.getElementById(id+'-custom');
+    return c ? c.value || '' : '';
+  }
+  return sel.value || '';
+}
+
 var EQ_TYPES = {
   rtu:     'RTU (Rooftop Unit)',
   split:   'Split System / VRF / VRV',
@@ -596,12 +625,12 @@ function rtuHTML(){
   return sh('SETUP & VISUAL — POWER OFF','var(--rd)')
     +'<div class="r3">'
     +'<div class="fg"><label>Filter 1 Qty</label><input type="text" id="rtu_f1q" placeholder="Qty"></div>'
-    +'<div class="fg"><label>Filter 1 Size</label><input type="text" id="rtu_f1s" placeholder="Size"></div>'
+    +'<div class="fg"><label>Filter 1 Size</label>'+FILTER_SIZE_SELECT('rtu_f1s')+'</div>'
     +'<div class="fg"><label>Belt Qty / Size</label><input type="text" id="rtu_blt" placeholder="Qty / Size"></div>'
     +'</div>'
     +'<div class="r3">'
     +'<div class="fg"><label>Filter 2 Qty</label><input type="text" id="rtu_f2q" placeholder="Qty"></div>'
-    +'<div class="fg"><label>Filter 2 Size</label><input type="text" id="rtu_f2s" placeholder="Size"></div>'
+    +'<div class="fg"><label>Filter 2 Size</label>'+FILTER_SIZE_SELECT('rtu_f2s')+'</div>'
     +'<div class="fg"><label>Fuel Type</label>' + FUEL_SELECT('rtu_fuel') + '</div>'
     +'</div>'
     +'<div class="yn-table-hdr"><span>Item</span><span>Y / N / NA</span><span>Comments</span></div>'
@@ -891,12 +920,12 @@ function ahuHTML(){
   return sh('SETUP — POWER OFF','var(--rd)')
     +'<div class="r3">'
     +'<div class="fg"><label>Filter 1 Qty</label><input type="text" id="ahu_f1q" placeholder="Qty"></div>'
-    +'<div class="fg"><label>Filter 1 Size</label><input type="text" id="ahu_f1s" placeholder="Size"></div>'
+    +'<div class="fg"><label>Filter 1 Size</label>'+FILTER_SIZE_SELECT('ahu_f1s')+'</div>'
     +'<div class="fg"><label>Belt Qty / Size</label><input type="text" id="ahu_blt" placeholder="Qty / Size"></div>'
     +'</div>'
     +'<div class="r3">'
     +'<div class="fg"><label>Filter 2 Qty</label><input type="text" id="ahu_f2q" placeholder="Qty"></div>'
-    +'<div class="fg"><label>Filter 2 Size</label><input type="text" id="ahu_f2s" placeholder="Size"></div>'
+    +'<div class="fg"><label>Filter 2 Size</label>'+FILTER_SIZE_SELECT('ahu_f2s')+'</div>'
     +'<div class="fg"><label>Design CFM</label><input type="text" id="ahu_cfm" placeholder="CFM"></div>'
     +'</div>'
     +'<div class="yn-table-hdr"><span>Item</span><span>Y / N / NA</span><span>Comments</span></div>'
@@ -1513,7 +1542,7 @@ var KEEP_PATTERNS = [
   // Unit specs (keep model, clear serial and unit#)
   'model',
   // RTU
-  'rtu_f1q','rtu_f1s','rtu_f2q','rtu_f2s','rtu_blt','rtu_fuel',
+  'rtu_f1q','rtu_f1s','rtu_f1s-custom','rtu_f2q','rtu_f2s','rtu_f2s-custom','rtu_blt','rtu_fuel',
   'rtu_ref_type',
   // RTU visual checks (installed items same across units)
   'yn_rtu_panels','yn_rtu_clear','yn_rtu_marked','yn_rtu_disc',
@@ -1528,7 +1557,7 @@ var KEEP_PATTERNS = [
   'yn_spl_panels','yn_spl_clear','yn_spl_disc','yn_spl_wire',
   'yn_spl_comm','yn_spl_ins','yn_spl_valves',
   // AHU
-  'ahu_f1q','ahu_f1s','ahu_f2q','ahu_f2s','ahu_blt','ahu_cfm',
+  'ahu_f1q','ahu_f1s','ahu_f1s-custom','ahu_f2q','ahu_f2s','ahu_f2s-custom','ahu_blt','ahu_cfm',
   'yn_ahu_panels','yn_ahu_clear','yn_ahu_elec','yn_ahu_vfd',
   'yn_ahu_chw','yn_ahu_hw','yn_ahu_filt','yn_ahu_duct',
   'yn_ahu_blower','yn_ahu_belt','yn_ahu_bearings','yn_ahu_ctrlvalve',
@@ -1631,6 +1660,9 @@ function duplicateForm(){
       if(el2) el2.value = snapshot.fields['mf_'+pat];
     }
   });
+  if (typeof filterSizeCustomToggle === 'function') {
+    ['rtu_f1s','rtu_f2s','ahu_f1s','ahu_f2s'].forEach(function(id){ filterSizeCustomToggle(id); });
+  }
 
   // Restore kept YN fields
   KEEP_PATTERNS.forEach(function(pat){
@@ -2356,8 +2388,9 @@ function ntdEnsureFacility(callback) {
 function ntdEqRecordFromSnap(snap, facilityId) {
   var f = snap.fields || {};
   var type = snap.type || '';
-  var f1q = f[type+'_f1q']||'', f1s = f[type+'_f1s']||'';
-  var f2q = f[type+'_f2q']||'', f2s = f[type+'_f2s']||'';
+  function resolveFs(key){ var v = f[key]||''; return v === '__custom__' ? (f[key+'-custom']||'') : v; }
+  var f1q = f[type+'_f1q']||'', f1s = resolveFs(type+'_f1s');
+  var f2q = f[type+'_f2q']||'', f2s = resolveFs(type+'_f2s');
   var filterParts = [];
   if (f1s) filterParts.push((f1q ? f1q+'x ' : '') + f1s);
   if (f2s) filterParts.push((f2q ? f2q+'x ' : '') + f2s);
@@ -2671,11 +2704,19 @@ function ljApplyUnit(job, unit){
   var filterSize = unit.filter_size || '';
   if(filterSize){
     setTimeout(function(){
-      // RTU filter fields
-      var f1s = document.getElementById('rtu_f1s');
-      if(f1s && !f1s.value) f1s.value = filterSize;
-      var ahu_f1s = document.getElementById('ahu_f1s');
-      if(ahu_f1s && !ahu_f1s.value) ahu_f1s.value = filterSize;
+      ['rtu_f1s','ahu_f1s'].forEach(function(fid){
+        var sel = document.getElementById(fid);
+        if(!sel || sel.value) return; // don't overwrite something already chosen
+        var hasExact = Array.prototype.some.call(sel.options, function(o){ return o.value === filterSize; });
+        if(hasExact){
+          sel.value = filterSize;
+        } else {
+          sel.value = '__custom__';
+          var custom = document.getElementById(fid+'-custom');
+          if(custom) custom.value = filterSize;
+        }
+        if (typeof filterSizeCustomToggle === 'function') filterSizeCustomToggle(fid);
+      });
     }, 300);
   }
 

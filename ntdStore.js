@@ -85,6 +85,25 @@ var _sb = (function() {
   };
 })();
 
+// ── SHARED FILTER SIZE LIST ────────────────────────────────────────────────
+// Single source of truth for filter-size dropdowns across every tool. Items
+// starting with '---' are section headers (rendered as disabled options).
+window.NTD_FILTER_SIZES = [
+  '--- 1" Filters ---',
+  '10x20x1','12x12x1','12x24x1','14x14x1','14x20x1','14x24x1','14x25x1',
+  '16x16x1','16x20x1','16x24x1','16x25x1','18x18x1','18x24x1',
+  '20x20x1','20x24x1','20x25x1','24x24x1','24x30x1','25x25x1',
+  '--- 2" Filters ---',
+  '10x20x2','12x12x2','14x20x2','14x24x2','14x25x2',
+  '16x20x2','16x24x2','16x25x2','18x18x2','18x24x2',
+  '20x20x2','20x24x2','20x25x2','24x24x2','24x30x2','25x25x2',
+  '--- 4" Filters ---',
+  '12x24x4','14x24x4','14x25x4','16x20x4','16x24x4','16x25x4',
+  '20x20x4','20x24x4','20x25x4','24x24x4','24x30x4','25x25x4',
+  '--- Specialty ---',
+  'Washable','HEPA','Bag Filter'
+];
+
 // ── FACILITY MATCHING ──────────────────────────────────────────────────────
 // Single source of truth for "which facility is this?" — used by every tool
 // instead of each one rolling its own match logic. Normalizes common naming
