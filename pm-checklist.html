@@ -506,6 +506,16 @@ function go(n) {
 }
 
 // ─── MODAL ────────────────────────────────────────────────────────
+// Contract start dates in the Hub can be MM/DD/YYYY (typed manually) or
+// YYYY-MM-DD (auto-filled from a PM Quote's date field) — normalize to ISO
+// so calcVisit() parses it reliably.
+function normalizeToISO(dateStr) {
+  if (!dateStr) return '';
+  var mdy = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (mdy) return mdy[3] + '-' + (mdy[1].length<2?'0':'') + mdy[1] + '-' + (mdy[2].length<2?'0':'') + mdy[2];
+  return dateStr;
+}
+
 function searchHubSites() {
   var name = (document.getElementById('hub-search')||{}).value || '';
   var rw = document.getElementById('hub-search-results');
@@ -540,12 +550,19 @@ function loadFromHub(facilityId) {
       if (rw) rw.innerHTML = '<div class="empty">This site is in NTD Hub, but has no units marked as PM-covered yet (set from the PM Quote tab in Asset Survey). Try a Known Site or JSON URL instead.</div>';
       return;
     }
+    // NTD Hub's "Set as PM Contract" flow already stores a real contract
+    // start date at facility.contract.start_date once a proposal is
+    // confirmed. Use it when present so visit scheduling works exactly like
+    // the JSON-based sites; fall back to "load everything" if this site
+    // hasn't been converted to a contract in the Hub yet.
+    var hasRealContract = fac && fac.pm_contract && fac.contract && fac.contract.start_date;
+    var contractStartISO = hasRealContract ? normalizeToISO(fac.contract.start_date) : null;
     var profile = {
       customer: fac ? fac.name : '',
       address: fac ? (fac.address||'') : '',
       city: '',
       site_notes: '',
-      contract_start: null, // Hub doesn't track this yet — loads all covered units regardless of visit type
+      contract_start: contractStartISO,
       _source: 'hub',
       equipment: covered.map(function(e){
         var fq = splitFilterSize(e.filter_size);
