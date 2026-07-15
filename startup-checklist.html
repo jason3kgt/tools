@@ -169,7 +169,13 @@ textarea{resize:vertical;min-height:70px}
   <div class="ch"><span class="cn">1</span><h2>Unit Information</h2></div>
   <div class="cb" id="unit_info">
     <div class="r3">
-      <div class="fg"><label>Facility Name</label><input type="text" id="facility" placeholder="Facility name" autocomplete="off"></div>
+      <div class="fg"><label>Facility Name</label>
+        <div style="display:flex;gap:6px">
+          <input type="text" id="facility" placeholder="Facility name" autocomplete="off" style="flex:1">
+          <button type="button" onclick="searchStartupFacility()" style="padding:0 12px;background:var(--nv);color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">&#128269;</button>
+        </div>
+        <div id="startup-facility-results"></div>
+      </div>
       <div class="fg"><label class="req-label">Date</label><input type="text" id="u_date" placeholder="MM/DD/YYYY"></div>
       <div class="fg"><label>Job / PO #</label><input type="text" id="job_po" placeholder="Job / PO number"></div>
     </div>
@@ -177,17 +183,6 @@ textarea{resize:vertical;min-height:70px}
       <div class="fg"><label>Address</label><input type="text" id="address" placeholder="Street address"></div>
       <div class="fg"><label>City / State</label><input type="text" id="city_state" placeholder="City, State"></div>
       <div class="fg"><label>Technician</label><input type="text" id="tech" placeholder="Tech name"></div>
-    </div>
-    <div class="fg" id="dataplate_wrap" style="margin-bottom:10px">
-      <label>Data Plate Photo <span style="font-weight:400;color:var(--mu)">— snap it first, keep it on screen while you fill in the fields below</span></label>
-      <div id="dataplate_preview" style="display:none;position:relative;margin-bottom:8px">
-        <img id="dataplate_img" src="" alt="Data plate" style="width:100%;max-height:360px;object-fit:contain;border-radius:10px;border:1.5px solid var(--bd);background:#000">
-        <button type="button" id="dataplate_remove_btn" onclick="removeDataPlatePhoto()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:26px;height:26px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0">&#x2715;</button>
-      </div>
-      <label class="add-btn" style="display:block;padding:11px;border-radius:10px;font-size:13px;font-weight:600;border:1.5px dashed var(--nv);background:#fff;color:var(--nv);text-align:center;cursor:pointer">
-        <span id="dataplate_btn_text">&#128247; Take Data Plate Photo</span>
-        <input type="file" accept="image/*" capture="environment" id="dataplate_input" style="display:none" onchange="addDataPlatePhoto(this)">
-      </label>
     </div>
     <div class="r3">
       <div class="fg"><label class="req-label">Unit #</label><input type="text" id="unit_num" placeholder="Unit tag (required)"></div>
@@ -1509,61 +1504,8 @@ function addPhoto(inp){
 }
 
 function removePhoto(idx){
-  if (photos[idx] === dataPlatePhotoRef) { dataPlatePhotoRef = null; dataPlatePhoto = null; renderDataPlatePhoto(); }
   photos.splice(idx, 1);
   renderPhotos();
-}
-
-// ── DATA PLATE PHOTO (pinned reference shot above Unit Info) ──
-// Lives as the first entry in the regular `photos` array (caption 'Data Plate')
-// so it rides along with the existing save/PDF/backup pipeline automatically.
-var dataPlatePhoto = null;    // {data, caption} — mirrors dataPlatePhotoRef for rendering
-var dataPlatePhotoRef = null; // reference to the actual object inside photos[]
-
-function addDataPlatePhoto(inp){
-  var file = inp.files[0];
-  if(!file) return;
-  var reader = new FileReader();
-  reader.onload = function(e){
-    var data = e.target.result;
-    if(dataPlatePhotoRef){
-      dataPlatePhotoRef.data = data; // retake: update in place
-    } else {
-      dataPlatePhotoRef = {data: data, caption: 'Data Plate'};
-      photos.unshift(dataPlatePhotoRef);
-      renderPhotos();
-    }
-    dataPlatePhoto = dataPlatePhotoRef;
-    renderDataPlatePhoto();
-  };
-  reader.readAsDataURL(file);
-  inp.value = '';
-}
-
-function removeDataPlatePhoto(){
-  if(dataPlatePhotoRef){
-    var idx = photos.indexOf(dataPlatePhotoRef);
-    if(idx > -1) photos.splice(idx, 1);
-  }
-  dataPlatePhoto = null;
-  dataPlatePhotoRef = null;
-  renderDataPlatePhoto();
-  renderPhotos();
-}
-
-function renderDataPlatePhoto(){
-  var preview = document.getElementById('dataplate_preview');
-  var img = document.getElementById('dataplate_img');
-  var btnText = document.getElementById('dataplate_btn_text');
-  if(!preview || !img || !btnText) return;
-  if(dataPlatePhoto){
-    img.src = dataPlatePhoto.data;
-    preview.style.display = 'block';
-    btnText.innerHTML = '&#128247; Retake Data Plate Photo';
-  } else {
-    preview.style.display = 'none';
-    btnText.innerHTML = '&#128247; Take Data Plate Photo';
-  }
 }
 
 function updateCaption(idx, val){
@@ -1707,9 +1649,6 @@ function duplicateForm(){
 
   // 2. Clear photos for new unit
   photos = [];
-  dataPlatePhoto = null;
-  dataPlatePhotoRef = null;
-  renderDataPlatePhoto();
   var pg = document.getElementById('photo_grid'); if(pg) pg.innerHTML = '';
 
   // 3. Reload fresh form
@@ -1785,6 +1724,12 @@ function init(){
   var dupBtn=document.getElementById('dup_btn'); if(dupBtn)dupBtn.addEventListener('click',duplicateForm);
   var finBtn=document.getElementById('finish_job_btn'); if(finBtn)finBtn.addEventListener('click',downloadAllPDFs);
   var dlAllBtn=document.getElementById('dl_all_btn'); if(dlAllBtn)dlAllBtn.addEventListener('click',downloadAllPDFs);
+  var facEl=document.getElementById('facility');
+  if (facEl) facEl.addEventListener('input', function(){
+    _ntdFacilityId = null;
+    var rw = document.getElementById('startup-facility-results');
+    if (rw) rw.innerHTML = '';
+  });
   // Restore session from localStorage
   restoreSession();
 }
@@ -2114,10 +2059,6 @@ function loadUnitForEdit(idx){
 
     // Photos
     photos = (snap.photos||[]).slice();
-    dataPlatePhotoRef = null;
-    for (var pi=0; pi<photos.length; pi++){ if(photos[pi].caption === 'Data Plate'){ dataPlatePhotoRef = photos[pi]; break; } }
-    dataPlatePhoto = dataPlatePhotoRef;
-    renderDataPlatePhoto();
     renderPhotos();
 
     // Update progress bar
@@ -2443,6 +2384,49 @@ function ntdUpsertFacility(name, address, callback) {
  * needed. Used by mid-session saves and single-unit PDF downloads so they
  * don't have to wait until "Finish Job" for the facility to exist.
  */
+// Search NTD Hub for an existing facility so the tech can pick the real one
+// instead of retyping a name that has to exact-match later. Selecting a
+// result sets _ntdFacilityId directly, bypassing name-matching entirely.
+function searchStartupFacility() {
+  var name = gv('facility');
+  var rw = document.getElementById('startup-facility-results');
+  if (!rw) return;
+  if (!name.trim()) { rw.innerHTML = '<div style="font-size:11px;color:var(--mu);padding:6px 0">Type a name first, then tap search.</div>'; return; }
+  if (typeof ntdStore === 'undefined') { rw.innerHTML = '<div style="font-size:11px;color:var(--mu);padding:6px 0">NTD Hub connection not available.</div>'; return; }
+  rw.innerHTML = '<div style="font-size:11px;color:var(--mu);padding:6px 0">Searching\u2026</div>';
+  ntdStore.matchFacility.find(name).then(function(result) {
+    var matches = [];
+    if (result.exact) matches.push(result.exact);
+    matches = matches.concat(result.candidates || []);
+    if (!matches.length) { rw.innerHTML = '<div style="font-size:11px;color:var(--mu);padding:6px 0">No matching site in NTD Hub — will create a new facility when you save.</div>'; return; }
+    rw.innerHTML = matches.map(function(f) {
+      return '<div onclick="pickStartupFacility(\''+f.id+'\',\''+(f.name||'').replace(/'/g,"\\'")+'\')" style="padding:10px;border:1.5px solid var(--bd);border-radius:8px;margin-top:6px;cursor:pointer">'
+        + '<div style="font-size:13px;font-weight:700;color:var(--tx)">' + esc2(f.name) + '</div>'
+        + (f.address ? '<div style="font-size:11px;color:var(--mu);margin-top:2px">' + esc2(f.address) + '</div>' : '')
+        + '</div>';
+    }).join('');
+  }).catch(function(err) {
+    rw.innerHTML = '<div style="font-size:11px;color:var(--rd);padding:6px 0">Search failed \u2014 ' + esc2(err.message||'connection error') + '</div>';
+  });
+}
+
+function pickStartupFacility(facilityId, facilityName) {
+  _ntdFacilityId = facilityId;
+  var facEl = document.getElementById('facility');
+  if (facEl) facEl.value = facilityName;
+  ntdStore.facilities.get ? ntdStore.facilities.get(facilityId).then(fillStartupAddress) : ntdStore.facilities.list(function(f){return f.id===facilityId;}).then(function(r){ fillStartupAddress(r[0]); });
+  var rw = document.getElementById('startup-facility-results');
+  if (rw) rw.innerHTML = '<div style="font-size:11px;color:var(--gn);font-weight:600;padding:6px 0">\u2713 Linked to existing NTD Hub facility</div>';
+}
+function fillStartupAddress(fac) {
+  if (!fac) return;
+  var addrEl = document.getElementById('address');
+  if (addrEl && !addrEl.value && fac.address) addrEl.value = fac.address;
+}
+function esc2(s) {
+  return (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 function ntdEnsureFacility(callback) {
   if (_ntdFacilityId) { callback(_ntdFacilityId); return; }
   var facName = gv('facility');
