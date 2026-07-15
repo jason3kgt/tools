@@ -178,6 +178,17 @@ textarea{resize:vertical;min-height:70px}
       <div class="fg"><label>City / State</label><input type="text" id="city_state" placeholder="City, State"></div>
       <div class="fg"><label>Technician</label><input type="text" id="tech" placeholder="Tech name"></div>
     </div>
+    <div class="fg" id="dataplate_wrap" style="margin-bottom:10px">
+      <label>Data Plate Photo <span style="font-weight:400;color:var(--mu)">— snap it first, keep it on screen while you fill in the fields below</span></label>
+      <div id="dataplate_preview" style="display:none;position:relative;margin-bottom:8px">
+        <img id="dataplate_img" src="" alt="Data plate" style="width:100%;max-height:360px;object-fit:contain;border-radius:10px;border:1.5px solid var(--bd);background:#000">
+        <button type="button" id="dataplate_remove_btn" onclick="removeDataPlatePhoto()" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:26px;height:26px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0">&#x2715;</button>
+      </div>
+      <label class="add-btn" style="display:block;padding:11px;border-radius:10px;font-size:13px;font-weight:600;border:1.5px dashed var(--nv);background:#fff;color:var(--nv);text-align:center;cursor:pointer">
+        <span id="dataplate_btn_text">&#128247; Take Data Plate Photo</span>
+        <input type="file" accept="image/*" capture="environment" id="dataplate_input" style="display:none" onchange="addDataPlatePhoto(this)">
+      </label>
+    </div>
     <div class="r3">
       <div class="fg"><label class="req-label">Unit #</label><input type="text" id="unit_num" placeholder="Unit tag (required)"></div>
       <div class="fg"><label>MFG / Model</label><input type="text" id="model" placeholder="Make / model"></div>
@@ -1498,8 +1509,61 @@ function addPhoto(inp){
 }
 
 function removePhoto(idx){
+  if (photos[idx] === dataPlatePhotoRef) { dataPlatePhotoRef = null; dataPlatePhoto = null; renderDataPlatePhoto(); }
   photos.splice(idx, 1);
   renderPhotos();
+}
+
+// ── DATA PLATE PHOTO (pinned reference shot above Unit Info) ──
+// Lives as the first entry in the regular `photos` array (caption 'Data Plate')
+// so it rides along with the existing save/PDF/backup pipeline automatically.
+var dataPlatePhoto = null;    // {data, caption} — mirrors dataPlatePhotoRef for rendering
+var dataPlatePhotoRef = null; // reference to the actual object inside photos[]
+
+function addDataPlatePhoto(inp){
+  var file = inp.files[0];
+  if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var data = e.target.result;
+    if(dataPlatePhotoRef){
+      dataPlatePhotoRef.data = data; // retake: update in place
+    } else {
+      dataPlatePhotoRef = {data: data, caption: 'Data Plate'};
+      photos.unshift(dataPlatePhotoRef);
+      renderPhotos();
+    }
+    dataPlatePhoto = dataPlatePhotoRef;
+    renderDataPlatePhoto();
+  };
+  reader.readAsDataURL(file);
+  inp.value = '';
+}
+
+function removeDataPlatePhoto(){
+  if(dataPlatePhotoRef){
+    var idx = photos.indexOf(dataPlatePhotoRef);
+    if(idx > -1) photos.splice(idx, 1);
+  }
+  dataPlatePhoto = null;
+  dataPlatePhotoRef = null;
+  renderDataPlatePhoto();
+  renderPhotos();
+}
+
+function renderDataPlatePhoto(){
+  var preview = document.getElementById('dataplate_preview');
+  var img = document.getElementById('dataplate_img');
+  var btnText = document.getElementById('dataplate_btn_text');
+  if(!preview || !img || !btnText) return;
+  if(dataPlatePhoto){
+    img.src = dataPlatePhoto.data;
+    preview.style.display = 'block';
+    btnText.innerHTML = '&#128247; Retake Data Plate Photo';
+  } else {
+    preview.style.display = 'none';
+    btnText.innerHTML = '&#128247; Take Data Plate Photo';
+  }
 }
 
 function updateCaption(idx, val){
@@ -1643,6 +1707,9 @@ function duplicateForm(){
 
   // 2. Clear photos for new unit
   photos = [];
+  dataPlatePhoto = null;
+  dataPlatePhotoRef = null;
+  renderDataPlatePhoto();
   var pg = document.getElementById('photo_grid'); if(pg) pg.innerHTML = '';
 
   // 3. Reload fresh form
@@ -2047,6 +2114,10 @@ function loadUnitForEdit(idx){
 
     // Photos
     photos = (snap.photos||[]).slice();
+    dataPlatePhotoRef = null;
+    for (var pi=0; pi<photos.length; pi++){ if(photos[pi].caption === 'Data Plate'){ dataPlatePhotoRef = photos[pi]; break; } }
+    dataPlatePhoto = dataPlatePhotoRef;
+    renderDataPlatePhoto();
     renderPhotos();
 
     // Update progress bar

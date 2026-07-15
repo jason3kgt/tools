@@ -232,6 +232,7 @@ textarea{resize:vertical;min-height:70px}
 <div id="submit-banner"></div>
 <input type="file" id="lf" accept=".json" style="display:none" onchange="loadJ(this)">
 <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none" multiple>
+<input type="file" id="dataplateInput" accept="image/*" capture="environment" style="display:none">
 </div>
 <div class="pg" id="pg2">
 <button class="back-btn" onclick="go(1)">Back to Equipment</button>
@@ -317,6 +318,14 @@ function uH(u,i){
 
   // ── UNIT INFO ──
   +'<div class="sh" style="margin-top:0">Unit Information</div>'
+  +'<div class="fg" id="dp-wrap-'+id+'" style="margin-bottom:10px">'
+    +'<label>Data Plate Photo <span style="font-weight:400;color:var(--mu)">— snap it first, keep it on screen while you fill in the fields below</span></label>'
+    +'<div id="dp-preview-'+id+'" style="display:none;position:relative;margin-bottom:8px">'
+      +'<img id="dp-img-'+id+'" src="" alt="Data plate" style="width:100%;max-height:360px;object-fit:contain;border-radius:10px;border:1.5px solid var(--bd);background:#000">'
+      +'<button type="button" data-uid="'+id+'" onclick="removeDataPlatePhoto(parseInt(this.dataset.uid))" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:26px;height:26px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0">&#x2715;</button>'
+    +'</div>'
+    +'<button type="button" class="photo-btn" data-uid="'+id+'" onclick="addDataPlatePhoto(this)"><span id="dp-btntext-'+id+'">&#128247; Take Data Plate Photo</span></button>'
+  +'</div>'
   +'<div class="r3">'
     +'<div class="fg"><label>Unit Tag</label><input type="text" id="u-tag-'+id+'" placeholder="e.g. RTU-1" oninput="udf('+id+',\'tag\',this.value)"></div>'
     +'<div class="fg"><label>Type of Unit</label><input type="text" id="u-type-'+id+'" placeholder="RTU/Split/AHU"></div>'
@@ -460,7 +469,7 @@ function renderUnits(){
   var el=document.getElementById('uql');
   if(!units.length){el.innerHTML='<div class="empty">Tap below to add a unit</div>';return;}
   el.innerHTML=units.map(function(u,i){return uH(u,i);}).join('');
-  for(var i=0;i<units.length;i++)renderPhotos(units[i].id);
+  for(var i=0;i<units.length;i++){renderPhotos(units[i].id);renderDataPlatePhoto(units[i].id);}
 }
 
 // ── PHOTOS ────────────────────────────────────────────────────
@@ -568,6 +577,7 @@ function renderPhotos(uid){
   var html='';
   for(var i=0;i<u.photos.length;i++){
     var p=u.photos[i];
+    if(p.isDataPlate)continue; // shown pinned above Unit Info instead of in this grid
     html+='<div class="photo-thumb'+(p.backedUp?' backed':'')+'"><img src="'+p.data+'" alt="photo"><button class="photo-del" data-uid="'+uid+'" data-pidx="'+i+'" onclick="delPhoto(this)">×</button></div>';
   }
   pg.innerHTML=html;
@@ -579,6 +589,68 @@ function delPhoto(btn){
   if(!u||!u.photos)return;
   u.photos.splice(idx,1);
   renderPhotos(uid);
+}
+
+// ── DATA PLATE PHOTO (pinned reference shot above Unit Info) ──
+// Lives inside the same u.photos array (flagged isDataPlate:true) so it rides
+// along with the existing compress/backup/PDF pipeline automatically, but is
+// filtered out of the small photo grid above and shown pinned instead.
+var _dataplateTargetId=null;
+function addDataPlatePhoto(btn){
+  _dataplateTargetId=parseInt(btn.dataset.uid);
+  var inp=document.getElementById('dataplateInput');
+  inp.value='';
+  inp.click();
+}
+document.getElementById('dataplateInput').addEventListener('change',function(){
+  var u=units.find(function(u){return u.id===_dataplateTargetId;});
+  if(!u)return;
+  if(!u.photos)u.photos=[];
+  var file=this.files[0];
+  if(!file)return;
+  var applyResult=function(dataUrl,blob){
+    var existing=u.photos.find(function(p){return p.isDataPlate;});
+    if(existing){
+      existing.data=dataUrl;
+      existing.backedUp=false;
+      ntdBackupPhoto(blob,u,existing);
+    }else{
+      var photoObj={data:dataUrl,caption:'Data Plate',isDataPlate:true,backedUp:false};
+      u.photos.unshift(photoObj);
+      ntdBackupPhoto(blob,u,photoObj);
+    }
+    renderDataPlatePhoto(u.id);
+  };
+  compressImage(file,1600,0.75).then(function(res){
+    applyResult(res.dataUrl,res.blob);
+  }).catch(function(err){
+    console.warn('[NTD] Data plate photo compression failed, using original:',err);
+    var reader=new FileReader();
+    reader.onload=function(ev){ applyResult(ev.target.result,file); };
+    reader.readAsDataURL(file);
+  });
+});
+function removeDataPlatePhoto(uid){
+  var u=units.find(function(u){return u.id===uid;});
+  if(!u||!u.photos)return;
+  u.photos=u.photos.filter(function(p){return !p.isDataPlate;});
+  renderDataPlatePhoto(uid);
+}
+function renderDataPlatePhoto(uid){
+  var u=units.find(function(u){return u.id===uid;});
+  var preview=document.getElementById('dp-preview-'+uid);
+  var img=document.getElementById('dp-img-'+uid);
+  var btnText=document.getElementById('dp-btntext-'+uid);
+  if(!preview||!img||!btnText)return;
+  var dp=u&&u.photos?u.photos.find(function(p){return p.isDataPlate;}):null;
+  if(dp){
+    img.src=dp.data;
+    preview.style.display='block';
+    btnText.innerHTML='&#128247; Retake Data Plate Photo';
+  }else{
+    preview.style.display='none';
+    btnText.innerHTML='&#128247; Take Data Plate Photo';
+  }
 }
 
 // ── PDF ──
