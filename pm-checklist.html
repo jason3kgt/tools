@@ -226,6 +226,13 @@ textarea{resize:vertical;min-height:70px}
 <div class="modal" id="site-modal">
   <div class="modal-sheet">
     <div class="modal-title">Select Site Profile</div>
+    <div style="font-size:11px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">Search NTD Hub</div>
+    <div style="display:flex;gap:8px;margin-bottom:6px">
+      <input type="text" id="hub-search" placeholder="Customer / Facility name" style="flex:1;font-size:12px" autocomplete="off" onkeypress="if(event.key==='Enter')searchHubSites()">
+      <button type="button" onclick="searchHubSites()" style="padding:8px 14px;background:var(--nv);color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">Search</button>
+    </div>
+    <div id="hub-search-results"></div>
+    <div style="font-size:11px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.04em;margin:14px 0 6px">Known Sites</div>
     <div id="site-list">
       <div class="empty">Loading available sites...</div>
     </div>
@@ -499,9 +506,87 @@ function go(n) {
 }
 
 // ─── MODAL ────────────────────────────────────────────────────────
+function searchHubSites() {
+  var name = (document.getElementById('hub-search')||{}).value || '';
+  var rw = document.getElementById('hub-search-results');
+  if (!rw) return;
+  if (!name.trim()) { rw.innerHTML = '<div class="empty">Enter a name to search.</div>'; return; }
+  if (typeof ntdStore === 'undefined') { rw.innerHTML = '<div class="empty">NTD Hub connection not available.</div>'; return; }
+  rw.innerHTML = '<div class="empty">Searching\u2026</div>';
+  ntdStore.matchFacility.find(name).then(function(result) {
+    var matches = [];
+    if (result.exact) matches.push(result.exact);
+    matches = matches.concat(result.candidates || []);
+    if (!matches.length) { rw.innerHTML = '<div class="empty">No matching site found in NTD Hub.</div>'; return; }
+    rw.innerHTML = matches.map(function(f) {
+      return '<div class="site-row" onclick="loadFromHub(\''+f.id+'\')"><h3>' + esc2(f.name) + '</h3><p>' + esc2(f.address||'') + '</p></div>';
+    }).join('');
+  }).catch(function(err) {
+    rw.innerHTML = '<div class="empty">Search failed \u2014 ' + esc2(err.message||'connection error') + '</div>';
+  });
+}
+
+function loadFromHub(facilityId) {
+  var rw = document.getElementById('hub-search-results');
+  if (rw) rw.innerHTML = '<div class="empty">Loading equipment\u2026</div>';
+  Promise.all([
+    ntdStore.facilities.get ? ntdStore.facilities.get(facilityId) : ntdStore.facilities.list(function(f){return f.id===facilityId;}).then(function(r){return r[0];}),
+    ntdStore.equipment.list(function(e){ return e.facility_id === facilityId; })
+  ]).then(function(res) {
+    var fac = res[0];
+    var allEquip = res[1] || [];
+    var covered = allEquip.filter(function(e){ return e.pm_covered; });
+    if (!covered.length) {
+      if (rw) rw.innerHTML = '<div class="empty">This site is in NTD Hub, but has no units marked as PM-covered yet (set from the PM Quote tab in Asset Survey). Try a Known Site or JSON URL instead.</div>';
+      return;
+    }
+    var profile = {
+      customer: fac ? fac.name : '',
+      address: fac ? (fac.address||'') : '',
+      city: '',
+      site_notes: '',
+      contract_start: null, // Hub doesn't track this yet — loads all covered units regardless of visit type
+      _source: 'hub',
+      equipment: covered.map(function(e){
+        var fq = splitFilterSize(e.filter_size);
+        return {
+          tag: e.tag || '',
+          type: e.type || 'RTU',
+          frequency: (e.pm_frequency || 'quarterly').toLowerCase(),
+          tunnel: false,
+          filter_qty: fq.qty,
+          filter_size: fq.size,
+          belt_qty: '',
+          belt_size: e.belt_size || '',
+          area: e.area || ''
+        };
+      })
+    };
+    applyProfile(profile);
+    closeModal();
+  }).catch(function(err) {
+    if (rw) rw.innerHTML = '<div class="empty">Load failed \u2014 ' + esc2(err.message||'connection error') + '</div>';
+  });
+}
+
+// Best-effort split of a combined "2x 16x20x1" string back into qty + size.
+// Falls back to putting the whole thing in size if it doesn't match that pattern.
+function splitFilterSize(combined) {
+  var s = (combined || '').split(',')[0].trim(); // first filter only, for the simple qty/size fields
+  var m = s.match(/^(\d+)\s*x\s*(.+)$/i);
+  if (m) return { qty: m[1], size: m[2].trim() };
+  return { qty: '', size: s };
+}
+
+function esc2(s) {
+  return (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 function openModal() {
   var el = document.getElementById('site-modal');
   if (el) el.className = 'modal on';
+  var hs = document.getElementById('hub-search'); if (hs) hs.value = '';
+  var hr = document.getElementById('hub-search-results'); if (hr) hr.innerHTML = '';
   renderKnownSites();
 }
 function closeModal() {
@@ -601,8 +686,20 @@ function clearSite() {
 
 function renderVisitBanner(data, visit) {
   var el = document.getElementById('visit-banner-area');
-  if (!el || !visit) return;
+  if (!el) return;
   var all = data.equipment || [];
+  if (!data.contract_start) {
+    // Hub-sourced profile — no contract start date to calculate visit scheduling from,
+    // so every PM-covered unit loads regardless of monthly/quarterly/annual frequency.
+    var byFreq = {};
+    all.forEach(function(u){ var f=(u.frequency||'quarterly').toLowerCase(); byFreq[f]=(byFreq[f]||0)+1; });
+    var parts = Object.keys(byFreq).map(function(f){ return byFreq[f]+' '+f; });
+    el.innerHTML = '<div class="vbanner"><div class="vb-title">&#128193; Loaded from NTD Hub</div>'
+      + '<div class="vb-sub">' + all.length + ' unit(s) under PM contract: ' + parts.join(', ') + '. '
+      + 'Hub doesn\u2019t track visit scheduling yet, so all covered units are shown \u2014 use the frequency tag on each unit to judge what\u2019s due this visit.</div></div>';
+    return;
+  }
+  if (!visit) return;
   var monthly = all.filter(function(u){ return u.frequency === 'monthly'; });
   var quarterly = visit.isQuarterMonth ? all.filter(function(u){ return u.frequency === 'quarterly'; }) : [];
   var annual = visit.isAnnualMonth ? all.filter(function(u){ return u.frequency === 'annual'; }) : [];
@@ -610,11 +707,11 @@ function renderVisitBanner(data, visit) {
   var html = '<div class="vbanner">';
   html += '<div class="vb-title">&#128197; ' + visit.label + '</div>';
   html += '<div class="vb-sub">' + total + ' unit(s) due this visit: ';
-  var parts = [];
-  if (monthly.length) parts.push(monthly.length + ' monthly tunnel');
-  if (quarterly.length) parts.push(quarterly.length + ' quarterly');
-  if (annual.length) parts.push(annual.length + ' annual inspection');
-  html += parts.join(', ') + '.</div>';
+  var vparts = [];
+  if (monthly.length) vparts.push(monthly.length + ' monthly tunnel');
+  if (quarterly.length) vparts.push(quarterly.length + ' quarterly');
+  if (annual.length) vparts.push(annual.length + ' annual inspection');
+  html += vparts.join(', ') + '.</div>';
   html += '<div class="vb-tags">';
   if (monthly.length) html += '<span class="vb-tag tunnel">Monthly Tunnel</span>';
   if (quarterly.length) html += '<span class="vb-tag">Q' + visit.quarter + ' Quarterly</span>';
@@ -628,16 +725,19 @@ function loadEquipmentFromProfile(data, visit) {
   eqs = [];
   eid = 1;
   var units = data.equipment || [];
+  var gateByDate = !!data.contract_start; // only filter by monthly/quarterly/annual if we have a real schedule to check against
   for (var i = 0; i < units.length; i++) {
     var u = units[i];
     var freq = (u.frequency || 'quarterly').toLowerCase();
-    // Only load units due on this visit type
-    if (freq === 'monthly') {
-      // Always due — tunnel units every visit
-    } else if (freq === 'quarterly') {
-      if (!visit || !visit.isQuarterMonth) continue;
-    } else if (freq === 'annual') {
-      if (!visit || !visit.isAnnualMonth) continue;
+    if (gateByDate) {
+      // Only load units due on this visit type
+      if (freq === 'monthly') {
+        // Always due — tunnel units every visit
+      } else if (freq === 'quarterly') {
+        if (!visit || !visit.isQuarterMonth) continue;
+      } else if (freq === 'annual') {
+        if (!visit || !visit.isAnnualMonth) continue;
+      }
     }
     var serviceType = mapServiceType(u);
     eqs.push({
