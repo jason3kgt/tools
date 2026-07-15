@@ -463,6 +463,7 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
   <div class="modal-sheet">
     <div class="modal-handle"></div>
     <div class="modal-title" id="proj-modal-title">Add Project</div>
+    <div class="fg" id="pm-facility-wrap"><label>Facility *</label><select id="pm-facility"></select></div>
     <div class="fg"><label>Project Name *</label><input type="text" id="pm-name" placeholder="e.g. RTU Replacement Phase 2"></div>
     <div class="fg">
       <label>Status</label>
@@ -1544,7 +1545,29 @@ function openAddProject(facilityId) {
   document.getElementById('pm-agr-type').value = '';
   document.getElementById('pm-agr-status').value = '';
   document.getElementById('pm-status').value = 'bidding';
+  ntdPopulateFacilityPicker(facilityId);
   openModal('proj-modal');
+}
+
+// Populates the #pm-facility select. If a facilityId is already known (creating
+// from that facility's own Projects tab), the field is locked to it — otherwise
+// it's a required picker, since the global "+ Project" button has no facility
+// context at all and previously let projects save with facility_id: null.
+function ntdPopulateFacilityPicker(lockedFacilityId) {
+  var sel = document.getElementById('pm-facility');
+  sel.innerHTML = '<option value="">Loading…</option>';
+  ntdStore.facilities.list().then(function(facs) {
+    facs = (facs||[]).sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); });
+    if (lockedFacilityId) {
+      var fac = facs.find(function(f){ return f.id === lockedFacilityId; });
+      sel.innerHTML = '<option value="'+lockedFacilityId+'">'+esc(fac ? fac.name : 'Unknown facility')+'</option>';
+      sel.disabled = true;
+    } else {
+      sel.disabled = false;
+      sel.innerHTML = '<option value="">-- Select a facility --</option>' +
+        facs.map(function(f){ return '<option value="'+f.id+'">'+esc(f.name||'Unnamed')+'</option>'; }).join('');
+    }
+  });
 }
 
 function openEditProject(id, facilityId) {
@@ -1568,6 +1591,8 @@ function openEditProject(id, facilityId) {
     document.getElementById('pm-agr-signed').value = p.agr_signed || '';
     document.getElementById('pm-agr-status').value = p.agr_status || '';
     document.getElementById('pm-agr-url').value    = p.agr_url    || '';
+    editingProjectFacilityId = p.facility_id || facilityId;
+    ntdPopulateFacilityPicker(editingProjectFacilityId);
     openModal('proj-modal');
   });
 }
@@ -1575,8 +1600,10 @@ function openEditProject(id, facilityId) {
 function saveProject() {
   var name = document.getElementById('pm-name').value.trim();
   if (!name) { alert('Project name is required.'); return; }
+  var facilityId = document.getElementById('pm-facility').value;
+  if (!facilityId) { alert('Please select a facility for this project.'); return; }
   var data = {
-    facility_id: editingProjectFacilityId,
+    facility_id: facilityId,
     type:        'project',
     name:        name,
     status:      document.getElementById('pm-status').value,
