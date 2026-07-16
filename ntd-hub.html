@@ -489,7 +489,7 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
       <div class="fg"><label>Start Date</label><input type="text" id="pm-start" placeholder="MM/DD/YYYY"></div>
       <div class="fg"><label>Target Completion</label><input type="text" id="pm-end" placeholder="MM/DD/YYYY"></div>
     </div>
-    <div class="fg"><label>SharePoint Folder URL</label><input type="text" id="pm-sp" placeholder="https://…"></div>
+    <div class="fg"><label>SharePoint / OneDrive URL</label><input type="text" id="pm-sp" placeholder="https://… (link to an external folder, if anything lives outside the Hub)"></div>
     <div class="fg"><label>Description / Notes</label><textarea id="pm-notes" placeholder="Scope, key contacts, special requirements…"></textarea></div>
     <div class="divider"></div>
     <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mu);margin-bottom:10px">Agreement / Contract</div>
@@ -518,8 +518,6 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
         </select>
       </div>
     </div>
-    <div class="fg"><label>Contract Document URL (SharePoint)</label><textarea id="pm-agr-url" placeholder="https://… (one URL per line for multiple documents)"></textarea></div>
-
     <div id="pm-docs-section" class="hidden">
       <div class="divider"></div>
       <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mu);margin-bottom:10px">Documents</div>
@@ -1691,7 +1689,7 @@ function openAddProject(facilityId) {
   editingProjectId = null;
   editingProjectFacilityId = facilityId;
   document.getElementById('proj-modal-title').textContent = 'Add Project';
-  ['pm-name','pm-value','pm-job-id','pm-po-equip','pm-po-parts','pm-po','pm-start','pm-end','pm-sp','pm-notes','pm-agr-num','pm-agr-signed','pm-agr-url'].forEach(function(id){ document.getElementById(id).value=''; });
+  ['pm-name','pm-value','pm-job-id','pm-po-equip','pm-po-parts','pm-po','pm-start','pm-end','pm-sp','pm-notes','pm-agr-num','pm-agr-signed'].forEach(function(id){ document.getElementById(id).value=''; });
   document.getElementById('pm-agr-type').value = '';
   document.getElementById('pm-agr-status').value = '';
   document.getElementById('pm-status').value = 'bidding';
@@ -1741,7 +1739,6 @@ function openEditProject(id, facilityId) {
     document.getElementById('pm-agr-num').value    = p.agr_num    || '';
     document.getElementById('pm-agr-signed').value = p.agr_signed || '';
     document.getElementById('pm-agr-status').value = p.agr_status || '';
-    document.getElementById('pm-agr-url').value    = p.agr_url    || '';
     editingProjectFacilityId = p.facility_id || facilityId;
     ntdPopulateFacilityPicker(editingProjectFacilityId);
     editingProjectFacilityId = p.facility_id || facilityId;
@@ -1777,8 +1774,7 @@ function saveProject() {
     agr_type:    document.getElementById('pm-agr-type').value,
     agr_num:     document.getElementById('pm-agr-num').value.trim(),
     agr_signed:  document.getElementById('pm-agr-signed').value.trim(),
-    agr_status:  document.getElementById('pm-agr-status').value,
-    agr_url:     document.getElementById('pm-agr-url').value.trim()
+    agr_status:  document.getElementById('pm-agr-status').value
   };
   if (editingProjectId) data.id = editingProjectId;
   ntdStore.jobs.upsert(data).then(function() {
