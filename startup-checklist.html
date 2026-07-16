@@ -2612,86 +2612,62 @@ function ljShowBanner(type, msg){
 
 function ljLoadJobs(){
   ljShowBanner('info', 'Fetching available jobs...');
-  var url = 'https://api.github.com/repos/' + LJ_OWNER + '/' + LJ_REPO + '/contents/' + LJ_PATH;
-  fetch(url)
-  .then(function(res){
-    if(res.status === 404){
-      ljShowBanner('err', 'No jobs folder found. Ask your supervisor to publish jobs first.');
-      return null;
-    }
-    return res.json();
-  })
-  .then(function(files){
-    if(!files) return;
-    if(!Array.isArray(files)){
-      ljShowBanner('err', 'No jobs published yet. Ask your supervisor to publish jobs first.');
+  if (typeof ntdStore === 'undefined') { ljShowBanner('err', 'NTD Hub connection not available.'); return; }
+  ntdStore.jobs.list(function(j){ return j.type === 'startup_job'; }).then(function(jobs){
+    if (!jobs || !jobs.length) {
+      ljShowBanner('err', 'No jobs published yet. Ask your supervisor to publish a submittal first.');
       return;
     }
-    var jsonFiles = files.filter(function(f){ return f.name && f.name.endsWith('.json'); });
-    if(!jsonFiles.length){
-      ljShowBanner('err', 'No jobs available yet.');
-      return;
-    }
-    ljShowBanner('ok', jsonFiles.length + ' job' + (jsonFiles.length===1?'':'s') + ' available. Tap to select.');
+    jobs.sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
+    ljShowBanner('ok', jobs.length + ' job' + (jobs.length===1?'':'s') + ' available. Tap to select.');
     var list = document.getElementById('lj_jobs_list');
     list.innerHTML = '';
-    jsonFiles.forEach(function(f){
+    jobs.forEach(function(j){
       var pill = document.createElement('div');
       pill.className = 'lj-job-pill';
-      pill.setAttribute('data-url', f.download_url);
       pill.innerHTML =
-        '<div class="lj-job-name">' + f.name.replace('.json','') + '</div>' +
-        '<div class="lj-job-meta">Tap to load units</div>';
+        '<div class="lj-job-name">' + (j.name||'Job') + '</div>' +
+        '<div class="lj-job-meta">' + (j.units?j.units.length:0) + ' unit(s) — tap to load</div>';
       pill.addEventListener('click', function(){
-        ljSelectJob(f.download_url, f.name.replace('.json',''));
+        ljSelectJob(j);
       });
       list.appendChild(pill);
     });
-  })
-  .catch(function(err){
+  }).catch(function(err){
     ljShowBanner('err', 'Could not fetch jobs. Check your connection. (' + err.message + ')');
   });
 }
 
-function ljSelectJob(url, name){
-  ljShowBanner('info', 'Loading ' + name + '...');
-  fetch(url)
-  .then(function(r){ return r.json(); })
-  .then(function(data){
-    ljCurrentJob = data;
-    // Show step 2: unit list
-    document.getElementById('lj_step1').classList.add('hidden');
-    var step2 = document.getElementById('lj_step2');
-    step2.classList.remove('hidden');
-    document.getElementById('lj_job_label').textContent = data.job_name || name;
-    ljShowBanner('ok', 'Select your unit:');
-    var list = document.getElementById('lj_units_list');
-    list.innerHTML = '';
-    if(!data.units || !data.units.length){
-      ljShowBanner('err', 'No units found in this job.');
-      return;
-    }
-    data.units.forEach(function(u){
-      var pill = document.createElement('div');
-      pill.className = 'lj-unit-pill';
-      var meta = [];
-      if(u.tons) meta.push(u.tons + ' Ton');
-      if(u.model) meta.push(u.model);
-      if(u.cfm) meta.push(u.cfm + ' CFM');
-      pill.innerHTML =
-        '<div>' +
-          '<div class="lj-unit-tag">' + (u.tag||'Unit') + '</div>' +
-          '<div class="lj-unit-meta">' + meta.join(' &bull; ') + '</div>' +
-        '</div>' +
-        '<span style="font-size:18px;color:var(--nv)">&#8250;</span>';
-      pill.addEventListener('click', function(){
-        ljApplyUnit(data, u);
-      });
-      list.appendChild(pill);
+function ljSelectJob(job){
+  ljCurrentJob = job;
+  document.getElementById('lj_step1').classList.add('hidden');
+  var step2 = document.getElementById('lj_step2');
+  step2.classList.remove('hidden');
+  document.getElementById('lj_job_label').textContent = job.name || 'Job';
+  ljShowBanner('ok', 'Select your unit:');
+  var list = document.getElementById('lj_units_list');
+  list.innerHTML = '';
+  if(!job.units || !job.units.length){
+    ljShowBanner('err', 'No units found in this job.');
+    return;
+  }
+  job.units.forEach(function(u){
+    var pill = document.createElement('div');
+    pill.className = 'lj-unit-pill';
+    var meta = [];
+    if(u.tons) meta.push(u.tons + ' Ton');
+    if(u.model) meta.push(u.model);
+    if(u.cfm) meta.push(u.cfm + ' CFM');
+    pill.innerHTML =
+      '<div>' +
+        '<div class="lj-unit-tag">' + (u.tag||'Unit') + '</div>' +
+        '<div class="lj-unit-meta">' + meta.join(' &bull; ') + '</div>' +
+      '</div>' +
+      '<span style="font-size:18px;color:var(--nv)">&#8250;</span>';
+    pill.addEventListener('click', function(){
+      ljApplyUnit(job, u);
     });
-  })
-  .catch(function(err){
-    ljShowBanner('err', 'Could not load job data. (' + err.message + ')');
+    list.appendChild(pill);
   });
 }
 
@@ -2704,7 +2680,7 @@ function ljBack(){
 function ljApplyUnit(job, unit){
   // Fill job-level fields — always overwrite from job data
   var fac = document.getElementById('facility');
-  if(fac) fac.value = job.job_name || '';
+  if(fac) fac.value = job.name || '';
 
   var addrParts = (job.address||'').split(',');
   var addr = document.getElementById('address');

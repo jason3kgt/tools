@@ -399,6 +399,7 @@ var ntdStore = {
             var signedUrl = SUPABASE_URL + '/storage/v1' + d.signedURL;
             return _sb.upsert('documents', {
               facility_id:  params.facilityId,
+              job_id:       params.jobId || null,
               form_type:    fType,
               description:  params.description || fType,
               file_path:    path,

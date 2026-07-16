@@ -40,6 +40,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* ── PAGES ── */
 .pg{display:none;padding:14px;max-width:720px;margin:0 auto}
+.hidden{display:none}
 .pg.on{display:block}
 
 /* ── SEARCH BAR ── */
@@ -518,7 +519,35 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
       </div>
     </div>
     <div class="fg"><label>Contract Document URL (SharePoint)</label><textarea id="pm-agr-url" placeholder="https://… (one URL per line for multiple documents)"></textarea></div>
-    <button class="btn btn-nv" onclick="saveProject()">Save Project</button>
+
+    <div id="pm-docs-section" class="hidden">
+      <div class="divider"></div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mu);margin-bottom:10px">Documents</div>
+      <div id="pm-docs-list" style="margin-bottom:10px"></div>
+      <div class="r2">
+        <div class="fg"><label>Category</label>
+          <select id="pm-doc-category">
+            <option value="submittal_pdf">Submittal</option>
+            <option value="quote_pdf">Quote</option>
+            <option value="contract_pdf">Contract</option>
+            <option value="other_pdf">Other</option>
+          </select>
+        </div>
+        <div class="fg"><label>File</label><input type="file" id="pm-doc-file" accept="application/pdf"></div>
+      </div>
+      <button class="btn btn-outline" onclick="ntdUploadProjectDoc()" type="button">📎 Upload Document</button>
+
+      <div class="divider"></div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mu);margin-bottom:10px">Submittals — Startup Jobs</div>
+      <div id="pm-submittals-list" style="margin-bottom:10px"></div>
+      <div class="fg"><label>Paste Submittal JSON from Claude</label>
+        <textarea id="pm-submittal-json" placeholder='Paste the JSON Claude extracted from the submittal PDF here…' style="font-family:monospace;font-size:11px;min-height:100px"></textarea>
+      </div>
+      <div id="pm-submittal-err" class="banner err hidden"></div>
+      <button class="btn btn-outline" onclick="ntdPublishProjectSubmittal()" type="button">📋 Publish Submittal as Startup Job</button>
+    </div>
+
+    <button class="btn btn-nv" onclick="saveProject()" style="margin-top:14px">Save Project</button>
     <button class="btn btn-outline" onclick="closeModal('proj-modal')" style="margin-top:6px">Cancel</button>
   </div>
 </div>
@@ -1537,6 +1566,127 @@ function confirmDeleteFacility(id) {
 }
 
 // ── ADD / EDIT PROJECT ────────────────────────────────────────────────────
+// ── PROJECT DOCUMENTS ──────────────────────────────────────────────────────
+var _docCategoryLabels = { submittal_pdf:'Submittal', quote_pdf:'Quote', contract_pdf:'Contract', other_pdf:'Other' };
+
+function ntdRenderProjectDocs(jobId) {
+  var wrap = document.getElementById('pm-docs-list');
+  wrap.innerHTML = '<div style="font-size:11px;color:var(--mu)">Loading…</div>';
+  ntdStore.documents.list(function(d){ return d.job_id === jobId; }).then(function(docs) {
+    docs = (docs||[]).sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
+    if (!docs.length) { wrap.innerHTML = '<div style="font-size:11px;color:var(--mu);font-style:italic">No documents uploaded yet.</div>'; return; }
+    wrap.innerHTML = docs.map(function(d) {
+      return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border:1.5px solid var(--bd);border-radius:8px;margin-bottom:6px">' +
+        '<div><span class="status-badge status-bidding" style="margin-right:6px">' + esc(_docCategoryLabels[d.form_type]||d.form_type||'Doc') + '</span>' +
+        '<span style="font-size:12px;color:var(--tx)">' + esc(d.description||'Document') + '</span></div>' +
+        (d.file_url ? '<a href="'+esc(d.file_url)+'" target="_blank" class="sp-link" style="font-size:11px;flex-shrink:0">Open</a>' : '') +
+        '</div>';
+    }).join('');
+  });
+}
+
+function ntdUploadProjectDoc() {
+  var fileEl = document.getElementById('pm-doc-file');
+  var category = document.getElementById('pm-doc-category').value;
+  if (!fileEl.files || !fileEl.files[0]) { alert('Choose a PDF first.'); return; }
+  if (!editingProjectId || !editingProjectFacilityId) { alert('Save the project before uploading documents.'); return; }
+  var file = fileEl.files[0];
+  ntdStore.uploadPDF({
+    blob: file,
+    facilityId: editingProjectFacilityId,
+    jobId: editingProjectId,
+    formType: category,
+    description: (_docCategoryLabels[category]||'Document') + ' — ' + file.name
+  }).then(function(doc) {
+    if (!doc) { alert('Upload failed — check your connection and try again.'); return; }
+    fileEl.value = '';
+    showToast('✓ Document uploaded');
+    ntdRenderProjectDocs(editingProjectId);
+  }).catch(function(err) {
+    alert('Upload failed: ' + (err.message || 'see console for details'));
+  });
+}
+
+// ── PROJECT SUBMITTALS (startup jobs linked to this project) ───────────────
+function ntdRenderProjectSubmittals(projectId, facilityId) {
+  var wrap = document.getElementById('pm-submittals-list');
+  wrap.innerHTML = '<div style="font-size:11px;color:var(--mu)">Loading…</div>';
+  ntdStore.jobs.list(function(j){ return j.project_id === projectId && j.type === 'startup_job'; }).then(function(jobs) {
+    jobs = (jobs||[]).sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
+    if (!jobs.length) { wrap.innerHTML = '<div style="font-size:11px;color:var(--mu);font-style:italic">No submittals published yet for this project.</div>'; return; }
+    wrap.innerHTML = jobs.map(function(j) {
+      return '<div style="padding:8px 10px;border:1.5px solid var(--bd);border-radius:8px;margin-bottom:6px">' +
+        '<div style="font-size:12px;font-weight:700;color:var(--nv)">' + esc(j.name||'Submittal') + '</div>' +
+        '<div style="font-size:11px;color:var(--mu)">' + (j.units?j.units.length:0) + ' unit(s)' + (j.manufacturer?' · '+esc(j.manufacturer):'') + (j.equipment_type?' · '+esc(j.equipment_type):'') + '</div>' +
+        '</div>';
+    }).join('');
+  });
+}
+
+function ntdShowPasteErr(msg) {
+  var el = document.getElementById('pm-submittal-err');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+function ntdHidePasteErr() {
+  document.getElementById('pm-submittal-err').classList.add('hidden');
+}
+
+function ntdPublishProjectSubmittal() {
+  var raw = document.getElementById('pm-submittal-json').value.trim();
+  if (!raw) { ntdShowPasteErr('Paste the submittal JSON first.'); return; }
+  var data;
+  try { data = JSON.parse(raw); }
+  catch (e) { ntdShowPasteErr('Invalid JSON — check for missing commas or brackets. Error: ' + e.message); return; }
+  ntdHidePasteErr();
+  if (!editingProjectId || !editingProjectFacilityId) { ntdShowPasteErr('Save the project before publishing a submittal.'); return; }
+
+  var units = data.units || [];
+  ntdStore.facilities.get(editingProjectFacilityId).then(function(fac) {
+    var jobData = {
+      facility_id:    editingProjectFacilityId,
+      project_id:     editingProjectId,
+      type:           'startup_job',
+      name:           data.job_name || 'Submittal',
+      address:        (fac && fac.address) || '',
+      project_number: data.project_number || '',
+      equipment_type: data.equipment_type || '',
+      manufacturer:   data.manufacturer || '',
+      date:           new Date().toISOString().split('T')[0],
+      units:          units
+    };
+    return ntdStore.jobs.upsert(jobData);
+  }).then(function(job) {
+    var saves = units.map(function(u) {
+      var notesParts = [];
+      if (u.cfm) notesParts.push('CFM: ' + u.cfm);
+      if (u.mca) notesParts.push('MCA: ' + u.mca);
+      if (u.mop) notesParts.push('MOP: ' + u.mop);
+      if (u.heat_mbh) notesParts.push('Heat MBH: ' + u.heat_mbh);
+      return ntdStore.equipment.upsert({
+        facility_id:  editingProjectFacilityId,
+        job_id:       job.id,
+        tag:          u.tag || '',
+        type:         u.type || data.equipment_type || '',
+        manufacturer: data.manufacturer || '',
+        model:        u.model || '',
+        serial:       u.serial || '',
+        tonnage:      u.tons || '',
+        filter_size:  u.filter_size || '',
+        belt_size:    u.belt_size || '',
+        notes:        notesParts.join(' | ')
+      });
+    });
+    return Promise.all(saves);
+  }).then(function() {
+    showToast('✓ Submittal published — ' + units.length + ' unit(s)');
+    document.getElementById('pm-submittal-json').value = '';
+    ntdRenderProjectSubmittals(editingProjectId, editingProjectFacilityId);
+  }).catch(function(err) {
+    ntdShowPasteErr('Publish failed: ' + (err.message || 'see console for details'));
+  });
+}
+
 function openAddProject(facilityId) {
   editingProjectId = null;
   editingProjectFacilityId = facilityId;
@@ -1545,6 +1695,7 @@ function openAddProject(facilityId) {
   document.getElementById('pm-agr-type').value = '';
   document.getElementById('pm-agr-status').value = '';
   document.getElementById('pm-status').value = 'bidding';
+  document.getElementById('pm-docs-section').classList.add('hidden');
   ntdPopulateFacilityPicker(facilityId);
   openModal('proj-modal');
 }
@@ -1593,6 +1744,13 @@ function openEditProject(id, facilityId) {
     document.getElementById('pm-agr-url').value    = p.agr_url    || '';
     editingProjectFacilityId = p.facility_id || facilityId;
     ntdPopulateFacilityPicker(editingProjectFacilityId);
+    editingProjectFacilityId = p.facility_id || facilityId;
+    ntdPopulateFacilityPicker(editingProjectFacilityId);
+    document.getElementById('pm-docs-section').classList.remove('hidden');
+    document.getElementById('pm-submittal-json').value = '';
+    ntdHidePasteErr();
+    ntdRenderProjectDocs(id);
+    ntdRenderProjectSubmittals(id, editingProjectFacilityId);
     openModal('proj-modal');
   });
 }
