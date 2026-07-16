@@ -547,11 +547,26 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
       <div class="divider"></div>
       <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mu);margin-bottom:10px">Submittals — Startup Jobs</div>
       <div id="pm-submittals-list" style="margin-bottom:10px"></div>
+
       <div class="fg"><label>Paste Submittal JSON from Claude</label>
-        <textarea id="pm-submittal-json" placeholder='Paste the JSON Claude extracted from the submittal PDF here…' style="font-family:monospace;font-size:11px;min-height:100px"></textarea>
+        <textarea id="pm-submittal-json" placeholder='Paste the JSON Claude extracted from the submittal PDF here…' style="font-family:monospace;font-size:11px;min-height:80px"></textarea>
       </div>
       <div id="pm-submittal-err" class="banner err hidden"></div>
       <button class="btn btn-outline" onclick="ntdPublishProjectSubmittal()" type="button">📋 Publish Submittal as Startup Job</button>
+
+      <div class="divider"></div>
+      <div class="fg">
+        <label>Or paste an equipment list from Excel / a spreadsheet</label>
+        <div style="font-size:11px;color:var(--mu);margin-bottom:6px">
+          Select the cells in Excel, copy, and paste below. First row can be column headers
+          (Tag, Type, Model, Serial, Tonnage, Filter Size, Belt Size — any order) — if there's
+          no header row, that order is assumed.
+        </div>
+        <textarea id="pm-submittal-paste" placeholder="Paste copied Excel cells here…" style="font-family:monospace;font-size:11px;min-height:80px"></textarea>
+      </div>
+      <button class="btn btn-outline" onclick="ntdParseSpreadsheetPaste()" type="button">Preview Rows</button>
+      <div id="pm-paste-err" class="banner err hidden"></div>
+      <div id="pm-paste-preview"></div>
     </div>
 
     <button class="btn btn-nv" onclick="saveProject()" style="margin-top:14px">Save Project</button>
@@ -1647,17 +1662,11 @@ function ntdHidePasteErr() {
   document.getElementById('pm-submittal-err').classList.add('hidden');
 }
 
-function ntdPublishProjectSubmittal() {
-  var raw = document.getElementById('pm-submittal-json').value.trim();
-  if (!raw) { ntdShowPasteErr('Paste the submittal JSON first.'); return; }
-  var data;
-  try { data = JSON.parse(raw); }
-  catch (e) { ntdShowPasteErr('Invalid JSON — check for missing commas or brackets. Error: ' + e.message); return; }
-  ntdHidePasteErr();
-  if (!editingProjectId || !editingProjectFacilityId) { ntdShowPasteErr('Save the project before publishing a submittal.'); return; }
-
+// Shared by both the JSON-paste and spreadsheet-paste publish paths.
+// `data` shape: {job_name, equipment_type, manufacturer, project_number, units:[...]}
+function ntdPublishSubmittalData(data) {
   var units = data.units || [];
-  ntdStore.facilities.get(editingProjectFacilityId).then(function(fac) {
+  return ntdStore.facilities.get(editingProjectFacilityId).then(function(fac) {
     var jobData = {
       facility_id:    editingProjectFacilityId,
       project_id:     editingProjectId,
@@ -1683,22 +1692,129 @@ function ntdPublishProjectSubmittal() {
         job_id:       job.id,
         tag:          u.tag || '',
         type:         u.type || data.equipment_type || '',
-        manufacturer: data.manufacturer || '',
+        manufacturer: u.manufacturer || data.manufacturer || '',
         model:        u.model || '',
         serial:       u.serial || '',
-        tonnage:      u.tons || '',
+        tonnage:      u.tons || u.tonnage || '',
         filter_size:  u.filter_size || '',
         belt_size:    u.belt_size || '',
         notes:        notesParts.join(' | ')
       });
     });
-    return Promise.all(saves);
-  }).then(function() {
-    showToast('✓ Submittal published — ' + units.length + ' unit(s)');
+    return Promise.all(saves).then(function(){ return units.length; });
+  });
+}
+
+function ntdPublishProjectSubmittal() {
+  var raw = document.getElementById('pm-submittal-json').value.trim();
+  if (!raw) { ntdShowPasteErr('Paste the submittal JSON first.'); return; }
+  var data;
+  try { data = JSON.parse(raw); }
+  catch (e) { ntdShowPasteErr('Invalid JSON — check for missing commas or brackets. Error: ' + e.message); return; }
+  ntdHidePasteErr();
+  if (!editingProjectId || !editingProjectFacilityId) { ntdShowPasteErr('Save the project before publishing a submittal.'); return; }
+
+  ntdPublishSubmittalData(data).then(function(count) {
+    showToast('✓ Submittal published — ' + count + ' unit(s)');
     document.getElementById('pm-submittal-json').value = '';
     ntdRenderProjectSubmittals(editingProjectId, editingProjectFacilityId);
   }).catch(function(err) {
     ntdShowPasteErr('Publish failed: ' + (err.message || 'see console for details'));
+  });
+}
+
+// ── SPREADSHEET PASTE (no AI needed — parses tab-separated Excel paste) ────
+var _pasteRows = [];
+var PASTE_COLUMN_ALIASES = {
+  tag:         ['tag','unit tag','unit','unit #','unit id'],
+  type:        ['type','equipment type','eq type'],
+  model:       ['model','model #','model number'],
+  serial:      ['serial','serial #','serial number','sn'],
+  tonnage:     ['tonnage','tons','ton'],
+  filter_size: ['filter size','filter','filters'],
+  belt_size:   ['belt size','belt','belts']
+};
+var PASTE_DEFAULT_ORDER = ['tag','type','model','serial','tonnage','filter_size','belt_size'];
+var PASTE_FIELD_LABELS  = {tag:'Tag',type:'Type',model:'Model',serial:'Serial',tonnage:'Tons',filter_size:'Filter',belt_size:'Belt'};
+
+function ntdDetectPasteColumns(headerCells) {
+  var mapped = headerCells.map(function(cell) {
+    var norm = (cell||'').trim().toLowerCase();
+    for (var key in PASTE_COLUMN_ALIASES) {
+      if (PASTE_COLUMN_ALIASES[key].indexOf(norm) > -1) return key;
+    }
+    return null;
+  });
+  var matchedCount = mapped.filter(Boolean).length;
+  return matchedCount >= 2 ? mapped : null; // need at least 2 recognized headers to trust it's a header row
+}
+
+function ntdShowPasteRowErr(msg) {
+  var el = document.getElementById('pm-paste-err');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+function ntdHidePasteRowErr() {
+  document.getElementById('pm-paste-err').classList.add('hidden');
+}
+
+function ntdParseSpreadsheetPaste() {
+  ntdHidePasteRowErr();
+  var raw = document.getElementById('pm-submittal-paste').value;
+  var lines = raw.split(/\r?\n/).filter(function(l){ return l.trim().length; });
+  if (!lines.length) { ntdShowPasteRowErr('Paste some rows first.'); return; }
+  var rows = lines.map(function(l){ return l.split('\t'); });
+  var columns = ntdDetectPasteColumns(rows[0]);
+  var dataRows;
+  if (columns) { dataRows = rows.slice(1); }
+  else { columns = PASTE_DEFAULT_ORDER; dataRows = rows; }
+  _pasteRows = dataRows.map(function(cells) {
+    var obj = {};
+    columns.forEach(function(key, i) { if (key) obj[key] = (cells[i]||'').trim(); });
+    return obj;
+  }).filter(function(o){ return o.tag || o.model || o.serial; });
+  if (!_pasteRows.length) { ntdShowPasteRowErr('No usable rows found — make sure at least Tag, Model, or Serial has data in each row.'); return; }
+  ntdRenderPastePreview();
+}
+
+function ntdRenderPastePreview() {
+  var wrap = document.getElementById('pm-paste-preview');
+  if (!_pasteRows.length) { wrap.innerHTML = ''; return; }
+  var fields = PASTE_DEFAULT_ORDER;
+  var html = '<div style="font-size:11px;color:var(--mu);margin:10px 0 6px">' + _pasteRows.length + ' row(s) parsed — review and edit before publishing:</div>';
+  html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">';
+  html += '<tr>' + fields.map(function(f){ return '<th style="text-align:left;padding:4px;color:var(--mu);font-weight:700">'+PASTE_FIELD_LABELS[f]+'</th>'; }).join('') + '<th></th></tr>';
+  _pasteRows.forEach(function(row, idx) {
+    html += '<tr>';
+    fields.forEach(function(f) {
+      html += '<td style="padding:2px"><input type="text" value="'+esc(row[f]||'')+'" oninput="_pasteRows['+idx+'].'+f+'=this.value" style="width:100%;font-size:11px;padding:4px;border:1px solid var(--bd);border-radius:4px"></td>';
+    });
+    html += '<td><span onclick="ntdRemovePasteRow('+idx+')" style="cursor:pointer;color:var(--rd);font-weight:700;padding:0 6px">&times;</span></td>';
+    html += '</tr>';
+  });
+  html += '</table></div>';
+  html += '<button class="btn btn-nv" onclick="ntdPublishPastedUnits()" type="button" style="margin-top:10px">Publish These ' + _pasteRows.length + ' Unit(s)</button>';
+  wrap.innerHTML = html;
+}
+
+function ntdRemovePasteRow(idx) {
+  _pasteRows.splice(idx, 1);
+  ntdRenderPastePreview();
+}
+
+function ntdPublishPastedUnits() {
+  ntdHidePasteRowErr();
+  if (!editingProjectId || !editingProjectFacilityId) { ntdShowPasteRowErr('Save the project before publishing units.'); return; }
+  if (!_pasteRows.length) return;
+  var data = { job_name: 'Equipment List — ' + new Date().toLocaleDateString(), units: _pasteRows.slice() };
+  ntdPublishSubmittalData(data).then(function(count) {
+    showToast('✓ Published — ' + count + ' unit(s)');
+    document.getElementById('pm-submittal-paste').value = '';
+    document.getElementById('pm-paste-preview').innerHTML = '';
+    _pasteRows = [];
+    ntdRenderProjectSubmittals(editingProjectId, editingProjectFacilityId);
+  }).catch(function(err) {
+    ntdShowPasteRowErr('Publish failed: ' + (err.message || 'see console for details'));
   });
 }
 
@@ -1793,6 +1909,9 @@ function openEditProject(id, facilityId, scrollToDocs) {
     ntdPopulateFacilityPicker(editingProjectFacilityId);
     document.getElementById('pm-docs-section').classList.remove('hidden');
     document.getElementById('pm-submittal-json').value = '';
+    document.getElementById('pm-submittal-paste').value = '';
+    document.getElementById('pm-paste-preview').innerHTML = '';
+    _pasteRows = [];
     ntdHidePasteErr();
     ntdRenderProjectDocs(id);
     ntdRenderProjectSubmittals(id, editingProjectFacilityId);
