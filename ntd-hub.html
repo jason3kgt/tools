@@ -1208,19 +1208,32 @@ function renderDetailTab(f) {
 
   if (currentDetailTab === 'equipment') {
     ntdStore.equipment.list(function(e){ return e.facility_id === fid; }).then(function(equip) {
-      if (!equip.length) { content.innerHTML = emptyState('🔧','No units on file','Units appear here after an Equipment Survey or Asset Survey is submitted for this facility.'); return; }
+      if (!equip.length) { content.innerHTML = emptyState('🔧','No units on file','Units appear here after an Equipment Survey, Asset Survey, Startup, or Project submittal is recorded for this facility.'); return; }
       var html = '<div class="card"><div class="card-body">';
       equip.forEach(function(e) {
         var cond = e.condition || '';
         var condColor = cond==='good'?'cond-good':cond==='fair'?'cond-fair':cond==='poor'?'cond-poor':'cond-none';
+        var meta = [];
+        if (e.manufacturer) meta.push(e.manufacturer);
+        if (e.model) meta.push(e.model);
+        if (e.serial) meta.push('SN ' + e.serial);
+        if (e.tonnage) meta.push(e.tonnage + (String(e.tonnage).toLowerCase().indexOf('t')>-1?'':' Ton'));
+        var specs = [];
+        if (e.filter_size) specs.push('Filter: ' + e.filter_size);
+        if (e.belt_size) specs.push('Belt: ' + e.belt_size);
+        if (e.refrigerant) specs.push('Refrigerant: ' + e.refrigerant);
+        if (e.area) specs.push('Area: ' + e.area);
         html += '<div class="rec-row">' +
           '<div class="rec-icon nv">🔧</div>' +
           '<div class="rec-body">' +
             '<div class="rec-title">'+esc(e.tag||'Unit')+(e.type?' <span style="font-weight:400;color:var(--mu)">· '+esc(e.type)+'</span>':'')+'</div>' +
+            (meta.length ? '<div class="rec-sub">'+esc(meta.join(' · '))+'</div>' : '') +
             '<div class="rec-sub">' +
               (cond ? '<span class="cond-dot '+condColor+'"></span>'+cond.charAt(0).toUpperCase()+cond.slice(1)+' condition' : 'No condition recorded') +
               (e.install_year ? ' · Installed '+e.install_year : '') +
             '</div>' +
+            (specs.length ? '<div class="rec-meta">'+esc(specs.join(' · '))+'</div>' : '') +
+            (e.pm_covered ? '<div class="rec-meta" style="color:var(--nv);font-weight:600">PM Covered' + (e.pm_frequency?' · '+esc(e.pm_frequency):'') + '</div>' : '') +
             (e.repl_cost ? '<div class="rec-meta">Est. replacement: $'+Math.round(e.repl_cost).toLocaleString()+(e.repl_year?' · Year '+e.repl_year:'')+'</div>' : '') +
             (e.notes ? '<div class="rec-meta" style="margin-top:3px">'+esc(e.notes)+'</div>' : '') +
           '</div></div>';
