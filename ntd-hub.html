@@ -464,7 +464,11 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
   <div class="modal-sheet">
     <div class="modal-handle"></div>
     <div class="modal-title" id="proj-modal-title">Add Project</div>
-    <div class="fg" id="pm-facility-wrap"><label>Facility *</label><select id="pm-facility"></select></div>
+    <div class="fg" id="pm-facility-wrap"><label>Facility *</label><select id="pm-facility" onchange="ntdRenderFacilityEquipment(this.value)"></select></div>
+    <div id="pm-facility-equipment-section" class="hidden">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mu);margin:4px 0 6px">Facility Equipment on File</div>
+      <div id="pm-facility-equipment-list" style="margin-bottom:14px"></div>
+    </div>
     <div class="fg"><label>Project Name *</label><input type="text" id="pm-name" placeholder="e.g. RTU Replacement Phase 2"></div>
     <div class="fg">
       <label>Status</label>
@@ -1601,6 +1605,32 @@ function confirmDeleteFacility(id) {
 
 // ── ADD / EDIT PROJECT ────────────────────────────────────────────────────
 // ── PROJECT DOCUMENTS ──────────────────────────────────────────────────────
+function ntdRenderFacilityEquipment(facilityId) {
+  var section = document.getElementById('pm-facility-equipment-section');
+  var wrap = document.getElementById('pm-facility-equipment-list');
+  if (!facilityId) { section.classList.add('hidden'); return; }
+  section.classList.remove('hidden');
+  wrap.innerHTML = '<div style="font-size:11px;color:var(--mu)">Loading…</div>';
+  ntdStore.equipment.list(function(e){ return e.facility_id === facilityId; }).then(function(equip) {
+    if (!equip.length) { wrap.innerHTML = '<div style="font-size:11px;color:var(--mu);font-style:italic">No equipment on file for this facility yet.</div>'; return; }
+    var condColor = {good:'var(--gn)',fair:'var(--am)',poor:'var(--rd)'};
+    wrap.innerHTML = equip.map(function(e) {
+      var meta = [];
+      if (e.model) meta.push(e.model);
+      if (e.serial) meta.push('SN ' + e.serial);
+      if (e.tonnage) meta.push(e.tonnage + (String(e.tonnage).toLowerCase().indexOf('t')>-1?'':' Ton'));
+      return '<div style="padding:8px 10px;border:1.5px solid var(--bd);border-radius:8px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;gap:8px">' +
+        '<div>' +
+          '<div style="font-size:12px;font-weight:700;color:var(--tx)">' + esc(e.tag||'Unit') + (e.type?' <span style="font-weight:400;color:var(--mu)">· '+esc(e.type)+'</span>':'') + '</div>' +
+          (meta.length ? '<div style="font-size:11px;color:var(--mu)">'+esc(meta.join(' · '))+'</div>' : '') +
+          (e.pm_covered ? '<div style="font-size:10px;color:var(--nv);font-weight:600;margin-top:2px">PM Covered' + (e.pm_frequency?' · '+esc(e.pm_frequency):'') + '</div>' : '') +
+        '</div>' +
+        (e.condition ? '<span style="font-size:11px;font-weight:700;color:'+(condColor[e.condition]||'var(--mu)')+';white-space:nowrap">'+e.condition.charAt(0).toUpperCase()+e.condition.slice(1)+'</span>' : '') +
+        '</div>';
+    }).join('');
+  });
+}
+
 var _docCategoryLabels = {
   billing_files:'Billing Files', close_outs:'Close Outs', contract_doc:'Contract Doc',
   correspondence_field_reports:'Correspondence & Field Reports', estimating_file:'Estimating File',
@@ -1868,6 +1898,7 @@ function openAddProject(facilityId) {
   document.getElementById('pm-status').value = 'bidding';
   document.getElementById('pm-docs-section').classList.add('hidden');
   ntdPopulateFacilityPicker(facilityId);
+  ntdRenderFacilityEquipment(facilityId);
   openModal('proj-modal');
 }
 
@@ -1918,8 +1949,7 @@ function openEditProject(id, facilityId, scrollToDocs) {
     ntdRenderAgrTypeChips();
     editingProjectFacilityId = p.facility_id || facilityId;
     ntdPopulateFacilityPicker(editingProjectFacilityId);
-    editingProjectFacilityId = p.facility_id || facilityId;
-    ntdPopulateFacilityPicker(editingProjectFacilityId);
+    ntdRenderFacilityEquipment(editingProjectFacilityId);
     document.getElementById('pm-docs-section').classList.remove('hidden');
     document.getElementById('pm-submittal-json').value = '';
     document.getElementById('pm-submittal-paste').value = '';
