@@ -481,10 +481,32 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
       </select>
     </div>
     <div class="r2">
-      <div class="fg"><label>Project Manager</label><input type="text" id="pm-pm" placeholder="Name"></div>
-      <div class="fg"><label>Assistant PM</label><input type="text" id="pm-apm" placeholder="Name"></div>
+      <div class="fg"><label>Project Manager</label>
+        <select id="pm-pm">
+          <option value="">— None —</option>
+          <option>Evyn Fairman</option>
+          <option>Kyle Mackey</option>
+          <option>Cary Reese (Senior PM)</option>
+          <option>Blake Orite</option>
+          <option>Valeria Ramirez</option>
+        </select>
+      </div>
+      <div class="fg"><label>Assistant PM</label>
+        <select id="pm-apm">
+          <option value="">— None —</option>
+          <option>Julie Shindoll</option>
+          <option>Elizabeth Parker</option>
+        </select>
+      </div>
     </div>
-    <div class="fg"><label>Superintendent</label><input type="text" id="pm-super" placeholder="Name"></div>
+    <div class="fg"><label>Superintendent</label>
+      <select id="pm-super">
+        <option value="">— None —</option>
+        <option>Victor Lozano</option>
+        <option>Daniel Castorena</option>
+        <option>Eladio Sanchez</option>
+      </select>
+    </div>
     <div class="r2">
       <div class="fg"><label>Contract Value</label><input type="text" id="pm-value" placeholder="$0"></div>
       <div class="fg"><label>NTD Job ID</label><input type="text" id="pm-job-id" placeholder="e.g. NTD-2026-042"></div>
@@ -1436,12 +1458,10 @@ function renderDetailTab(f) {
         html += '<div class="card">' +
           '<div class="card-body">' +
             '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">' +
-              '<div style="font-size:15px;font-weight:700;color:var(--nv);flex:1">'+esc(p.name||'Project')+'</div>' +
+              '<div style="font-size:15px;font-weight:700;color:var(--nv);flex:1">'+esc(p.name||'Project')+(p.assigned_pm?' <span style="font-size:12px;font-weight:600;color:var(--mu)">— '+esc(p.assigned_pm)+'</span>':'')+'</div>' +
               '<span class="status-badge '+(statusClass[p.status]||'status-bidding')+'">'+(statusLabel[p.status]||'Bidding')+'</span>' +
             '</div>' +
-            (p.job_id || p.assigned_pm ? '<div style="font-size:11px;color:var(--nv);font-weight:700;margin-bottom:3px">' +
-              (p.job_id ? 'Job #'+esc(p.job_id) : '') + (p.job_id && p.assigned_pm ? ' &middot; ' : '') + (p.assigned_pm ? 'PM: '+esc(p.assigned_pm) : '') +
-              '</div>' : '') +
+            (p.job_id ? '<div style="font-size:11px;color:var(--nv);font-weight:700;margin-bottom:3px">Job #'+esc(p.job_id)+'</div>' : '') +
             (p.apm || p.superintendent ? '<div style="font-size:11px;color:var(--mu);margin-bottom:3px">' +
               (p.apm ? 'APM: '+esc(p.apm) : '') + (p.apm && p.superintendent ? ' &middot; ' : '') + (p.superintendent ? 'Superintendent: '+esc(p.superintendent) : '') +
               '</div>' : '') +
@@ -2123,13 +2143,11 @@ function renderProjectList() {
         html += '<div class="card ntd-goto" data-fid="'+p.facility_id+'" data-tab="projects" style="cursor:pointer">' +
           '<div class="card-body">' +
             '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px">' +
-              '<div style="font-size:15px;font-weight:700;color:var(--nv);flex:1">'+esc(p.name||'Project')+'</div>' +
+              '<div style="font-size:15px;font-weight:700;color:var(--nv);flex:1">'+esc(p.name||'Project')+(p.assigned_pm?' <span style="font-size:12px;font-weight:600;color:var(--mu)">— '+esc(p.assigned_pm)+'</span>':'')+'</div>' +
               '<span class="status-badge '+(statusClass[p.status]||'status-bidding')+'">'+(statusLabel[p.status]||'Bidding')+'</span>' +
             '</div>' +
             '<div style="font-size:12px;color:var(--mu)">'+esc(facMap[p.facility_id]||'Unknown facility')+(p.value?' · <strong style="color:var(--gn)">'+esc(p.value)+'</strong>':'')+'</div>' +
-            (p.job_id || p.assigned_pm ? '<div style="font-size:11px;color:var(--nv);font-weight:700;margin-top:2px">' +
-              (p.job_id ? 'Job #'+esc(p.job_id) : '') + (p.job_id && p.assigned_pm ? ' &middot; ' : '') + (p.assigned_pm ? 'PM: '+esc(p.assigned_pm) : '') +
-              '</div>' : '') +
+            (p.job_id ? '<div style="font-size:11px;color:var(--nv);font-weight:700;margin-top:2px">Job #'+esc(p.job_id)+'</div>' : '') +
             (p.start_date||p.end_date ? '<div style="font-size:11px;color:var(--mu);margin-top:4px">'+(p.start_date?esc(p.start_date):'')+(p.start_date&&p.end_date?' → ':'')+(p.end_date?esc(p.end_date):'')+'</div>' : '') +
           '</div></div>';
       });
