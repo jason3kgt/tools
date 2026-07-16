@@ -2483,7 +2483,7 @@ function ntdSaveStartupRecord(snap) {
     // Also roll this unit's specs into the shared equipment roster, not just
     // this tool's own startup_records table.
     if (_ntdFacilityId) {
-      ntdStore.equipment.upsert(ntdEqRecordFromSnap(snap, _ntdFacilityId))
+      ntdStore.upsertEquipment(ntdEqRecordFromSnap(snap, _ntdFacilityId))
         .catch(function(e) { console.warn('[NTD] equipment upsert failed:', e); });
     }
   } catch(e) { console.warn('[NTD] ntdSaveStartupRecord error:', e); }

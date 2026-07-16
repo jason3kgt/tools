@@ -255,7 +255,7 @@ var _migrate = {
             if (u.kw) notesParts.push('KW: ' + u.kw);
             if (u.voltage) notesParts.push('Voltage: ' + u.voltage);
             if (u.heat_type) notesParts.push('Heat: ' + u.heat_type);
-            return _sb.upsert('equipment', {
+            return ntdUpsertEquipment({
               facility_id: fac.id,
               job_id: job.id,
               tag: u.tag || u.unit_num || '',
@@ -342,6 +342,49 @@ var _exportImport = {
   }
 };
 
+// ── EQUIPMENT DEDUPLICATION ────────────────────────────────────────────────
+// Matches an incoming equipment record against what's already on file for the
+// same facility, so the same physical unit doesn't accumulate a separate row
+// every time a different tool touches it. Serial number is checked first —
+// it's the one identifier that's actually permanent and unique to the unit —
+// falling back to tag only when no serial is available on either side (some
+// tools, like PM Checklist, don't collect serial at all; some techs skip the
+// tag). On a match, only fields present in the incoming record overwrite the
+// existing row, so a thinner submission never blanks out richer data another
+// source already captured.
+function _normalizeEqKey(s) {
+  return (s || '').toString().trim().toLowerCase();
+}
+
+function ntdUpsertEquipment(record) {
+  if (!record.facility_id) return _sb.upsert('equipment', record);
+  return _sb.list('equipment').then(function(all) {
+    var existing = (all || []).filter(function(e) { return e.facility_id === record.facility_id; });
+    var match = null;
+
+    var serialKey = _normalizeEqKey(record.serial);
+    if (serialKey) {
+      match = existing.find(function(e) { return _normalizeEqKey(e.serial) === serialKey; });
+    }
+    if (!match) {
+      var tagKey = _normalizeEqKey(record.tag);
+      if (tagKey) {
+        match = existing.find(function(e) { return _normalizeEqKey(e.tag) === tagKey; });
+      }
+    }
+
+    if (match) {
+      var merged = { id: match.id };
+      Object.keys(record).forEach(function(key) {
+        var v = record[key];
+        if (v !== undefined && v !== null && v !== '') merged[key] = v;
+      });
+      return _sb.upsert('equipment', merged);
+    }
+    return _sb.upsert('equipment', record);
+  });
+}
+
 // ── NTDSTORE PUBLIC API ───────────────────────────────────────────────────────
 // Same interface as the localStorage version — no tool code changes needed
 var ntdStore = {
@@ -360,6 +403,7 @@ var ntdStore = {
   notifications:  _makeStore('notifications'),
   migrate:        _migrate,
   matchFacility:  ntdFacilityMatch,
+  upsertEquipment:ntdUpsertEquipment,
   exportAll:      _exportImport.exportAll,
   importAll:      _exportImport.importAll,
   clearAll:       _exportImport.clearAll,

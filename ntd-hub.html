@@ -1687,7 +1687,7 @@ function ntdPublishSubmittalData(data) {
       if (u.mca) notesParts.push('MCA: ' + u.mca);
       if (u.mop) notesParts.push('MOP: ' + u.mop);
       if (u.heat_mbh) notesParts.push('Heat MBH: ' + u.heat_mbh);
-      return ntdStore.equipment.upsert({
+      return ntdStore.upsertEquipment({
         facility_id:  editingProjectFacilityId,
         job_id:       job.id,
         tag:          u.tag || '',

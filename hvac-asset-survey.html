@@ -357,7 +357,7 @@ textarea{resize:vertical;min-height:70px}
     <div class="cb">
       <div class="r2">
         <div class="fg"><label>Agreement #</label><input type="text" id="pm-agr-num" placeholder="PM-2025-001"></div>
-        <div class="fg"><label>Agreement Date</label><input type="date" id="pm-agr-date"></div>
+        <div class="fg"><label>Proposal Date</label><input type="date" id="pm-agr-date"></div>
       </div>
       <div class="r2">
         <div class="fg"><label>Renewal Date</label><input type="date" id="pm-renewal"></div>
@@ -2465,7 +2465,7 @@ function ntdSubmitAssessment() {
     var fair  = eqs.filter(function(e){ return e.ov==='fair'; }).length;
     var poor  = eqs.filter(function(e){ return e.ov==='poor'; }).length;
     var eqSaves = eqs.map(function(eq) {
-      return ntdStore.equipment.upsert(ntdEqRecord(eq, facilityId));
+      return ntdStore.upsertEquipment(ntdEqRecord(eq, facilityId));
     });
     var assessSave = ntdStore.jobs.upsert({
       facility_id: facilityId, type: 'asset_survey',
@@ -2488,24 +2488,16 @@ function ntdSubmitAssessment() {
 // record so PM coverage is never silently lost.
 function ntdWritePMFrequency(facilityId) {
   if (typeof ntdStore === 'undefined' || !pmUnits.length || !facilityId) return;
-  ntdStore.equipment.list(function(e){ return e.facility_id === facilityId; })
-    .then(function(existing) {
-      existing = existing || [];
-      var byTag = {};
-      existing.forEach(function(e) {
-        var t = (e.tag||'').trim().toUpperCase();
-        if (t) byTag[t] = e;
-      });
-      var saves = pmUnits.map(function(u) {
-        var t = (u.tag||'').trim().toUpperCase();
-        var match = t && byTag[t];
-        var rec = { facility_id: facilityId, pm_frequency: pmFreq, pm_covered: true };
-        if (match) { rec.id = match.id; }
-        else { rec.tag = u.tag || ''; rec.type = u.type || ''; }
-        return ntdStore.equipment.upsert(rec);
-      });
-      return Promise.all(saves);
-    })
+  var saves = pmUnits.map(function(u) {
+    return ntdStore.upsertEquipment({
+      facility_id: facilityId,
+      tag: u.tag || '',
+      type: u.type || '',
+      pm_frequency: pmFreq,
+      pm_covered: true
+    });
+  });
+  Promise.all(saves)
     .then(function(){ console.log('[NTD] PM frequency synced to equipment roster'); })
     .catch(function(e){ console.warn('[NTD] PM frequency sync failed:', e.message); });
 }
@@ -2635,7 +2627,7 @@ function ntdAutoSubmitAssessment() {
     var fair = eqs.filter(function(e){ return e.ov==='fair'; }).length;
     var poor = eqs.filter(function(e){ return e.ov==='poor'; }).length;
     var eqSaves = eqs.map(function(eq) {
-      return ntdStore.equipment.upsert(ntdEqRecord(eq, facilityId));
+      return ntdStore.upsertEquipment(ntdEqRecord(eq, facilityId));
     });
     var assessSave = ntdStore.jobs.upsert({
       facility_id: facilityId, type: 'asset_survey',
