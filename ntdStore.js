@@ -412,7 +412,7 @@ var ntdStore = {
   // ── PDF UPLOAD HELPER ────────────────────────────────────────────────────
   // Call this after generating a PDF blob to upload it and save a document record
   // params: { blob, facilityId, formType, description, date, tech, unitCount }
-  uploadPDF: function(params) {
+  uploadFile: function(params) {
     if (!params.blob || !params.facilityId) {
       return Promise.reject(new Error('blob and facilityId are required'));
     }
@@ -424,10 +424,12 @@ var ntdStore = {
     var date = isNaN(_dateObj.getTime())
       ? _rawDate
       : _pad(_dateObj.getMonth()+1) + '/' + _pad(_dateObj.getDate()) + '/' + _dateObj.getFullYear();
-    var fType = params.formType || 'document';
-    var path  = 'pdfs/' + params.facilityId + '/' + fType + '_' + ts + '.pdf';
+    var fType    = params.formType || 'document';
+    var mimeType = params.mimeType || 'application/pdf';
+    var ext      = params.ext || 'pdf';
+    var path     = 'pdfs/' + params.facilityId + '/' + fType + '_' + ts + '.' + ext;
 
-    return ntdFiles.upload(path, params.blob, 'application/pdf')
+    return ntdFiles.upload(path, params.blob, mimeType)
       .then(function() {
         // Get a signed URL valid for 1 year (31536000 seconds)
         return fetch(SUPABASE_URL + '/storage/v1/object/sign/ntd-files/' + path, {
@@ -455,6 +457,9 @@ var ntdStore = {
             });
           });
       });
+  },
+  uploadPDF: function(params) {
+    return this.uploadFile(Object.assign({}, params, { mimeType: 'application/pdf', ext: 'pdf' }));
   }
 };
 
