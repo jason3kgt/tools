@@ -494,14 +494,12 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
     <div class="divider"></div>
     <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mu);margin-bottom:10px">Agreement / Contract</div>
     <div class="r2">
-      <div class="fg"><label>Contract Type</label>
-        <select id="pm-agr-type">
-          <option value="">— None —</option>
-          <option value="construction">Construction / Install</option>
-          <option value="service">Service Agreement</option>
-          <option value="maintenance">Maintenance</option>
-          <option value="other">Other</option>
-        </select>
+      <div class="fg"><label>Contract Type(s)</label>
+        <div id="pm-agr-type-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px"></div>
+        <div style="display:flex;gap:6px">
+          <input type="text" id="pm-agr-type-custom" placeholder="Add custom type…" style="flex:1;font-size:12px" onkeypress="if(event.key==='Enter'){event.preventDefault();ntdAddCustomAgrType();}">
+          <button type="button" onclick="ntdAddCustomAgrType()" style="padding:0 12px;background:var(--nv);color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">Add</button>
+        </div>
       </div>
       <div class="fg"><label>Contract #</label><input type="text" id="pm-agr-num" placeholder="e.g. CTR-2025-042"></div>
     </div>
@@ -525,10 +523,21 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
       <div class="r2">
         <div class="fg"><label>Category</label>
           <select id="pm-doc-category">
-            <option value="submittal_pdf">Submittal</option>
-            <option value="quote_pdf">Quote</option>
-            <option value="contract_pdf">Contract</option>
-            <option value="other_pdf">Other</option>
+            <option value="billing_files">1 - Billing Files</option>
+            <option value="close_outs">2 - Close Outs</option>
+            <option value="contract_doc">3 - Contract Doc</option>
+            <option value="correspondence_field_reports">4 - Correspondence &amp; Field Reports</option>
+            <option value="estimating_file">5 - Estimating File</option>
+            <option value="pco_co">6 - PCO &amp; CO's</option>
+            <option value="permits">7 - Permits</option>
+            <option value="photos">8 - Photos</option>
+            <option value="project_plans_specs">9 - Project Plans &amp; Specs</option>
+            <option value="rfi">10 - RFI</option>
+            <option value="safety_documents">11 - Safety Documents</option>
+            <option value="submittals">12 - Submittals</option>
+            <option value="vendors">13 - Vendors</option>
+            <option value="service_warranty">14 - Service &amp; Warranty</option>
+            <option value="surveys_photos">Surveys and Photos</option>
           </select>
         </div>
         <div class="fg"><label>File</label><input type="file" id="pm-doc-file" accept="application/pdf"></div>
@@ -1419,6 +1428,7 @@ function renderDetailTab(f) {
                 var agrStatusLabel = {draft:'Draft',sent:'Sent',signed:'Signed',complete:'Complete',cancelled:'Cancelled'};
                 return '<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--bd);display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
                   '<span style="font-size:10px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.05em">Agreement</span>' +
+                  (p.agr_type ? p.agr_type.split(',').map(function(t){return t.trim();}).filter(Boolean).map(function(t){ return '<span style="font-size:11px;color:var(--tx);background:var(--of);padding:2px 8px;border-radius:10px">'+esc(t)+'</span>'; }).join('') : '') +
                   (p.agr_num ? '<span style="font-size:11px;color:var(--tx);font-weight:600">#'+esc(p.agr_num)+'</span>' : '') +
                   (p.agr_status ? '<span class="status-badge '+(agrStatusClass[p.agr_status]||'status-bidding')+'">'+(agrStatusLabel[p.agr_status]||p.agr_status)+'</span>' : '') +
                   (p.agr_url ? (p.agr_url.split('\n').map(function(u){ return u.trim(); }).filter(Boolean).map(function(u,i,arr){
@@ -1428,6 +1438,7 @@ function renderDetailTab(f) {
               })() : '') +
             '<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">' +
               '<button class="btn btn-or btn-sm" onclick="openRequestTech(\''+fid+'\')">🔧 Request Tech</button>' +
+              '<button class="btn btn-outline btn-sm" onclick="openEditProject(\''+p.id+'\',\''+fid+'\',true)">📎 Documents</button>' +
               '<button class="btn btn-outline btn-sm" onclick="openEditProject(\''+p.id+'\',\''+fid+'\')">✏️ Edit</button>' +
               '<button class="btn btn-red btn-sm" onclick="deleteProject(\''+p.id+'\')">Delete</button>' +
             '</div>' +
@@ -1565,7 +1576,13 @@ function confirmDeleteFacility(id) {
 
 // ── ADD / EDIT PROJECT ────────────────────────────────────────────────────
 // ── PROJECT DOCUMENTS ──────────────────────────────────────────────────────
-var _docCategoryLabels = { submittal_pdf:'Submittal', quote_pdf:'Quote', contract_pdf:'Contract', other_pdf:'Other' };
+var _docCategoryLabels = {
+  billing_files:'Billing Files', close_outs:'Close Outs', contract_doc:'Contract Doc',
+  correspondence_field_reports:'Correspondence & Field Reports', estimating_file:'Estimating File',
+  pco_co:"PCO & CO's", permits:'Permits', photos:'Photos', project_plans_specs:'Project Plans & Specs',
+  rfi:'RFI', safety_documents:'Safety Documents', submittals:'Submittals', vendors:'Vendors',
+  service_warranty:'Service & Warranty', surveys_photos:'Surveys and Photos'
+};
 
 function ntdRenderProjectDocs(jobId) {
   var wrap = document.getElementById('pm-docs-list');
@@ -1685,12 +1702,42 @@ function ntdPublishProjectSubmittal() {
   });
 }
 
+// ── CONTRACT TYPE CHIPS (multi-select + custom) ────────────────────────────
+var AGR_TYPE_PRESETS = ['Construction / Install', 'Service Agreement', 'Maintenance', 'Other'];
+var _agrTypeSelected = [];
+
+function ntdRenderAgrTypeChips() {
+  var allTypes = AGR_TYPE_PRESETS.slice();
+  _agrTypeSelected.forEach(function(t){ if (allTypes.indexOf(t) === -1) allTypes.push(t); });
+  var wrap = document.getElementById('pm-agr-type-chips');
+  if (!wrap) return;
+  wrap.innerHTML = allTypes.map(function(t) {
+    var active = _agrTypeSelected.indexOf(t) > -1;
+    return '<span onclick="ntdToggleAgrType(\''+t.replace(/'/g,"\\'")+'\')" style="cursor:pointer;padding:6px 12px;border-radius:16px;font-size:12px;font-weight:600;border:1.5px solid '+(active?'var(--nv)':'var(--bd)')+';background:'+(active?'var(--nv)':'#fff')+';color:'+(active?'#fff':'var(--tx)')+'">'+esc(t)+(active?' &times;':'')+'</span>';
+  }).join('');
+}
+function ntdToggleAgrType(t) {
+  var idx = _agrTypeSelected.indexOf(t);
+  if (idx > -1) _agrTypeSelected.splice(idx, 1);
+  else _agrTypeSelected.push(t);
+  ntdRenderAgrTypeChips();
+}
+function ntdAddCustomAgrType() {
+  var el = document.getElementById('pm-agr-type-custom');
+  var v = el.value.trim();
+  if (!v) return;
+  if (_agrTypeSelected.indexOf(v) === -1) _agrTypeSelected.push(v);
+  el.value = '';
+  ntdRenderAgrTypeChips();
+}
+
 function openAddProject(facilityId) {
   editingProjectId = null;
   editingProjectFacilityId = facilityId;
   document.getElementById('proj-modal-title').textContent = 'Add Project';
   ['pm-name','pm-value','pm-job-id','pm-po-equip','pm-po-parts','pm-po','pm-start','pm-end','pm-sp','pm-notes','pm-agr-num','pm-agr-signed'].forEach(function(id){ document.getElementById(id).value=''; });
-  document.getElementById('pm-agr-type').value = '';
+  _agrTypeSelected = [];
+  ntdRenderAgrTypeChips();
   document.getElementById('pm-agr-status').value = '';
   document.getElementById('pm-status').value = 'bidding';
   document.getElementById('pm-docs-section').classList.add('hidden');
@@ -1719,7 +1766,7 @@ function ntdPopulateFacilityPicker(lockedFacilityId) {
   });
 }
 
-function openEditProject(id, facilityId) {
+function openEditProject(id, facilityId, scrollToDocs) {
   editingProjectId = id;
   editingProjectFacilityId = facilityId;
   ntdStore.jobs.get(id).then(function(p) {
@@ -1735,10 +1782,11 @@ function openEditProject(id, facilityId) {
     document.getElementById('pm-job-id').value    = p.job_id      || '';
     document.getElementById('pm-po-equip').value  = p.po_equip    || '';
     document.getElementById('pm-po-parts').value  = p.po_parts    || '';
-    document.getElementById('pm-agr-type').value   = p.agr_type   || '';
     document.getElementById('pm-agr-num').value    = p.agr_num    || '';
     document.getElementById('pm-agr-signed').value = p.agr_signed || '';
     document.getElementById('pm-agr-status').value = p.agr_status || '';
+    _agrTypeSelected = (p.agr_type||'').split(',').map(function(t){return t.trim();}).filter(Boolean);
+    ntdRenderAgrTypeChips();
     editingProjectFacilityId = p.facility_id || facilityId;
     ntdPopulateFacilityPicker(editingProjectFacilityId);
     editingProjectFacilityId = p.facility_id || facilityId;
@@ -1749,6 +1797,12 @@ function openEditProject(id, facilityId) {
     ntdRenderProjectDocs(id);
     ntdRenderProjectSubmittals(id, editingProjectFacilityId);
     openModal('proj-modal');
+    if (scrollToDocs) {
+      setTimeout(function() {
+        var el = document.getElementById('pm-docs-section');
+        if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
+      }, 150);
+    }
   });
 }
 
@@ -1771,7 +1825,7 @@ function saveProject() {
     end_date:    document.getElementById('pm-end').value.trim(),
     sp_url:      document.getElementById('pm-sp').value.trim(),
     notes:       document.getElementById('pm-notes').value.trim(),
-    agr_type:    document.getElementById('pm-agr-type').value,
+    agr_type:    _agrTypeSelected.join(','),
     agr_num:     document.getElementById('pm-agr-num').value.trim(),
     agr_signed:  document.getElementById('pm-agr-signed').value.trim(),
     agr_status:  document.getElementById('pm-agr-status').value
