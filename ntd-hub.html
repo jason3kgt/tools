@@ -589,8 +589,10 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
       <div class="fg">
         <label>Or paste an equipment list from Excel / a spreadsheet</label>
         <div style="font-size:11px;color:var(--mu);margin-bottom:6px">
-          Select the cells in Excel, copy, and paste below. First row can be column headers
-          (Tag, Type, Model, Serial, Tonnage, Filter Size, Belt Size — any order) — if there's
+          Select the cells in Excel, copy, and paste below — the columns come through automatically.
+          Typing it in by hand? Separate each value with a <strong>comma</strong> instead of spaces
+          (e.g. <code>RTU-1, RTU, MODEL-123, SN456, 5, 16x20x1, A38</code>). First row can be column
+          headers (Tag, Type, Model, Serial, Tonnage, Filter Size, Belt Size — any order) — if there's
           no header row, that order is assumed.
         </div>
         <textarea id="pm-submittal-paste" placeholder="Paste copied Excel cells here…" style="font-family:monospace;font-size:11px;min-height:80px"></textarea>
@@ -1823,7 +1825,16 @@ function ntdParseSpreadsheetPaste() {
   var raw = document.getElementById('pm-submittal-paste').value;
   var lines = raw.split(/\r?\n/).filter(function(l){ return l.trim().length; });
   if (!lines.length) { ntdShowPasteRowErr('Paste some rows first.'); return; }
-  var rows = lines.map(function(l){ return l.split('\t'); });
+
+  var hasTabs = lines.some(function(l){ return l.indexOf('\t') > -1; });
+  var hasCommas = !hasTabs && lines.some(function(l){ return l.indexOf(',') > -1; });
+  var delimiter = hasTabs ? '\t' : (hasCommas ? ',' : null);
+  if (!delimiter) {
+    ntdShowPasteRowErr('Couldn\u2019t find columns to split on — no tabs or commas between values. If you copied cells directly from Excel/Google Sheets, paste them as-is. Otherwise, separate each value with a comma, e.g.: RTU-1, RTU, MODEL-123, SN456, 5, 16x20x1, A38');
+    return;
+  }
+
+  var rows = lines.map(function(l){ return l.split(delimiter).map(function(c){ return c.trim(); }); });
   var columns = ntdDetectPasteColumns(rows[0]);
   var dataRows;
   if (columns) { dataRows = rows.slice(1); }
