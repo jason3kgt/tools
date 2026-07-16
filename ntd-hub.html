@@ -477,6 +477,11 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
       </select>
     </div>
     <div class="r2">
+      <div class="fg"><label>Project Manager</label><input type="text" id="pm-pm" placeholder="Name"></div>
+      <div class="fg"><label>Assistant PM</label><input type="text" id="pm-apm" placeholder="Name"></div>
+    </div>
+    <div class="fg"><label>Superintendent</label><input type="text" id="pm-super" placeholder="Name"></div>
+    <div class="r2">
       <div class="fg"><label>Contract Value</label><input type="text" id="pm-value" placeholder="$0"></div>
       <div class="fg"><label>NTD Job ID</label><input type="text" id="pm-job-id" placeholder="e.g. NTD-2026-042"></div>
     </div>
@@ -1430,7 +1435,12 @@ function renderDetailTab(f) {
               '<div style="font-size:15px;font-weight:700;color:var(--nv);flex:1">'+esc(p.name||'Project')+'</div>' +
               '<span class="status-badge '+(statusClass[p.status]||'status-bidding')+'">'+(statusLabel[p.status]||'Bidding')+'</span>' +
             '</div>' +
-            (p.job_id ? '<div style="font-size:11px;color:var(--nv);font-weight:700;margin-bottom:3px">Job ID: '+esc(p.job_id)+'</div>' : '') +
+            (p.job_id || p.assigned_pm ? '<div style="font-size:11px;color:var(--nv);font-weight:700;margin-bottom:3px">' +
+              (p.job_id ? 'Job #'+esc(p.job_id) : '') + (p.job_id && p.assigned_pm ? ' &middot; ' : '') + (p.assigned_pm ? 'PM: '+esc(p.assigned_pm) : '') +
+              '</div>' : '') +
+            (p.apm || p.superintendent ? '<div style="font-size:11px;color:var(--mu);margin-bottom:3px">' +
+              (p.apm ? 'APM: '+esc(p.apm) : '') + (p.apm && p.superintendent ? ' &middot; ' : '') + (p.superintendent ? 'Superintendent: '+esc(p.superintendent) : '') +
+              '</div>' : '') +
             (p.wo_number ? '<div style="font-size:11px;color:var(--mu);margin-bottom:2px">Combined PO: '+esc(p.wo_number)+'</div>' : '') +
             (p.po_equip ? '<div style="font-size:11px;color:var(--mu);margin-bottom:2px">Equipment PO: '+esc(p.po_equip)+'</div>' : '') +
             (p.po_parts ? '<div style="font-size:11px;color:var(--mu);margin-bottom:4px">Parts PO: '+esc(p.po_parts)+'</div>' : '') +
@@ -1851,7 +1861,7 @@ function openAddProject(facilityId) {
   editingProjectId = null;
   editingProjectFacilityId = facilityId;
   document.getElementById('proj-modal-title').textContent = 'Add Project';
-  ['pm-name','pm-value','pm-job-id','pm-po-equip','pm-po-parts','pm-po','pm-start','pm-end','pm-sp','pm-notes','pm-agr-num','pm-agr-signed'].forEach(function(id){ document.getElementById(id).value=''; });
+  ['pm-name','pm-value','pm-job-id','pm-po-equip','pm-po-parts','pm-po','pm-start','pm-end','pm-sp','pm-notes','pm-agr-num','pm-agr-signed','pm-pm','pm-apm','pm-super'].forEach(function(id){ document.getElementById(id).value=''; });
   _agrTypeSelected = [];
   ntdRenderAgrTypeChips();
   document.getElementById('pm-agr-status').value = '';
@@ -1896,6 +1906,9 @@ function openEditProject(id, facilityId, scrollToDocs) {
     document.getElementById('pm-sp').value     = p.sp_url     || '';
     document.getElementById('pm-notes').value      = p.notes       || '';
     document.getElementById('pm-job-id').value    = p.job_id      || '';
+    document.getElementById('pm-pm').value    = p.assigned_pm || '';
+    document.getElementById('pm-apm').value   = p.apm          || '';
+    document.getElementById('pm-super').value = p.superintendent || '';
     document.getElementById('pm-po-equip').value  = p.po_equip    || '';
     document.getElementById('pm-po-parts').value  = p.po_parts    || '';
     document.getElementById('pm-agr-num').value    = p.agr_num    || '';
@@ -1938,6 +1951,9 @@ function saveProject() {
     value:       document.getElementById('pm-value').value.trim(),
     wo_number:   document.getElementById('pm-po').value.trim(),
     job_id:      document.getElementById('pm-job-id').value.trim(),
+    assigned_pm: document.getElementById('pm-pm').value.trim(),
+    apm:         document.getElementById('pm-apm').value.trim(),
+    superintendent: document.getElementById('pm-super').value.trim(),
     po_equip:    document.getElementById('pm-po-equip').value.trim(),
     po_parts:    document.getElementById('pm-po-parts').value.trim(),
     start_date:  document.getElementById('pm-start').value.trim(),
@@ -2081,7 +2097,9 @@ function renderProjectList() {
               '<span class="status-badge '+(statusClass[p.status]||'status-bidding')+'">'+(statusLabel[p.status]||'Bidding')+'</span>' +
             '</div>' +
             '<div style="font-size:12px;color:var(--mu)">'+esc(facMap[p.facility_id]||'Unknown facility')+(p.value?' · <strong style="color:var(--gn)">'+esc(p.value)+'</strong>':'')+'</div>' +
-            (p.job_id ? '<div style="font-size:11px;color:var(--nv);font-weight:700;margin-top:2px">Job ID: '+esc(p.job_id)+'</div>' : '') +
+            (p.job_id || p.assigned_pm ? '<div style="font-size:11px;color:var(--nv);font-weight:700;margin-top:2px">' +
+              (p.job_id ? 'Job #'+esc(p.job_id) : '') + (p.job_id && p.assigned_pm ? ' &middot; ' : '') + (p.assigned_pm ? 'PM: '+esc(p.assigned_pm) : '') +
+              '</div>' : '') +
             (p.start_date||p.end_date ? '<div style="font-size:11px;color:var(--mu);margin-top:4px">'+(p.start_date?esc(p.start_date):'')+(p.start_date&&p.end_date?' → ':'')+(p.end_date?esc(p.end_date):'')+'</div>' : '') +
           '</div></div>';
       });
