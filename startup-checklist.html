@@ -1727,6 +1727,7 @@ function init(){
   var facEl=document.getElementById('facility');
   if (facEl) facEl.addEventListener('input', function(){
     _ntdFacilityId = null;
+    _ntdFacilityPromise = null;
     var rw = document.getElementById('startup-facility-results');
     if (rw) rw.innerHTML = '';
   });
@@ -1888,6 +1889,7 @@ function clearSession(){
   localStorage.removeItem(SESSION_KEY);
   // Also reset ntdStore session refs
   _ntdFacilityId = null;
+  _ntdFacilityPromise = null;
   _ntdJobId = null;
   renderSessionLog();
   var finBtn=document.getElementById('finish_job_btn'); if(finBtn)finBtn.style.display='none';
@@ -2364,6 +2366,7 @@ function downloadAllPDFs(){
 // ── NTDSTORE INTEGRATION ─────────────────────────────────────────────────────
 // Tracks the current facility_id for this session (set when a job is loaded)
 var _ntdFacilityId = null;
+var _ntdFacilityPromise = null; // in-flight resolution, shared by concurrent callers
 var _ntdJobId = null;
 
 /**
@@ -2412,6 +2415,7 @@ function searchStartupFacility() {
 
 function pickStartupFacility(facilityId, facilityName) {
   _ntdFacilityId = facilityId;
+  _ntdFacilityPromise = null;
   var facEl = document.getElementById('facility');
   if (facEl) facEl.value = facilityName;
   ntdStore.facilities.get ? ntdStore.facilities.get(facilityId).then(fillStartupAddress) : ntdStore.facilities.list(function(f){return f.id===facilityId;}).then(function(r){ fillStartupAddress(r[0]); });
@@ -2431,8 +2435,16 @@ function ntdEnsureFacility(callback) {
   if (_ntdFacilityId) { callback(_ntdFacilityId); return; }
   var facName = gv('facility');
   if (!facName || typeof ntdUpsertFacility !== 'function') { callback(null); return; }
-  var facAddr = [gv('address'), gv('city_state')].filter(Boolean).join(', ');
-  ntdUpsertFacility(facName, facAddr, function(fac) { callback(fac ? fac.id : null); });
+  if (!_ntdFacilityPromise) {
+    var facAddr = [gv('address'), gv('city_state')].filter(Boolean).join(', ');
+    _ntdFacilityPromise = new Promise(function(resolve) {
+      ntdUpsertFacility(facName, facAddr, function(fac) { resolve(fac ? fac.id : null); });
+    }).then(function(id) {
+      if (!id) _ntdFacilityPromise = null; // allow retry if resolution failed
+      return id;
+    });
+  }
+  _ntdFacilityPromise.then(callback);
 }
 
 /**
@@ -2558,6 +2570,7 @@ function ntdSubmitSession() {
       // Reset session
       sessionUnits = [];
       _ntdFacilityId = null;
+      _ntdFacilityPromise = null;
       _ntdJobId = null;
       ljCurrentJob = null;
       renderSessionLog();
