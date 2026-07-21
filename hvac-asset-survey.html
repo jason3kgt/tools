@@ -2591,7 +2591,7 @@ function ntdSubmitAssessment() {
     });
     var assessSave = ntdStore.jobs.upsert({
       facility_id: facilityId, type: 'asset_survey',
-      name: 'Executive Summary — ' + (gv('sf')||''),
+      name: 'Site Assessment Data — ' + (gv('sf')||''),
       date: gv('sd'), tech: gv('stch'), status: 'complete',
       notes: gv('esnotes'),
       units: eqs.map(function(eq){ return {tag:eq.tag,type:eq.type,condition:eq.ov}; })
@@ -2753,7 +2753,7 @@ function ntdAutoSubmitAssessment() {
     });
     var assessSave = ntdStore.jobs.upsert({
       facility_id: facilityId, type: 'asset_survey',
-      name: 'Executive Summary — ' + (gv('sf')||''),
+      name: 'Site Assessment Data — ' + (gv('sf')||''),
       date: gv('sd'), tech: gv('stch'), status: 'complete',
       notes: gv('esnotes'),
       units: eqs.map(function(eq){ return {tag:eq.tag,type:eq.type,condition:eq.ov}; })
