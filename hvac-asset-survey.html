@@ -405,6 +405,41 @@ textarea{resize:vertical;min-height:70px}
       <div class="fg"><label>Scope / Description</label><textarea id="sq-scope" placeholder="Brief description of repair / work to be quoted..." style="min-height:55px"></textarea></div>
     </div>
   </div>
+  <!-- Replacement job toggle -->
+  <div class="pmcard">
+    <div class="pmch"><h2>🔄 Job Type</h2></div>
+    <div class="cb">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:4px 0">
+        <input type="checkbox" id="sq-is-replacement" onchange="sqToggleReplacement()" style="width:20px;height:20px;flex-shrink:0">
+        <span style="font-size:14px;font-weight:600">This is an Equipment Replacement</span>
+      </label>
+      <div id="sq-replacement-fields" style="display:none;margin-top:10px">
+        <div class="r2">
+          <div class="fg"><label>Existing Breaker Size</label><input type="text" id="sq-breaker" placeholder="e.g. 60A"></div>
+          <div class="fg"><label>Heat Type</label>
+            <select id="sq-heat-type">
+              <option value="">-- Select --</option>
+              <option value="Gas">Gas</option>
+              <option value="Electric">Electric</option>
+              <option value="Heat Pump">Heat Pump</option>
+              <option value="None">None / Cooling Only</option>
+            </select>
+          </div>
+        </div>
+        <div class="fg"><label>Area / Space Served</label><input type="text" id="sq-area-served" placeholder="e.g. Front lobby, Suite 200, Sales floor"></div>
+        <div style="font-size:11px;color:var(--mu);margin-top:2px">Tip: check the Site History card on the Job Info tab first — if this unit was already surveyed, its specs may already be on file.</div>
+      </div>
+    </div>
+  </div>
+  <!-- Site / staging photos -->
+  <div class="pmcard" id="sq-site-photos-card" style="display:none">
+    <div class="pmch"><h2>📷 Site / Staging Photos</h2></div>
+    <div class="cb">
+      <div style="font-size:11px;color:var(--mu);margin-bottom:8px">Whole-location shots for staging, crane access, and rigging planning — not individual equipment close-ups.</div>
+      <button class="addb" onclick="addSitePhoto()" type="button">+ Add Site Photo</button>
+      <div id="sq-site-photo-grid" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div>
+    </div>
+  </div>
   <!-- Job type -->
   <div class="pmcard">
     <div class="pmch"><h2>⚖ Job Type (Tax)</h2></div>
@@ -994,7 +1029,15 @@ function captureFormState() {
       notes: e.notes||'', ov: e.ov||'', flags: e.flags||[]
     };
   });
-  return { v: 1, ts: Date.now(), site: site, eid: eid, eqData: eqData };
+  var sqFlds = ['sq-ref','sq-scope','sq-breaker','sq-heat-type','sq-area-served','sq-parts-margin','sq-equip-margin','sq-tax-rate'];
+  var sq = {};
+  sqFlds.forEach(function(f) { sq[f] = gv(f); });
+  var replEl = document.getElementById('sq-is-replacement');
+  sq['sq-is-replacement'] = replEl ? replEl.checked : false;
+  return {
+    v: 1, ts: Date.now(), site: site, eid: eid, eqData: eqData,
+    sq: sq, sqItems: (typeof sqItems!=='undefined'?sqItems:[]), sqSelectedJT: (typeof sqSelectedJT!=='undefined'?sqSelectedJT:1)
+  };
 }
 
 function persistDraft() {
@@ -1032,6 +1075,21 @@ function restoreDraft() {
       });
       renderEqs();
     }
+    if (d.sq) {
+      Object.keys(d.sq).forEach(function(k) {
+        if (k === 'sq-is-replacement') return; // handled separately below (checkbox)
+        var el = document.getElementById(k);
+        if (el) el.value = d.sq[k];
+      });
+      var replEl = document.getElementById('sq-is-replacement');
+      if (replEl) { replEl.checked = !!d.sq['sq-is-replacement']; sqToggleReplacement(); }
+    }
+    if (typeof sqSelectedJT !== 'undefined' && d.sqSelectedJT) { sqSelectedJT = d.sqSelectedJT; if (typeof sqBuildJTGrid === 'function') sqBuildJTGrid(); }
+    if (typeof sqItems !== 'undefined' && d.sqItems && d.sqItems.length) {
+      sqItems = d.sqItems;
+      if (typeof sqRenderItems === 'function') sqRenderItems();
+      if (typeof sqCalcTotals === 'function') sqCalcTotals();
+    }
     document.getElementById('draft-banner').style.display = 'none';
     setSaveDot('saved');
   } catch(e) {
@@ -1051,7 +1109,7 @@ function discardDraft() {
     var raw = localStorage.getItem(DRAFT_KEY);
     if (!raw) return;
     var d = JSON.parse(raw);
-    if (d && d.site && (d.site['sf'] || (d.eqData && d.eqData.length))) {
+    if (d && (( d.site && (d.site['sf'] || (d.eqData && d.eqData.length))) || (d.sqItems && d.sqItems.length))) {
       var age = Date.now() - (d.ts || 0);
       var ageStr = age < 3600000 ? Math.round(age/60000) + ' min ago'
                  : age < 86400000 ? Math.round(age/3600000) + ' hr ago'
@@ -1068,6 +1126,15 @@ function discardDraft() {
 // generically instead of relying on every input tag being wired correctly.
 document.getElementById('pg0').addEventListener('input', function(e){
   if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) onFieldChange();
+});
+
+// Same safety net for Service Quote (Reference, Scope, and the replacement
+// fields don't already trigger sqCalcTotals). Covers 'change' too since
+// sq-heat-type is a <select> with no onchange of its own.
+['input','change'].forEach(function(evt){
+  document.getElementById('pg5').addEventListener(evt, function(e){
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT')) onFieldChange();
+  });
 });
 
 function ua(){updS();updF();onFieldChange();}
@@ -2407,12 +2474,89 @@ function sqCalcTotals(){
   se2('sq-tot-tax',sqFmt(tax));se2('sq-tot-grand',sqFmt(grand));
   var tl=document.getElementById('sq-tax-label');
   if(tl)tl.textContent=tax>0?'Sales Tax ('+(taxRate*100).toFixed(2)+'%)':'No Tax Collected';
+  onFieldChange();
 }
 function sqClearItems(){
   if(!sqItems.length)return;
   if(!confirm('Clear all line items?'))return;
   sqItems=[];sqRenderItems();sqCalcTotals();
 }
+function sqToggleReplacement(){
+  var on = document.getElementById('sq-is-replacement').checked;
+  document.getElementById('sq-replacement-fields').style.display = on ? 'block' : 'none';
+  document.getElementById('sq-site-photos-card').style.display = on ? 'block' : 'none';
+}
+
+// ── SITE / STAGING PHOTOS (Service Quote replacement jobs) ────────────────
+// Whole-location shots, separate from per-unit equipment photos. Same
+// compress-then-backup-to-Supabase pattern as equipment photos — safe even
+// if the tech never finishes/submits the quote.
+var sqSitePhotos = [];
+var sqSitePhotoInput = null;
+function addSitePhoto(){
+  if(!sqSitePhotoInput){
+    sqSitePhotoInput = document.createElement('input');
+    sqSitePhotoInput.type = 'file';
+    sqSitePhotoInput.accept = 'image/*';
+    sqSitePhotoInput.multiple = true;
+    sqSitePhotoInput.style.display = 'none';
+    document.body.appendChild(sqSitePhotoInput);
+    sqSitePhotoInput.addEventListener('change', function(){
+      var files = this.files;
+      if(!files || !files.length) return;
+      var remaining = files.length;
+      for(var i=0;i<files.length;i++){
+        (function(file){
+          compressImage(file,1600,0.75).then(function(res){
+            var photoObj = {data:res.dataUrl, caption:'', backedUp:false};
+            sqSitePhotos.push(photoObj);
+            remaining--;
+            if(remaining<=0) renderSitePhotos();
+            ntdBackupSitePhoto(res.blob, photoObj);
+          }).catch(function(err){
+            console.warn('[NTD] Site photo compression failed, using original:', err);
+            var reader = new FileReader();
+            reader.onload = function(ev){
+              var photoObj = {data:ev.target.result, caption:'', backedUp:false};
+              sqSitePhotos.push(photoObj);
+              remaining--;
+              if(remaining<=0) renderSitePhotos();
+              ntdBackupSitePhoto(file, photoObj);
+            };
+            reader.readAsDataURL(file);
+          });
+        })(files[i]);
+      }
+      this.value = '';
+    });
+  }
+  sqSitePhotoInput.click();
+}
+function ntdBackupSitePhoto(blob, photoObj){
+  if(typeof ntdStore==='undefined'||!ntdStore.files||!ntdStore.files.upload)return;
+  var custSlug=(gv('sf')||'unassigned').replace(/[^a-z0-9]+/gi,'-').toLowerCase().replace(/^-+|-+$/g,'').slice(0,40)||'unassigned';
+  var path='site-photos/'+custSlug+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,6)+'.jpg';
+  ntdStore.files.upload(path,blob,'image/jpeg').then(function(){
+    photoObj.backedUp=true;
+    photoObj.remotePath=path;
+    renderSitePhotos();
+  }).catch(function(err){
+    console.warn('[NTD] Site photo backup failed (will still work locally for this session):',err);
+  });
+}
+function renderSitePhotos(){
+  var grid = document.getElementById('sq-site-photo-grid');
+  if(!grid) return;
+  grid.innerHTML = sqSitePhotos.map(function(p, i){
+    return '<div style="position:relative;width:90px">'+
+      '<img src="'+p.data+'" style="width:90px;height:90px;object-fit:cover;border-radius:8px;border:1.5px solid var(--bd)">'+
+      (p.backedUp ? '<span style="position:absolute;top:2px;right:2px;background:#1E7A3E;color:#fff;font-size:9px;padding:1px 4px;border-radius:6px">&#10003;</span>' : '')+
+      '<span onclick="delSitePhoto('+i+')" style="position:absolute;top:2px;left:2px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer">&times;</span>'+
+      '</div>';
+  }).join('');
+}
+function delSitePhoto(i){ sqSitePhotos.splice(i,1); renderSitePhotos(); }
+
 function sqGeneratePDF(){
   if(!sqItems.length){alert('Add at least one line item first.');return;}
   var {jsPDF}=window.jspdf;
@@ -2448,6 +2592,20 @@ function sqGeneratePDF(){
     doc.text('Site Notes:',M+3,y+6);
     doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(80,60,0);
     doc.text(sqSiteNotes,M+55,y+6,{maxWidth:IW-58});
+    y+=16;
+  }
+  var sqIsReplacement=document.getElementById('sq-is-replacement').checked;
+  if(sqIsReplacement){
+    var replParts=[];
+    var breaker=gv('sq-breaker'),heat=gv('sq-heat-type'),area=gv('sq-area-served');
+    if(breaker)replParts.push('Existing Breaker: '+breaker);
+    if(heat)replParts.push('Heat Type: '+heat);
+    if(area)replParts.push('Area Served: '+area);
+    var replText='REPLACEMENT JOB'+(replParts.length?' — '+replParts.join('  |  '):'');
+    doc.setFillColor(240,248,255);doc.rect(M,y,IW,14,'F');
+    doc.setDrawColor(120,160,220);doc.rect(M,y,IW,14,'S');
+    doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(20,60,120);
+    doc.text(replText,M+3,y+6,{maxWidth:IW-6});
     y+=16;
   }
   y+=6;
@@ -2531,6 +2689,7 @@ function sqGeneratePDF(){
   doc.text('(945) 346-7443 Cell | jezell@ntdmechanical.com',M,y);y+=20;
   doc.setFontSize(7);doc.setTextColor(120,120,120);
   doc.text('Regulated by the Texas Department of Licensing and Regulation  |  PO Box 12157, Austin TX 78711  |  (800) 803-9202  |  http://www.tdlr.texas.gov',M,y);
+  addPhotoAppendix(doc, sqSitePhotos, 'Site / Staging Photos');
   var blob=doc.output('blob');var url=URL.createObjectURL(blob);
   window.open(url,'_blank');
   setTimeout(function(){URL.revokeObjectURL(url);},60000);
@@ -2656,7 +2815,10 @@ function ntdSubmitServiceQuote() {
       facility_id: facilityId, date: gv('sd'), job_type_id: sqSelectedJT,
       items: sqItems, base_total: baseEl?baseEl.textContent:'',
       tax_total: taxEl?taxEl.textContent:'', grand_total: grandEl?grandEl.textContent:'',
-      notes: gv('sn')
+      notes: gv('sn'),
+      is_replacement: document.getElementById('sq-is-replacement').checked,
+      existing_breaker: gv('sq-breaker'), area_served: gv('sq-area-served'),
+      heat_type: gv('sq-heat-type'), site_photo_count: sqSitePhotos.length
     }).then(function() {
       alert('\u2713 Service Quote submitted for ' + gv('sf') + '.');
     }).catch(function(){ alert('Submit failed.'); });
@@ -2798,7 +2960,10 @@ function ntdAutoSubmitServiceQuote() {
       base_total:  baseEl  ? baseEl.textContent  : '',
       tax_total:   taxEl   ? taxEl.textContent   : '',
       grand_total: grandEl ? grandEl.textContent : '',
-      notes: gv('sn')
+      notes: gv('sn'),
+      is_replacement: document.getElementById('sq-is-replacement').checked,
+      existing_breaker: gv('sq-breaker'), area_served: gv('sq-area-served'),
+      heat_type: gv('sq-heat-type'), site_photo_count: sqSitePhotos.length
     }).then(function(){ console.log('[NTD] Service Quote auto-saved to store'); })
       .catch(function(e){ console.warn('[NTD] Service Quote auto-save failed:', e.message); });
   });
