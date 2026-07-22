@@ -2671,10 +2671,12 @@ function ljSelectJob(job){
     if(u.tons) meta.push(u.tons + ' Ton');
     if(u.model) meta.push(u.model);
     if(u.cfm) meta.push(u.cfm + ' CFM');
+    var optsBadge = u.options ? '<div style="font-size:11px;font-weight:700;color:var(--rd);margin-top:2px">&#9888; ' + esc2(u.options) + '</div>' : '';
     pill.innerHTML =
       '<div>' +
         '<div class="lj-unit-tag">' + (u.tag||'Unit') + '</div>' +
         '<div class="lj-unit-meta">' + meta.join(' &bull; ') + '</div>' +
+        optsBadge +
       '</div>' +
       '<span style="font-size:18px;color:var(--nv)">&#8250;</span>';
     pill.addEventListener('click', function(){
@@ -2766,10 +2768,11 @@ function ljApplyUnit(job, unit){
 
   // Show preloaded banner and collapse the Load Job card
   var preloaded = document.getElementById('lj_preloaded');
-  preloaded.textContent = '\u2713 Loaded: ' + (job.name||'') + ' \u2014 ' + (unit.tag||'') +
+  preloaded.innerHTML = '\u2713 Loaded: ' + esc2(job.name||'') + ' \u2014 ' + esc2(unit.tag||'') +
     (unit.tons ? ' (' + unit.tons + ' Ton)' : '') +
-    (job.refrigerant ? ' \u2014 ' + job.refrigerant : '') +
-    (job.voltage ? ' \u2014 ' + job.voltage : '');
+    (job.refrigerant ? ' \u2014 ' + esc2(job.refrigerant) : '') +
+    (job.voltage ? ' \u2014 ' + esc2(job.voltage) : '') +
+    (unit.options ? '<br><b style="color:var(--rd)">&#9888; Requirements: ' + esc2(unit.options) + '</b>' : '');
   preloaded.classList.add('on');
   preloaded.style.display = 'block';
 

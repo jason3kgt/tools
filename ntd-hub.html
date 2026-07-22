@@ -1821,6 +1821,8 @@ function ntdHidePasteErr() {
 
 // Shared by both the JSON-paste and spreadsheet-paste publish paths.
 // `data` shape: {job_name, equipment_type, manufacturer, project_number, units:[...]}
+// each unit may also include `options` — free text for per-unit special requirements
+// (e.g. "Economizer", "Powered Exhaust") that a tech needs to know before starting the unit.
 function ntdPublishSubmittalData(data) {
   var units = data.units || [];
   return ntdStore.facilities.get(editingProjectFacilityId).then(function(fac) {
@@ -1844,6 +1846,7 @@ function ntdPublishSubmittalData(data) {
       if (u.mca) notesParts.push('MCA: ' + u.mca);
       if (u.mop) notesParts.push('MOP: ' + u.mop);
       if (u.heat_mbh) notesParts.push('Heat MBH: ' + u.heat_mbh);
+      if (u.options) notesParts.push('Requirements: ' + u.options);
       return ntdStore.upsertEquipment({
         facility_id:  editingProjectFacilityId,
         job_id:       job.id,
@@ -1889,10 +1892,11 @@ var PASTE_COLUMN_ALIASES = {
   serial:      ['serial','serial #','serial number','sn'],
   tonnage:     ['tonnage','tons','ton'],
   filter_size: ['filter size','filter','filters'],
-  belt_size:   ['belt size','belt','belts']
+  belt_size:   ['belt size','belt','belts'],
+  options:     ['options','requirements','special requirements','special items','economizer','notes']
 };
-var PASTE_DEFAULT_ORDER = ['tag','type','model','serial','tonnage','filter_size','belt_size'];
-var PASTE_FIELD_LABELS  = {tag:'Tag',type:'Type',model:'Model',serial:'Serial',tonnage:'Tons',filter_size:'Filter',belt_size:'Belt'};
+var PASTE_DEFAULT_ORDER = ['tag','type','model','serial','tonnage','filter_size','belt_size','options'];
+var PASTE_FIELD_LABELS  = {tag:'Tag',type:'Type',model:'Model',serial:'Serial',tonnage:'Tons',filter_size:'Filter',belt_size:'Belt',options:'Requirements'};
 
 function ntdDetectPasteColumns(headerCells) {
   var mapped = headerCells.map(function(cell) {
