@@ -2766,7 +2766,7 @@ function ljApplyUnit(job, unit){
 
   // Show preloaded banner and collapse the Load Job card
   var preloaded = document.getElementById('lj_preloaded');
-  preloaded.textContent = '\u2713 Loaded: ' + (job.job_name||'') + ' \u2014 ' + (unit.tag||'') +
+  preloaded.textContent = '\u2713 Loaded: ' + (job.name||'') + ' \u2014 ' + (unit.tag||'') +
     (unit.tons ? ' (' + unit.tons + ' Ton)' : '') +
     (job.refrigerant ? ' \u2014 ' + job.refrigerant : '') +
     (job.voltage ? ' \u2014 ' + job.voltage : '');

@@ -281,7 +281,7 @@ var _migrate = {
 
   // Called when Job Prep job is loaded in Startup Checklist
   fromJobPrep: function(jobData) {
-    var facName = (jobData.job_name || '').trim();
+    var facName = (jobData.job_name || jobData.name || '').trim();
     if (!facName) return Promise.reject(new Error('No job name'));
 
     return ntdFacilityMatch.resolveOrCreate(facName, { address: jobData.address || '' })
