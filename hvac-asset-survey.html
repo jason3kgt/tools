@@ -235,6 +235,7 @@ textarea{resize:vertical;min-height:70px}
     <div class="cb" id="eql"><div class="empty">Tap below to add a unit</div></div>
     <button class="addb" id="addEqBtn">+ Add Equipment Unit</button>
     <button class="dlb" onclick="dlSiteRecord()" style="margin-top:10px">&#128203; Download Site Record PDF</button>
+    <button class="dlb" onclick="dlBidWorksheetExport()" style="margin-top:8px">&#128229; Export for Bid Worksheet (JSON)</button>
     <p style="font-size:10px;color:var(--mu);text-align:center;margin-top:6px;padding:0 8px">Internal use only &#x2014; filter/belt sizes, serial #s &amp; photos</p>
   </div>
   <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none" multiple>
@@ -2098,6 +2099,88 @@ function pmGenPDF(){
     ntdUploadPDFWithFeedback(blob,'pm_proposal','PM Proposal — '+(gv('sf')||'Site'),{unitCount:pmUnits.length},facilityId);
   });
   ntdAutoSubmitPMQuote();
+}
+
+// ── BID WORKSHEET EXPORT (large PM estimate spreadsheet) ──────────────────
+// Produces a JSON file matching the exact shape ImportFieldAssessment() in
+// NTD_Advanced_PM_Macros.bas expects (top-level "units" array, explicit qty
+// per row). Sourced directly from the live Equipment Units tab (eqs) rather
+// than Supabase — eqs still has filter qty/size and belt qty/size as
+// separate fields (f1q/f1s/f2q/f2s/bq/bs); Supabase's equipment table
+// collapses filters into one combined string and drops belt qty entirely
+// when this tool writes to it, so pulling from Supabase after the fact
+// would mean re-parsing data that used to be clean.
+
+var BID_WS_TYPE_KEYWORDS = ['rtu','rooftop','split','mini','ahu','air handler',
+  'vrf','vrv','fcu','fan coil','doas','mau','makeup','chiller','boiler',
+  'exhaust','fan','unit heater','cabinet','cooling tower'];
+
+// Only used to warn about rows that won't price in the bid worksheet — the
+// raw type string is exported as-is either way.
+function bidWsTypeWillMap(type) {
+  var t = (type||'').toLowerCase();
+  if (!t) return false;
+  return BID_WS_TYPE_KEYWORDS.some(function(k){ return t.indexOf(k) > -1; });
+}
+
+// Strips a trailing unit word ("7.5 ton", "5T") down to a bare number — the
+// macro's RTU/Split/Chiller/Boiler tiers need tonnage numeric-parseable.
+function bidWsParseTonnage(raw) {
+  if (!raw) return '';
+  var m = String(raw).match(/(\d+(?:\.\d+)?)/);
+  return m ? m[1] : '';
+}
+
+function bidWsUnitRecord(eq) {
+  var notes = [];
+  if (eq.notes) notes.push(eq.notes);
+  // The import format only supports one filter spec per row — Filter 1 is
+  // the primary export slot; Filter 2 (if present) is noted, not dropped.
+  if (eq.f2s) notes.push('Additional filter on file: ' + (eq.f2q ? eq.f2q + 'x ' : '') + eq.f2s);
+  return {
+    tag: eq.tag || '',
+    type: eq.type || '',
+    tonnage: bidWsParseTonnage(eq.tonnage),
+    qty: '1',
+    filter_qty: eq.f1q || '',
+    filter_size: eq.f1s || '',
+    belt_qty: eq.bq || (eq.bs ? '1' : ''),
+    belt_size: eq.bs || '',
+    area: eq.area || '',
+    notes: notes.join(' \u2014 ')
+  };
+}
+
+function dlBidWorksheetExport() {
+  if (!eqs.length) { alert('No units on the Equipment Units tab to export.'); return; }
+  var exportable = eqs.filter(function(e){ return e.type; }); // blank-type rows won't import anyway
+  var skipped = eqs.length - exportable.length;
+  if (!exportable.length) { alert('None of the units have an Equipment Type set \u2014 nothing to export.'); return; }
+
+  var unmapped = exportable.filter(function(e){ return !bidWsTypeWillMap(e.type); });
+
+  var data = {
+    customer: gv('sf') || '',
+    service_address: [gv('sa'), gv('sct')].filter(Boolean).join(', '),
+    attention: gv('scn') || '',
+    units: exportable.map(bidWsUnitRecord)
+  };
+
+  var json = JSON.stringify(data, null, 2);
+  var slug = (gv('sf') || 'Site').replace(/[^\w\-]+/g, '_');
+  var filename = 'NTD_PM_Quote_' + slug + '_' + new Date().toISOString().substring(0,10) + '.json';
+
+  var blob = new Blob([json], {type: 'application/json'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = filename;
+  a.click();
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 5000);
+
+  var msg = 'Exported ' + exportable.length + ' unit' + (exportable.length===1?'':'s') + ' for Bid Worksheet.';
+  if (skipped) msg += '\n' + skipped + ' skipped (no Equipment Type set).';
+  if (unmapped.length) msg += '\n\u26A0 ' + unmapped.length + ' unit(s) have a Type that may not match a pricing category in the worksheet \u2014 double-check before importing.';
+  alert(msg);
 }
 
 function pmExportJSON(){
