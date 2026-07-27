@@ -14,55 +14,74 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
-  --nv:#1B3A6B;--nv2:#243F7A;--st:#2E5F8A;
-  --or:#E8531A;--gn:#1E7A3E;--am:#D4820A;--rd:#C0392B;
-  --bd:#DDE2EA;--bd2:#C8D2DF;--of:#F4F6FA;--bg:#EEF1F7;
-  --tx:#1A1A2E;--mu:#6B7280;--wh:#fff;
-  --card-shadow:0 2px 12px rgba(27,58,107,.10);
+  --nv:#1B3A6B;--nv2:#2C4E85;--nv-deep:#0F2647;--st:#3C6E93;
+  --or:#E8531A;--or2:#F4763F;--gn:#1E7A3E;--am:#C67F0A;--rd:#C0392B;--pu:#6D3FA0;
+  --bd:#E4DDD0;--bd2:#D2C7B4;--of:#F1ECE2;--bg:#F6F2EA;
+  --tx:#242019;--mu:#7A7263;--wh:#fff;
+  --card-shadow:0 3px 14px rgba(36,32,25,.09);
+  --nv-grad:linear-gradient(135deg,var(--nv-deep) 0%,var(--nv) 55%,var(--nv2) 100%);
+  --grid-tex:repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0,rgba(255,255,255,.05) 1px,transparent 1px,transparent 28px),repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0,rgba(255,255,255,.05) 1px,transparent 1px,transparent 28px);
 }
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--tx);font-size:14px;padding-bottom:72px;min-height:100vh}
 
+/* ── ICON SYSTEM ── */
+.ntd-ic{display:inline-block;vertical-align:middle;flex-shrink:0}
+
+/* ── SKELETON LOADERS ── */
+@keyframes ntdShimmer{0%{background-position:-200px 0}100%{background-position:200px 0}}
+.skel{background:linear-gradient(90deg,var(--of) 25%,#EAE3D6 37%,var(--of) 63%);background-size:400px 100%;animation:ntdShimmer 1.4s ease-in-out infinite;border-radius:8px}
+.skel-card{background:#fff;border-radius:16px;border:1px solid var(--bd);box-shadow:var(--card-shadow);padding:14px 16px;margin-bottom:12px}
+.skel-row{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.skel-row:last-child{margin-bottom:0}
+.skel-avatar{width:38px;height:38px;border-radius:10px;flex-shrink:0}
+.skel-lines{flex:1}
+.skel-line{height:10px;margin-bottom:6px}
+.skel-line:last-child{margin-bottom:0;width:60%}
+
 /* ── HEADER ── */
-.hdr{background:var(--nv);padding:0 16px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:0 2px 12px rgba(0,0,0,.25)}
+.hdr{background:var(--nv-grad),var(--grid-tex);background-blend-mode:normal,overlay;padding:0 16px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:0 2px 14px rgba(15,38,71,.35)}
 .hdr-brand{display:flex;align-items:center;gap:10px}
-.hdr-logo{width:36px;height:36px;background:var(--or);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff;letter-spacing:-1px;flex-shrink:0}
-.hdr-title{font-size:17px;font-weight:700;color:#fff;letter-spacing:-.3px}
-.hdr-sub{font-size:10px;color:rgba(255,255,255,.55);margin-top:1px}
-.hdr-btn{background:rgba(255,255,255,.12);border:none;border-radius:8px;padding:7px 13px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;font-family:inherit;touch-action:manipulation}
+.hdr-logo{width:36px;height:36px;background:var(--or);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff;letter-spacing:-1px;flex-shrink:0;box-shadow:0 2px 6px rgba(232,83,26,.4)}
+.hdr-title{font-size:17px;font-weight:800;color:#fff;letter-spacing:-.4px}
+.hdr-sub{font-size:10px;color:rgba(255,255,255,.6);margin-top:1px}
+.hdr-btn{background:rgba(255,255,255,.14);border:none;border-radius:9px;padding:7px 13px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;font-family:inherit;touch-action:manipulation}
 .hdr-btn:active{opacity:.8}
 
 /* ── BOTTOM NAV ── */
-.bnav{position:fixed;bottom:0;left:0;right:0;background:var(--nv);display:flex;border-top:1px solid rgba(255,255,255,.1);z-index:200;padding-bottom:env(safe-area-inset-bottom)}
-.bnav-btn{flex:1;padding:10px 4px 11px;text-align:center;font-size:8.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:rgba(255,255,255,.4);cursor:pointer;border:none;background:none;font-family:inherit;touch-action:manipulation}
+.bnav{position:fixed;bottom:0;left:0;right:0;background:var(--nv-deep);display:flex;border-top:1px solid rgba(255,255,255,.08);z-index:200;padding-bottom:env(safe-area-inset-bottom)}
+.bnav-btn{flex:1;padding:10px 4px 11px;text-align:center;font-size:8.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:rgba(255,255,255,.4);cursor:pointer;border:none;background:none;font-family:inherit;touch-action:manipulation;transition:color .18s}
 .bnav-btn.on{color:#fff}
-.bnav-btn .bi{font-size:20px;display:block;margin-bottom:3px}
+.bnav-btn .bi{font-size:20px;display:block;margin-bottom:3px;transition:filter .18s}
 .bnav-btn.on .bi{filter:drop-shadow(0 0 4px rgba(232,83,26,.7))}
 
 /* ── PAGES ── */
 .pg{display:none;padding:14px;max-width:720px;margin:0 auto}
 .hidden{display:none}
-.pg.on{display:block}
+.pg.on{display:block;animation:pgIn .28s cubic-bezier(.2,.8,.3,1)}
+@keyframes pgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes rowIn{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:translateX(0)}}
+.ntd-row-in{animation:rowIn .3s ease backwards}
 
 /* ── SEARCH BAR ── */
 .search-wrap{position:relative;margin-bottom:14px}
-.search-wrap input{width:100%;padding:11px 14px 11px 40px;border:1.5px solid var(--bd);border-radius:12px;font-size:14px;font-family:inherit;background:#fff;color:var(--tx);-webkit-appearance:none}
-.search-wrap input:focus{outline:none;border-color:var(--st)}
+.search-wrap input{width:100%;padding:11px 14px 11px 40px;border:1.5px solid var(--bd);border-radius:13px;font-size:14px;font-family:inherit;background:#fff;color:var(--tx);-webkit-appearance:none}
+.search-wrap input:focus{outline:none;border-color:var(--st);box-shadow:0 0 0 3px rgba(60,110,147,.12)}
 .search-wrap::before{content:"🔍";position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none}
 
 /* ── CARDS ── */
-.card{background:#fff;border-radius:14px;border:1px solid var(--bd);margin-bottom:12px;overflow:hidden;box-shadow:var(--card-shadow)}
-.card-hdr{background:var(--nv);padding:11px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.card{background:#fff;border-radius:16px;border:1px solid var(--bd);margin-bottom:12px;overflow:hidden;box-shadow:var(--card-shadow)}
+.card-hdr{background:var(--nv-grad);padding:11px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px}
 .card-hdr h2{font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.06em}
 .card-hdr .badge{background:rgba(255,255,255,.18);color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px}
 .card-body{padding:14px 16px}
 
 /* ── FACILITY LIST ── */
-.fac-row{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--bd);cursor:pointer;touch-action:manipulation;background:#fff;transition:background .15s}
+.fac-row{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--bd);cursor:pointer;touch-action:manipulation;background:#fff;transition:background .15s;border-left:3px solid transparent}
 .fac-row:last-child{border-bottom:none}
 .fac-row:active{background:var(--of)}
-.fac-avatar{width:40px;height:40px;border-radius:10px;background:var(--nv);color:#fff;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.fac-avatar{width:42px;height:42px;border-radius:12px;background:var(--nv-grad);color:#fff;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 6px rgba(15,38,71,.25)}
 .fac-info{flex:1;min-width:0}
-.fac-name{font-size:15px;font-weight:700;color:var(--nv);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fac-name{font-size:15.5px;font-weight:800;color:var(--nv-deep);letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fac-addr{font-size:11px;color:var(--mu);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fac-tags{display:flex;gap:4px;margin-top:5px;flex-wrap:wrap}
 .tag{font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px;white-space:nowrap}
@@ -71,22 +90,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .tag-quote{background:#FEF0EA;color:var(--or)}
 .tag-survey{background:#F3F0FA;color:#5B21B6}
 .fac-arrow{color:var(--bd2);font-size:20px;flex-shrink:0}
-.followup-badge{display:inline-flex;align-items:center;gap:4px;background:#FFF3E0;color:var(--am);font-size:10px;font-weight:700;padding:3px 8px;border-radius:8px;border:1px solid #F59E0B}
-.followup-card{background:#FFF8EC;border:1.5px solid #F59E0B;border-radius:12px;padding:14px 16px;margin-bottom:14px}
+.followup-badge{display:inline-flex;align-items:center;gap:4px;background:#FDF0DC;color:var(--am);font-size:10px;font-weight:700;padding:3px 8px;border-radius:8px;border:1px solid #E8B65C}
+.followup-card{background:#FDF5E8;border:1.5px solid #E8B65C;border-radius:14px;padding:14px 16px;margin-bottom:14px}
 .followup-card-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .followup-card-hdr span{font-size:13px;font-weight:700;color:var(--am)}
-.followup-item{padding:10px 0;border-bottom:1px solid #FDDBA0}
+.followup-item{padding:10px 0;border-bottom:1px solid #F2DBA8}
 .followup-item:last-child{border-bottom:none}
 
 /* ── EMPTY STATE ── */
 .empty{text-align:center;padding:48px 20px 32px;color:var(--mu)}
-.empty-icon{font-size:48px;margin-bottom:12px}
-.empty h3{font-size:16px;font-weight:700;color:var(--tx);margin-bottom:6px}
+.empty-icon{font-size:34px;margin:0 auto 14px;width:72px;height:72px;border-radius:20px;background:var(--of);display:flex;align-items:center;justify-content:center}
+.empty h3{font-size:16px;font-weight:800;color:var(--tx);margin-bottom:6px}
 .empty p{font-size:13px;line-height:1.6;max-width:260px;margin:0 auto}
 
 /* ── DETAIL VIEW ── */
-.detail-hero{background:var(--nv);padding:18px 16px 20px;margin:-14px -14px 14px}
-.detail-avatar{width:52px;height:52px;border-radius:13px;background:rgba(255,255,255,.15);color:#fff;font-size:20px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-bottom:10px}
+.detail-hero{background:var(--nv-grad),var(--grid-tex);background-blend-mode:normal,overlay;padding:20px 16px 22px;margin:0 -14px 14px;border-radius:0 0 20px 20px;box-shadow:0 8px 20px rgba(15,38,71,.22)}
+.detail-avatar{width:52px;height:52px;border-radius:14px;background:rgba(255,255,255,.16);color:#fff;font-size:20px;font-weight:800;display:flex;align-items:center;justify-content:center;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.15)}
 .detail-name{font-size:20px;font-weight:700;color:#fff;letter-spacing:-.3px}
 .detail-addr{font-size:12px;color:rgba(255,255,255,.65);margin-top:3px}
 .detail-tags{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
@@ -102,8 +121,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sec-tabs-wrap{position:relative;margin-bottom:14px}
 .sec-tabs-wrap .sec-tabs{margin-bottom:0}
 .sec-tabs-wrap::after{content:'';position:absolute;right:0;top:0;bottom:0;width:32px;background:linear-gradient(to right,transparent,var(--bg));pointer-events:none}
-.sec-tab{padding:6px 11px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;cursor:pointer;border:1.5px solid var(--bd);background:#fff;color:var(--mu);touch-action:manipulation;font-family:inherit;flex-shrink:0}
-.sec-tab.on{background:var(--nv);color:#fff;border-color:var(--nv)}
+.sec-tab{padding:6px 11px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;cursor:pointer;border:1.5px solid var(--bd);background:#fff;color:var(--mu);touch-action:manipulation;font-family:inherit;flex-shrink:0;transition:background .18s,color .18s,border-color .18s,box-shadow .18s}
+.sec-tab.on{background:var(--nv-grad);color:#fff;border-color:var(--nv);box-shadow:0 2px 6px rgba(15,38,71,.25)}
 
 /* ── RECORD ROWS ── */
 .rec-row{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--bd)}
@@ -130,20 +149,55 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .fg textarea{resize:vertical;min-height:72px}
 .r2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 
+/* ── TOGGLE ROWS (dashboard customize) ── */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 2px;border-bottom:1px solid var(--bd)}
+.toggle-row:last-child{border-bottom:none}
+.toggle-row-lbl{font-size:14px;font-weight:600;color:var(--tx)}
+.toggle-row-sub{font-size:11px;color:var(--mu);margin-top:1px}
+.toggle-switch{position:relative;width:44px;height:26px;flex-shrink:0}
+.toggle-switch input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}
+.toggle-switch .tsw-track{position:absolute;inset:0;background:var(--bd2);border-radius:14px;transition:background .15s}
+.toggle-switch .tsw-knob{position:absolute;top:3px;left:3px;width:20px;height:20px;background:#fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .15s}
+.toggle-switch input:checked ~ .tsw-track{background:var(--gn)}
+.toggle-switch input:checked ~ .tsw-knob{transform:translateX(18px)}
+
 /* ── BUTTONS ── */
-.btn{display:block;width:100%;padding:13px;border-radius:11px;font-size:14px;font-weight:700;border:none;font-family:inherit;cursor:pointer;touch-action:manipulation;text-align:center;margin-top:8px}
-.btn:active{opacity:.85}
-.btn-or{background:var(--or);color:#fff}
-.btn-nv{background:var(--nv);color:#fff}
+.btn{display:block;width:100%;padding:13px;border-radius:12px;font-size:14px;font-weight:700;border:none;font-family:inherit;cursor:pointer;touch-action:manipulation;text-align:center;margin-top:8px;transition:transform .1s}
+.btn:active{opacity:.85;transform:scale(.98)}
+.btn-or{background:var(--or);color:#fff;box-shadow:0 2px 8px rgba(232,83,26,.3)}
+.btn-nv{background:var(--nv-grad);color:#fff;box-shadow:0 2px 8px rgba(15,38,71,.25)}
 .btn-outline{background:#fff;color:var(--nv);border:1.5px solid var(--nv)}
 .btn-red{background:#fff;color:var(--rd);border:1.5px solid var(--rd)}
 .btn-sm{padding:8px 14px;font-size:12px;border-radius:9px;width:auto;display:inline-block;margin-top:0}
 
-/* ── STAT PILLS ── */
-.stats-row{display:flex;gap:8px;margin-bottom:14px}
-.stat-pill{flex:1;background:#fff;border:1px solid var(--bd);border-radius:11px;padding:10px 8px;text-align:center;box-shadow:var(--card-shadow)}
-.stat-num{font-size:22px;font-weight:800;color:var(--nv);line-height:1}
-.stat-lbl{font-size:9px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.05em;margin-top:3px}
+/* ── QUICK ACCESS TILES ── */
+.tile-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;margin-top:16px}
+.tile{border-radius:18px;padding:15px;color:#fff;cursor:pointer;touch-action:manipulation;position:relative;overflow:hidden;min-height:92px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 5px 16px rgba(20,20,30,.16);border:none;font-family:inherit;text-align:left;transition:transform .12s}
+.tile:active{transform:scale(.96)}
+.tile::after{content:attr(data-wm);position:absolute;right:-6px;bottom:-14px;font-size:64px;opacity:.16;line-height:1;pointer-events:none}
+.tile-icon{font-size:22px;position:relative;z-index:1}
+.tile-num{font-size:25px;font-weight:800;line-height:1;position:relative;z-index:1;font-variant-numeric:tabular-nums}
+.tile-lbl{font-size:11px;font-weight:700;opacity:.92;margin-top:1px;position:relative;z-index:1;letter-spacing:.02em}
+.tile-nv{background:linear-gradient(135deg,var(--nv-deep),var(--nv2))}
+.tile-pu{background:linear-gradient(135deg,#3B2360,#7245A8)}
+.tile-or{background:linear-gradient(135deg,#B5390F,var(--or2))}
+.tile-gn{background:linear-gradient(135deg,#12522B,#2E9650)}
+.tile-st{background:linear-gradient(135deg,#1F4359,var(--st))}
+@keyframes tileIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.tile{animation:tileIn .35s ease backwards}
+.tile:nth-child(1){animation-delay:.02s}.tile:nth-child(2){animation-delay:.07s}
+.tile:nth-child(3){animation-delay:.12s}.tile:nth-child(4){animation-delay:.17s}
+
+/* ── DASHBOARD GREETING HERO ── */
+.greet-hero{background:var(--nv-grad),var(--grid-tex);background-blend-mode:normal,overlay;margin:0 -14px 0;padding:20px 16px 28px;border-radius:0 0 22px 22px;box-shadow:0 8px 20px rgba(15,38,71,.22);position:relative}
+.greet-word{font-size:21px;font-weight:800;color:#fff;letter-spacing:-.4px}
+.greet-date{font-size:12px;color:rgba(255,255,255,.65);margin-top:2px}
+.greet-sub{font-size:12px;color:rgba(255,255,255,.85);margin-top:10px;background:rgba(255,255,255,.12);display:inline-block;padding:5px 11px;border-radius:20px;font-weight:600}
+.greet-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}
+.greet-chip{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:12px;font-weight:700;padding:6px 12px;border-radius:20px;font-family:inherit;cursor:pointer;touch-action:manipulation}
+.greet-chip:active{background:rgba(255,255,255,.28)}
+.greet-gear{position:absolute;top:16px;right:16px;width:30px;height:30px;border-radius:9px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:15px;cursor:pointer;touch-action:manipulation;display:flex;align-items:center;justify-content:center}
+.greet-gear:active{background:rgba(255,255,255,.26)}
 
 /* ── PROJECT STATUS BADGES ── */
 .status-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:8px;display:inline-block}
@@ -154,22 +208,44 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .status-lost{background:#FDEDEC;color:var(--rd)}
 
 /* ── TOAST ── */
-#toast{position:fixed;bottom:84px;left:50%;transform:translateX(-50%) translateY(20px);background:#1A1A2E;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;opacity:0;transition:all .3s;z-index:500;white-space:nowrap;pointer-events:none}
+#toast{position:fixed;bottom:84px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--nv-deep);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;opacity:0;transition:opacity .25s,transform .35s cubic-bezier(.2,.9,.3,1.3);z-index:500;white-space:nowrap;pointer-events:none}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* ── MODAL ── */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;-webkit-overflow-scrolling:touch}
-.modal-overlay.on{display:block}
-.modal-sheet{position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;padding:20px 16px 32px;max-height:85vh;overflow-y:auto}
+.modal-overlay{visibility:hidden;opacity:0;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;-webkit-overflow-scrolling:touch;transition:opacity .22s ease,visibility 0s linear .22s}
+.modal-overlay.on{visibility:visible;opacity:1;transition:opacity .22s ease,visibility 0s linear 0s}
+.modal-sheet{position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;padding:20px 16px 32px;max-height:85vh;overflow-y:auto;transform:translateY(24px);transition:transform .25s cubic-bezier(.2,.9,.3,1.1)}
+.modal-overlay.on .modal-sheet{transform:translateY(0)}
 .modal-handle{width:40px;height:4px;background:var(--bd2);border-radius:2px;margin:0 auto 16px}
 .modal-title{font-size:17px;font-weight:700;color:var(--tx);margin-bottom:16px}
 
 /* ── MISC ── */
 .divider{height:1px;background:var(--bd);margin:14px 0}
-.section-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--mu);margin:16px 0 8px 2px}
+.section-label{font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--tx);margin:20px 0 8px 2px;display:flex;align-items:center;gap:6px}
+.section-label .ntd-ic{color:var(--accent, var(--or))}
 .section-label:first-child{margin-top:0}
 .sp-link{color:var(--st);text-decoration:none;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:4px}
 .sp-link::after{content:"↗";font-size:11px}
+
+/* ── DASHBOARD SECTION ACCENTS ── */
+.card-acc{border-top:3px solid var(--accent, var(--nv))}
+.card-acc-or{--accent:var(--or)}
+.card-acc-st{--accent:var(--st)}
+.card-acc-rd{--accent:var(--rd)}
+.card-acc-pu{--accent:var(--pu)}
+.card-acc-nv{--accent:var(--nv)}
+.card-acc-gn{--accent:var(--gn)}
+.card-acc-am{--accent:var(--am)}
+
+/* ── HORIZONTAL ACTIVITY STRIP ── */
+.activity-strip{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 8px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.activity-strip::-webkit-scrollbar{display:none}
+.activity-strip::after{content:'';flex-shrink:0;width:2px}
+.activity-card{flex:0 0 148px;background:#fff;border-radius:14px;border:1px solid var(--bd);box-shadow:var(--card-shadow);padding:12px;cursor:pointer;touch-action:manipulation}
+.activity-card:active{background:var(--of)}
+.activity-card-icon{font-size:22px;margin-bottom:8px}
+.activity-card-title{font-size:12.5px;font-weight:700;color:var(--tx);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.activity-card-sub{font-size:10.5px;color:var(--mu);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pinned-note{background:#FFFBEB;border:1.5px solid #F59E0B;border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px}
 .pinned-note-icon{font-size:18px;flex-shrink:0;margin-top:1px}
 .pinned-note-body{flex:1}
@@ -179,13 +255,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* ── SCHEDULING SUB-NAV ── */
 .sched-subnav{display:flex;gap:8px;margin-bottom:14px}
-.sched-subnav-btn{flex:1;padding:10px;border-radius:11px;border:1.5px solid var(--bd);background:#fff;color:var(--mu);font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;text-align:center}
-.sched-subnav-btn.on{background:var(--nv);border-color:var(--nv);color:#fff}
+.sched-subnav-btn{flex:1;padding:10px;border-radius:11px;border:1.5px solid var(--bd);background:#fff;color:var(--mu);font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;text-align:center;transition:background .18s,color .18s,border-color .18s,box-shadow .18s}
+.sched-subnav-btn.on{background:var(--nv-grad);border-color:var(--nv);color:#fff;box-shadow:0 2px 6px rgba(15,38,71,.25)}
 .sched-req-count{display:inline-block;min-width:16px;padding:0 5px;border-radius:8px;background:var(--rd);color:#fff;font-size:10px;font-weight:800;margin-left:5px;line-height:16px}
 .sched-subnav-btn.on .sched-req-count{background:rgba(255,255,255,.25)}
 
 /* ── SCHEDULE REQUEST CARDS ── */
-.sched-req-card{background:#fff;border-radius:14px;border:1px solid var(--bd);margin-bottom:10px;box-shadow:var(--card-shadow);padding:14px 16px;cursor:pointer}
+.sched-req-card{background:#fff;border-radius:14px;border:1px solid var(--bd);border-left:4px solid var(--or);margin-bottom:10px;box-shadow:var(--card-shadow);padding:14px 16px;cursor:pointer}
 .sched-req-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px}
 .sched-req-fac{font-size:14px;font-weight:700;color:var(--nv)}
 .sched-req-date{font-size:11px;color:var(--mu);margin-top:2px}
@@ -265,7 +341,8 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
 .hdr-icon-btn:active{opacity:.8}
 .hdr-user-pill{background:rgba(255,255,255,.12);border:none;border-radius:20px;padding:6px 12px;font-size:11px;font-weight:700;color:#fff;cursor:pointer;font-family:inherit;touch-action:manipulation;white-space:nowrap;max-width:90px;overflow:hidden;text-overflow:ellipsis;flex-shrink:1}
 .hdr-right{display:flex;align-items:center;gap:7px;flex-shrink:0}
-.notif-badge{position:absolute;top:-3px;right:-3px;min-width:15px;height:15px;padding:0 3px;border-radius:8px;background:var(--rd);color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;line-height:1}
+.notif-badge{position:absolute;top:-3px;right:-3px;min-width:15px;height:15px;padding:0 3px;border-radius:8px;background:var(--rd);color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;line-height:1;animation:badgePulse 2s ease-in-out infinite}
+@keyframes badgePulse{0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,.5)}50%{box-shadow:0 0 0 4px rgba(192,57,43,0)}}
 
 .picker-list{display:flex;flex-direction:column;gap:8px;margin-top:4px}
 .picker-item{padding:14px 16px;border-radius:12px;border:1.5px solid var(--bd);background:#fff;font-size:15px;font-weight:700;color:var(--tx);cursor:pointer;touch-action:manipulation;text-align:left}
@@ -290,7 +367,7 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
   </div>
   <div class="hdr-clock" id="hdr-clock" style="display:none"></div>
   <div class="hdr-right">
-    <button class="hdr-icon-btn" id="hdr-bell-btn" onclick="openNotifPanel()" style="display:none">🔔<span class="notif-badge" id="notif-badge" style="display:none">0</span></button>
+    <button class="hdr-icon-btn" id="hdr-bell-btn" onclick="openNotifPanel()" style="display:none"><svg class="ntd-ic" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="notif-badge" id="notif-badge" style="display:none">0</span></button>
     <button class="hdr-user-pill" id="hdr-user-pill" onclick="showUserPicker(true)" style="display:none"></button>
     <button class="hdr-btn" id="hdr-action-btn" onclick="hdrAction()" style="display:none">+ Facility</button>
   </div>
@@ -301,7 +378,7 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
 <!-- ① DASHBOARD -->
 <div class="pg on" id="pg-dashboard">
   <div id="dashboard-content">
-    <div style="text-align:center;padding:32px;color:var(--mu);font-size:13px">Loading…</div>
+    <div class="skel-card"><div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-lines"><div class="skel skel-line" style="width:70%"></div><div class="skel skel-line"></div></div></div><div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-lines"><div class="skel skel-line" style="width:50%"></div><div class="skel skel-line"></div></div></div></div>
   </div>
 </div>
 
@@ -402,22 +479,22 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
 <!-- BOTTOM NAV -->
 <div class="bnav">
   <button class="bnav-btn on" id="bnav-dashboard" onclick="goPage('dashboard')">
-    <span class="bi">📊</span>Dashboard
+    <span class="bi"><svg class="ntd-ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg></span>Dashboard
   </button>
   <button class="bnav-btn" id="bnav-facilities" onclick="goPage('facilities')">
-    <span class="bi">🏢</span>Facilities
+    <span class="bi"><svg class="ntd-ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="1.5"/><line x1="8" y1="6" x2="8.01" y2="6"/><line x1="16" y1="6" x2="16.01" y2="6"/><line x1="8" y1="10" x2="8.01" y2="10"/><line x1="16" y1="10" x2="16.01" y2="10"/><line x1="8" y1="14" x2="8.01" y2="14"/><line x1="16" y1="14" x2="16.01" y2="14"/><line x1="9" y1="22" x2="9" y2="18"/><line x1="15" y1="22" x2="15" y2="18"/></svg></span>Facilities
   </button>
   <button class="bnav-btn" id="bnav-projects" onclick="goPage('projects')">
-    <span class="bi">📁</span>Projects
+    <span class="bi"><svg class="ntd-ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span>Projects
   </button>
   <button class="bnav-btn" id="bnav-schedule" onclick="goPage('schedule')">
-    <span class="bi">🗓️</span>Schedule
+    <span class="bi"><svg class="ntd-ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>Schedule
   </button>
   <button class="bnav-btn" id="bnav-search" onclick="goPage('search')">
-    <span class="bi">🔍</span>Search
+    <span class="bi"><svg class="ntd-ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>Search
   </button>
   <button class="bnav-btn" id="bnav-settings" onclick="goPage('settings')">
-    <span class="bi">⚙️</span>Settings
+    <span class="bi"><svg class="ntd-ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>Settings
   </button>
 </div>
 
@@ -711,7 +788,51 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
   </div>
 </div>
 
+<!-- CUSTOMIZE DASHBOARD -->
+<div class="modal-overlay" id="dash-prefs-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Customize Dashboard</div>
+    <div style="font-size:12px;color:var(--mu);margin-bottom:14px;line-height:1.5">Choose what shows up on your dashboard. This is saved on this device only — everything is still reachable from Facilities, Projects, and Schedule either way.</div>
+    <div id="dash-prefs-list"></div>
+    <button class="btn btn-nv" onclick="closeModal('dash-prefs-modal');renderDashboard()">Done</button>
+  </div>
+</div>
+
 <script>
+// ── ICON SYSTEM ────────────────────────────────────────────────────────────
+// Small stroke-based SVG set replacing emoji in nav chrome / tabs / labels.
+// currentColor-based so it inherits whatever color/accent context it's in.
+var NTD_ICONS = {
+  grid:      '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/>',
+  building:  '<rect x="4" y="2" width="16" height="20" rx="1.5"/><line x1="8" y1="6" x2="8.01" y2="6"/><line x1="16" y1="6" x2="16.01" y2="6"/><line x1="8" y1="10" x2="8.01" y2="10"/><line x1="16" y1="10" x2="16.01" y2="10"/><line x1="8" y1="14" x2="8.01" y2="14"/><line x1="16" y1="14" x2="16.01" y2="14"/><line x1="9" y1="22" x2="9" y2="18"/><line x1="15" y1="22" x2="15" y2="18"/>',
+  folder:    '<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  calendar:  '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+  search:    '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+  gear:      '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+  bell:      '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
+  alert:     '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+  wrench:    '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z"/>',
+  clipboard: '<path d="M9 2h6a1 1 0 0 1 1 1v1H8V3a1 1 0 0 1 1-1z"/><rect x="5" y="4" width="14" height="18" rx="2"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="15" y2="14"/>',
+  clock:     '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+  check:     '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
+  dollar:    '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+  camera:    '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>',
+  fileText:  '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>'
+};
+function ntdIcon(name, size) {
+  var s = size || 18;
+  return '<svg class="ntd-ic" width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+(NTD_ICONS[name]||'')+'</svg>';
+}
+function ntdSkeleton(count) {
+  var n = count || 3;
+  var rows = '';
+  for (var i = 0; i < n; i++) {
+    rows += '<div class="skel-row"><div class="skel skel-avatar"></div><div class="skel-lines"><div class="skel skel-line" style="width:'+(55+Math.random()*30|0)+'%"></div><div class="skel skel-line"></div></div></div>';
+  }
+  return '<div class="skel-card">' + rows + '</div>';
+}
+
 // ── STATE ──────────────────────────────────────────────────────────────────
 var currentPage = 'facilities';
 var currentFacilityId = null;
@@ -849,8 +970,10 @@ function renderFacilityList() {
         if (hasQuote) tags += '<span class="tag tag-quote">Quoted</span>';
         if (eqCount)  tags += '<span class="tag tag-survey">'+eqCount+' Units</span>';
         if (followups) tags += '<span class="tag" style="background:#FFF3E0;color:var(--am)">⚠ '+followups+' Follow-up'+(followups>1?'s':'')+' </span>';
-        html += '<div class="fac-row" onclick="goDetail(\''+f.id+'\')">' +
-          '<div class="fac-avatar" style="'+(followups?'background:var(--am)':'')+'">'+initials+'</div>' +
+        var _accent = followups ? 'var(--am)' : (_pmStatus && _pmStatus.urgent ? _pmStatus.color : (f.pm_contract ? 'var(--gn)' : 'transparent'));
+        var _delay = Math.min(idx, 14) * 0.025;
+        html += '<div class="fac-row ntd-row-in" style="border-left-color:'+_accent+';animation-delay:'+_delay+'s" onclick="goDetail(\''+f.id+'\')">' +
+          '<div class="fac-avatar" style="'+(followups?'background:var(--am)':(_pmStatus && _pmStatus.urgent?'background:var(--rd)':''))+'">'+initials+'</div>' +
           '<div class="fac-info">' +
             '<div class="fac-name">'+esc(f.name||'Unnamed')+'</div>' +
             '<div class="fac-addr">'+esc([f.address, f.address2].filter(Boolean).join(', ') || f.city || 'No address')+'</div>' +
@@ -902,9 +1025,10 @@ function renderDetail() {
 
     // Tabs
     var tabs = ['timeline','equipment','startups','pm','quotes','projects','photos','notes'];
-    var tabLabels = {timeline:'📅 Timeline',equipment:'🔧 Units',startups:'✅ Startups',pm:'📋 PM',quotes:'💲 Quotes',projects:'📁 Projects',photos:'📷 Photos',notes:'📝 Notes'};
+    var tabIcons = {timeline:'clock',equipment:'wrench',startups:'check',pm:'clipboard',quotes:'dollar',projects:'folder',photos:'camera',notes:'fileText'};
+    var tabLabels = {timeline:'Timeline',equipment:'Units',startups:'Startups',pm:'PM',quotes:'Quotes',projects:'Projects',photos:'Photos',notes:'Notes'};
     var tabsHtml = tabs.map(function(t) {
-      return '<button class="sec-tab'+(t===currentDetailTab?' on':'')+'" onclick="switchDetailTab(\''+t+'\')">'+tabLabels[t]+'</button>';
+      return '<button class="sec-tab'+(t===currentDetailTab?' on':'')+'" onclick="switchDetailTab(\''+t+'\')">'+ntdIcon(tabIcons[t],13)+' '+tabLabels[t]+'</button>';
     }).join('');
     document.getElementById('detail-tabs').innerHTML = tabsHtml;
 
@@ -1226,7 +1350,7 @@ function renderDetailTab(f) {
           '</div></div>';
       }
       if (!equip.length) { content.innerHTML = logsHtml + emptyState('🔧','No units on file','Units appear here after an Equipment Survey, Asset Survey, Startup, or Project submittal is recorded for this facility.'); return; }
-      var html = logsHtml + '<div class="card"><div class="card-body">';
+      var html = logsHtml + '<div class="card card-acc card-acc-st"><div class="card-body">';
       equip.forEach(function(e) {
         var cond = e.condition || '';
         var condColor = cond==='good'?'cond-good':cond==='fair'?'cond-fair':cond==='poor'?'cond-poor':'cond-none';
@@ -1264,7 +1388,7 @@ function renderDetailTab(f) {
     ntdStore.startup_records.list(function(r){ return r.facility_id === fid; }).then(function(recs) {
       if (!recs.length) { content.innerHTML = emptyState('✅','No startup records','Startup records appear here after a technician submits a startup checklist for this facility.'); return; }
       var sorted = recs.sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
-      var html = '<div class="card"><div class="card-body">';
+      var html = '<div class="card card-acc card-acc-gn"><div class="card-body">';
       sorted.forEach(function(r) {
         html += '<div class="rec-row">' +
           '<div class="rec-icon gn">✅</div>' +
@@ -1438,7 +1562,7 @@ function renderDetailTab(f) {
       });
       var html = '';
       if (pmQ.length) {
-        html += '<div class="section-label">PM Proposals</div><div class="card"><div class="card-body">';
+        html += '<div class="section-label" style="--accent:var(--or)">'+ntdIcon('dollar',12)+' PM Proposals</div><div class="card card-acc card-acc-or"><div class="card-body">';
         pmQ.sort(function(a,b){return (b.ts||0)-(a.ts||0);}).forEach(function(q) {
           var pmDoc = qDocMap['pm_proposal|'+qNormDate(q.date||'')];
           var pmPdfLink = pmDoc && pmDoc.file_url
@@ -1457,7 +1581,7 @@ function renderDetailTab(f) {
         html += '</div></div>';
       }
       if (svcQ.length) {
-        html += '<div class="section-label">Service Quotes</div><div class="card"><div class="card-body">';
+        html += '<div class="section-label" style="--accent:var(--am)">'+ntdIcon('wrench',12)+' Service Quotes</div><div class="card card-acc card-acc-am"><div class="card-body">';
         svcQ.sort(function(a,b){return (b.ts||0)-(a.ts||0);}).forEach(function(q) {
           var svcDoc = qDocMap['service_quote|'+qNormDate(q.date||'')];
           var svcPdfLink = svcDoc && svcDoc.file_url
@@ -1486,8 +1610,9 @@ function renderDetailTab(f) {
       var html = addBtn;
       var statusClass = {bidding:'status-bidding',awarded:'status-awarded',progress:'status-progress',complete:'status-complete',lost:'status-lost'};
       var statusLabel = {bidding:'Bidding',awarded:'Awarded',progress:'In Progress',complete:'Complete',lost:'Lost'};
+      var statusColor = {bidding:'var(--am)',awarded:'var(--gn)',progress:'var(--st)',complete:'var(--bd2)',lost:'var(--rd)'};
       projs.sort(function(a,b){return (b.ts||0)-(a.ts||0);}).forEach(function(p) {
-        html += '<div class="card">' +
+        html += '<div class="card" style="border-left:4px solid '+(statusColor[p.status]||'var(--am)')+'">' +
           '<div class="card-body">' +
             '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">' +
               '<div style="font-size:15px;font-weight:700;color:var(--nv);flex:1">'+esc(p.name||'Project')+(p.assigned_pm?' <span style="font-size:12px;font-weight:600;color:var(--mu)">— '+esc(p.assigned_pm)+'</span>':'')+'</div>' +
@@ -2248,9 +2373,11 @@ function renderProjectList() {
       facs.forEach(function(f){ facMap[f.id] = f.name; });
       var statusClass = {bidding:'status-bidding',awarded:'status-awarded',progress:'status-progress',complete:'status-complete',lost:'status-lost'};
       var statusLabel = {bidding:'Bidding',awarded:'Awarded',progress:'In Progress',complete:'Complete',lost:'Lost'};
+      var statusColor = {bidding:'var(--am)',awarded:'var(--gn)',progress:'var(--st)',complete:'var(--bd2)',lost:'var(--rd)'};
       var html = '';
-      filtered.forEach(function(p) {
-        html += '<div class="card ntd-goto" data-fid="'+p.facility_id+'" data-tab="projects" style="cursor:pointer">' +
+      filtered.forEach(function(p, idx) {
+        var _delay = Math.min(idx, 14) * 0.025;
+        html += '<div class="card ntd-goto ntd-row-in" data-fid="'+p.facility_id+'" data-tab="projects" style="cursor:pointer;border-left:4px solid '+(statusColor[p.status]||'var(--am)')+';animation-delay:'+_delay+'s">' +
           '<div class="card-body">' +
             '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px">' +
               '<div style="font-size:15px;font-weight:700;color:var(--nv);flex:1">'+esc(p.name||'Project')+(p.assigned_pm?' <span style="font-size:12px;font-weight:600;color:var(--mu)">— '+esc(p.assigned_pm)+'</span>':'')+'</div>' +
@@ -2445,7 +2572,7 @@ function pmScheduleStatus(nextVisit) {
 // ── DASHBOARD ─────────────────────────────────────────────────────────────
 function renderDashboard() {
   var wrap = document.getElementById('dashboard-content');
-  wrap.innerHTML = '<div style="text-align:center;padding:32px;color:var(--mu);font-size:13px">Loading…</div>';
+  wrap.innerHTML = ntdSkeleton(3);
 
   Promise.all([
     ntdStore.facilities.list(),
@@ -2496,23 +2623,34 @@ function renderDashboard() {
     var facMap = {};
     facilities.forEach(function(f){ facMap[f.id] = f.name||'Unknown'; });
 
-    var html = '';
+    var prefs = getDashPrefs();
 
-    // ── Stats row — rendered after pmDue is computed below
-    var _statsHtml = function(pmUrgentCount) {
-      return '<div class="stats-row">' +
-        statPill(facilities.length, 'Facilities') +
-        statPill(openFollowups.length, 'Follow-ups', openFollowups.length ? 'var(--am)' : null) +
-        statPill(activeProjects.length, 'Active Jobs') +
-        statPill(pmUrgentCount, 'PM Due', pmUrgentCount ? 'var(--rd)' : null) +
-        statPill(pendingReqs.length, 'Tech Requests', pendingReqs.length ? 'var(--am)' : null) +
-      '</div>';
-    };
+    // ── PM Schedule (computed early so stats row can sit right under the hero) ──
+    var pmDue = [];
+    facilities.forEach(function(f) {
+      if (!f.pm_contract || !f.contract || !f.contract.frequency) return;
+      var facVisits = pmRecs.filter(function(r){ return r.facility_id === f.id; });
+      var lastVisit = facVisits.sort(function(a,b){ return (b.ts||0)-(a.ts||0); })[0];
+      var lastDate = lastVisit ? lastVisit.date : (f.contract.start_date || null);
+      var nextVisit = calcNextVisit(lastDate, f.contract.frequency);
+      var status = pmScheduleStatus(nextVisit);
+      if (status) pmDue.push({ facility: f, lastDate: lastDate, nextVisit: nextVisit, status: status });
+    });
+    pmDue.sort(function(a,b){ return a.nextVisit - b.nextVisit; });
+    var pmUrgent = pmDue.filter(function(p){ return p.status.urgent; });
+
+    var html = greetingHero(facilities.length, openFollowups.length, pendingReqs.length, prefs);
+
+    html += tileGrid({
+      facCount: facilities.length,
+      projCount: activeProjects.length,
+      pmUrgentCount: pmUrgent.length
+    }, prefs);
 
     // ── Pending Tech Requests ──
-    if (pendingReqs.length) {
-      html += '<div class="section-label">🔧 Tech Requests Awaiting Confirmation</div>';
-      html += '<div class="card"><div class="card-body">';
+    if (pendingReqs.length && prefs.techRequests) {
+      html += '<div class="section-label" style="--accent:var(--or)">'+ntdIcon('wrench',12)+' Tech Requests Awaiting Confirmation</div>';
+      html += '<div class="card card-acc card-acc-or"><div class="card-body">';
       pendingReqs.sort(function(a,b){ return (a.date||'').localeCompare(b.date||''); }).slice(0,5).forEach(function(e) {
         html += '<div class="rec-row ntd-goto-schedule" style="cursor:pointer">'+
           '<div class="rec-icon or">🔧</div>' +
@@ -2527,8 +2665,8 @@ function renderDashboard() {
     }
 
     // ── Open Follow-ups ──
-    if (openFollowups.length) {
-      html += '<div class="section-label">⚠ Open Follow-ups</div>';
+    if (openFollowups.length && prefs.followups) {
+      html += '<div class="section-label" style="--accent:var(--am)">'+ntdIcon('alert',12)+' Open Follow-ups</div>';
       html += '<div class="followup-card">';
       openFollowups.slice(0,5).forEach(function(r) {
         html += '<div class="followup-item ntd-goto" data-fid="'+r.facility_id+'" style="cursor:pointer">'+
@@ -2544,14 +2682,14 @@ function renderDashboard() {
     }
 
     // ── Expiring Contracts ──
-    if (expiringContracts.length) {
-      html += '<div class="section-label">📋 Contracts Renewing Within 90 Days</div>';
-      html += '<div class="card"><div class="card-body">';
+    if (expiringContracts.length && prefs.contracts) {
+      html += '<div class="section-label" style="--accent:var(--st)">'+ntdIcon('clipboard',12)+' Contracts Renewing Within 90 Days</div>';
+      html += '<div class="card card-acc card-acc-st"><div class="card-body">';
       expiringContracts.forEach(function(f) {
         var rd = new Date(f.contract.renewal_date);
         var days = Math.floor((rd - now) / (1000*60*60*24));
         html += '<div class="rec-row ntd-goto" data-fid="'+f.id+'" data-tab="pm" style="cursor:pointer">'+
-          '<div class="rec-icon or">📋</div>' +
+          '<div class="rec-icon" style="background:#EAF1F6">📋</div>' +
           '<div class="rec-body">' +
             '<div class="rec-title">'+esc(f.name)+'</div>' +
             '<div class="rec-sub">'+(f.contract.annual_value?esc(f.contract.annual_value)+'/yr · ':'')+'Renews '+esc(f.contract.renewal_date)+'</div>' +
@@ -2561,26 +2699,9 @@ function renderDashboard() {
       html += '</div></div>';
     }
 
-    // ── PM Schedule ──
-    var pmDue = [];
-    facilities.forEach(function(f) {
-      if (!f.pm_contract || !f.contract || !f.contract.frequency) return;
-      // Find last PM visit for this facility
-      var facVisits = pmRecs.filter(function(r){ return r.facility_id === f.id; });
-      var lastVisit = facVisits.sort(function(a,b){ return (b.ts||0)-(a.ts||0); })[0];
-      var lastDate = lastVisit ? lastVisit.date : (f.contract.start_date || null);
-      var nextVisit = calcNextVisit(lastDate, f.contract.frequency);
-      var status = pmScheduleStatus(nextVisit);
-      if (status) pmDue.push({ facility: f, lastDate: lastDate, nextVisit: nextVisit, status: status });
-    });
-    pmDue.sort(function(a,b){ return a.nextVisit - b.nextVisit; });
-    var pmUrgent = pmDue.filter(function(p){ return p.status.urgent; });
-
-    html += _statsHtml(pmUrgent.length);
-
-    if (pmUrgent.length) {
-      html += '<div class="section-label">📅 PM Visits Due</div>';
-      html += '<div class="card"><div class="card-body">';
+    if (pmUrgent.length && prefs.pmDue) {
+      html += '<div class="section-label" style="--accent:var(--rd)">'+ntdIcon('calendar',12)+' PM Visits Due</div>';
+      html += '<div class="card card-acc card-acc-rd"><div class="card-body">';
       pmUrgent.forEach(function(p) {
         html += '<div class="rec-row ntd-goto" data-fid="' + p.facility.id + '" data-tab="pm" style="cursor:pointer">' +
           '<div class="rec-icon" style="background:#FDEDEC">📅</div>' +
@@ -2593,42 +2714,37 @@ function renderDashboard() {
       html += '</div></div>';
     }
 
-    // ── Active Projects ──
-    if (activeProjects.length) {
+    // ── Active Projects (horizontal strip) ──
+    if (activeProjects.length && prefs.activeProjects) {
       var statusLabel = {bidding:'Bidding',awarded:'Awarded',progress:'In Progress'};
-      var statusClass = {bidding:'status-bidding',awarded:'status-awarded',progress:'status-progress'};
-      html += '<div class="section-label">📁 Active Projects</div>';
-      html += '<div class="card"><div class="card-body">';
-      activeProjects.slice(0,5).forEach(function(p) {
-        html += '<div class="rec-row ntd-goto" data-fid="'+p.facility_id+'" data-tab="projects" style="cursor:pointer">'+
-          '<div class="rec-icon pu">📁</div>' +
-          '<div class="rec-body">' +
-            '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px">' +
-              '<div class="rec-title">'+esc(p.name||'Project')+'</div>' +
-              '<span class="status-badge '+(statusClass[p.status]||'status-bidding')+'">'+((statusLabel[p.status]||p.status))+'</span>' +
-            '</div>' +
-            '<div class="rec-sub">'+esc(facMap[p.facility_id]||'')+(p.value?' · '+esc(p.value):'')+'</div>' +
-          '</div></div>';
+      html += '<div class="section-label" style="--accent:var(--pu)">'+ntdIcon('folder',12)+' Active Projects</div>';
+      html += '<div class="activity-strip">';
+      activeProjects.slice(0,8).forEach(function(p) {
+        html += '<div class="activity-card ntd-goto" data-fid="'+p.facility_id+'" data-tab="projects">'+
+          '<div class="activity-card-icon">📁</div>' +
+          '<div class="activity-card-title">'+esc(p.name||'Project')+'</div>' +
+          '<div class="activity-card-sub">'+esc(facMap[p.facility_id]||'')+'</div>' +
+          '<span class="status-badge '+(({bidding:'status-bidding',awarded:'status-awarded',progress:'status-progress'})[p.status]||'status-bidding')+'" style="margin-top:8px;display:inline-block">'+((statusLabel[p.status]||p.status))+'</span>' +
+        '</div>';
       });
-      if (activeProjects.length > 5) html += '<div class="ntd-goto-projects" style="font-size:11px;color:var(--mu);padding-top:8px;text-align:center;cursor:pointer">View all '+activeProjects.length+' projects →</div>';
-      html += '</div></div>';
+      html += '</div>';
+      if (activeProjects.length > 8) html += '<div class="ntd-goto-projects" style="font-size:11px;color:var(--mu);padding:2px 0 4px;text-align:center;cursor:pointer">View all '+activeProjects.length+' projects →</div>';
     }
 
-    // ── Recent Activity ──
-    if (recentActivity.length) {
-      html += '<div class="section-label">🕐 Recent Activity</div>';
-      html += '<div class="card"><div class="card-body">';
+    // ── Recent Activity (horizontal strip) ──
+    if (recentActivity.length && prefs.recentActivity) {
+      html += '<div class="section-label" style="--accent:var(--nv)">'+ntdIcon('clock',12)+' Recent Activity</div>';
+      html += '<div class="activity-strip">';
       recentActivity.forEach(function(ev) {
         var d = ev.ts ? new Date(ev.ts) : null;
-        var dateStr = d ? (d.getMonth()+1)+'/'+(d.getDate())+'/'+d.getFullYear()+' '+(function(){var h=d.getHours(),am=h>=12?'PM':'AM';h=h%12||12;return h+':'+(d.getMinutes()<10?'0':'')+d.getMinutes()+' '+am;})() : '';
-        html += '<div class="rec-row ntd-goto" data-fid="'+ev.fid+'"'+(ev.tab?' data-tab="'+ev.tab+'"':'')+' style="cursor:pointer">'+
-          '<div style="font-size:22px;width:36px;text-align:center;flex-shrink:0">'+ev.icon+'</div>' +
-          '<div class="rec-body">' +
-            '<div class="rec-title" style="font-size:13px">'+ev.label+'</div>' +
-            '<div class="rec-sub">'+esc(facMap[ev.fid]||'')+(dateStr?' · '+dateStr:'')+'</div>' +
-          '</div></div>';
+        var dateStr = d ? (d.getMonth()+1)+'/'+(d.getDate()) : '';
+        html += '<div class="activity-card ntd-goto" data-fid="'+ev.fid+'"'+(ev.tab?' data-tab="'+ev.tab+'"':'')+'>'+
+          '<div class="activity-card-icon">'+ev.icon+'</div>' +
+          '<div class="activity-card-title">'+ev.label+'</div>' +
+          '<div class="activity-card-sub">'+esc(facMap[ev.fid]||'')+(dateStr?' · '+dateStr:'')+'</div>' +
+        '</div>';
       });
-      html += '</div></div>';
+      html += '</div>';
     }
 
     // ── Empty state ──
@@ -2641,12 +2757,94 @@ function renderDashboard() {
   });
 }
 
-function statPill(num, label, color) {
-  return '<div class="stat-pill">' +
-    '<div class="stat-num"'+(color?' style="color:'+color+'"':'')+'>'+num+'</div>' +
-    '<div class="stat-lbl">'+label+'</div>' +
+function tileGrid(counts, prefs) {
+  var showProj = prefs.activeProjects;
+  var showPm = prefs.pmDue;
+  var pmColor = (showPm && counts.pmUrgentCount) ? 'tile-or' : 'tile-gn';
+  var pmLbl = !showPm ? 'PM Schedule' : (counts.pmUrgentCount ? 'PM Visits Due' : 'PM — All Clear');
+  var pmNum = showPm ? '<div class="tile-num">'+counts.pmUrgentCount+'</div>' : '';
+  var projNum = showProj ? '<div class="tile-num">'+counts.projCount+'</div>' : '';
+  return '<div class="tile-grid">' +
+    '<button class="tile tile-nv" data-wm="🏢" onclick="goPage(\'facilities\')">' +
+      '<span class="tile-icon">'+ntdIcon('building',24)+'</span>' +
+      '<div><div class="tile-num">'+counts.facCount+'</div><div class="tile-lbl">Facilities</div></div>' +
+    '</button>' +
+    '<button class="tile tile-pu" data-wm="📁" onclick="goPage(\'projects\')">' +
+      '<span class="tile-icon">'+ntdIcon('folder',24)+'</span>' +
+      '<div>'+projNum+'<div class="tile-lbl"'+(showProj?'':' style="margin-top:24px"')+'>Active Projects</div></div>' +
+    '</button>' +
+    '<button class="tile '+pmColor+'" data-wm="🗓️" onclick="goPage(\'schedule\')">' +
+      '<span class="tile-icon">'+ntdIcon('calendar',24)+'</span>' +
+      '<div>'+pmNum+'<div class="tile-lbl"'+(showPm?'':' style="margin-top:24px"')+'>'+pmLbl+'</div></div>' +
+    '</button>' +
+    '<button class="tile tile-st" data-wm="🔍" onclick="goPage(\'search\')">' +
+      '<span class="tile-icon">'+ntdIcon('search',24)+'</span>' +
+      '<div><div class="tile-lbl" style="font-size:13px;margin-top:24px">Search everything</div></div>' +
+    '</button>' +
   '</div>';
 }
+
+function greetingHero(facCount, followupCount, reqCount, prefs) {
+  var user = getCurrentUser();
+  var first = user ? user.split(' ')[0] : null;
+  var h = new Date().getHours();
+  var greetWord = h < 12 ? 'Good morning' : (h < 17 ? 'Good afternoon' : 'Good evening');
+  var dateStr = new Date().toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric'});
+  var chips = '';
+  if (followupCount && prefs.followups) chips += '<button class="greet-chip" onclick="ntdGreetScrollTo(\'.followup-card\')">⚠ '+followupCount+' follow-up'+(followupCount>1?'s':'')+' open</button>';
+  if (reqCount && prefs.techRequests) chips += '<button class="greet-chip" onclick="goPage(\'schedule\')">🔧 '+reqCount+' tech request'+(reqCount>1?'s':'')+' pending</button>';
+  var subHtml = chips
+    ? '<div class="greet-chips">'+chips+'</div>'
+    : ((!followupCount && !reqCount) ? '<div class="greet-sub">'+esc(facCount + ' facilit' + (facCount===1?'y':'ies') + ' on file · all caught up')+'</div>' : '');
+  return '<div class="greet-hero">' +
+    '<button class="greet-gear" onclick="openDashPrefs()" title="Customize dashboard">'+ntdIcon('gear',16)+'</button>' +
+    '<div class="greet-word">'+greetWord+(first?', '+esc(first):'')+'</div>' +
+    '<div class="greet-date">'+esc(dateStr)+'</div>' +
+    subHtml +
+  '</div>';
+}
+
+function ntdGreetScrollTo(selector) {
+  var el = document.querySelector(selector);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── DASHBOARD CUSTOMIZATION (per-device, tied to the picked identity) ──────
+var DASH_SECTIONS = [
+  { key:'techRequests',   label:'Tech Requests',      sub:'Pending dispatch confirmations' },
+  { key:'followups',      label:'Open Follow-ups',    sub:'Items flagged during startups' },
+  { key:'contracts',      label:'Contracts Renewing', sub:'PM contracts due within 90 days' },
+  { key:'pmDue',          label:'PM Visits Due',      sub:'Upcoming and overdue PM visits' },
+  { key:'activeProjects', label:'Active Projects',    sub:'Bidding, awarded, in progress' },
+  { key:'recentActivity', label:'Recent Activity',    sub:'Latest records across the Hub' }
+];
+function getDashPrefs() {
+  var defaults = {};
+  DASH_SECTIONS.forEach(function(s){ defaults[s.key] = true; });
+  try {
+    var raw = localStorage.getItem('ntdDashPrefs_' + (getCurrentUser() || 'device'));
+    if (raw) return Object.assign(defaults, JSON.parse(raw));
+  } catch(e) {}
+  return defaults;
+}
+function setDashPref(key, val) {
+  var prefs = getDashPrefs();
+  prefs[key] = val;
+  try { localStorage.setItem('ntdDashPrefs_' + (getCurrentUser() || 'device'), JSON.stringify(prefs)); } catch(e) {}
+}
+function openDashPrefs() {
+  var prefs = getDashPrefs();
+  document.getElementById('dash-prefs-list').innerHTML = DASH_SECTIONS.map(function(s) {
+    return '<div class="toggle-row">' +
+      '<div><div class="toggle-row-lbl">'+esc(s.label)+'</div><div class="toggle-row-sub">'+esc(s.sub)+'</div></div>' +
+      '<label class="toggle-switch"><input type="checkbox" '+(prefs[s.key]?'checked':'')+' onchange="setDashPref(\''+s.key+'\', this.checked)"><span class="tsw-track"></span><span class="tsw-knob"></span></label>' +
+    '</div>';
+  }).join('');
+  openModal('dash-prefs-modal');
+}
+
+
+
 // ── END DASHBOARD ──────────────────────────────────────────────────────────
 
 function ntdLoadMoreTimeline() {
@@ -2896,7 +3094,7 @@ function refreshSchedReqBadge() {
 // ── REQUESTS LIST (pending, all facilities) ─────────────────────────────────
 function renderRequestsList() {
   var wrap = document.getElementById('sched-requests-wrap');
-  wrap.innerHTML = '<div style="text-align:center;padding:24px;color:var(--mu);font-size:13px">Loading…</div>';
+  wrap.innerHTML = ntdSkeleton(2);
 
   Promise.all([
     ntdStore.team_calendar.list(function(e){ return e.status === 'pending'; }),
@@ -3386,7 +3584,7 @@ function openNotifPanel() {
   var name = getCurrentUser();
   var wrap = document.getElementById('notif-list-wrap');
   if (!name) { showUserPicker(true); return; }
-  wrap.innerHTML = '<div style="text-align:center;padding:24px;color:var(--mu);font-size:13px">Loading…</div>';
+  wrap.innerHTML = ntdSkeleton(2);
   openModal('notif-modal');
 
   ntdStore.notifications.list(function(n){ return n.recipient_name === name; }).then(function(rows) {
