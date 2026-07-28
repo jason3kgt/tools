@@ -2212,7 +2212,7 @@ function ntdPmImportRenderPreview() {
     html += '</tr>';
   });
   html += '</table></div>';
-  html += '<button class="btn btn-nv" onclick="ntdPmImportPublish()" type="button" style="margin-top:10px">Import These ' + _pmImportRows.length + ' Contract(s)</button>';
+  html += '<button class="btn btn-nv" id="pmimport-publish-btn" onclick="ntdPmImportPublish()" type="button" style="margin-top:10px">Import These ' + _pmImportRows.length + ' Contract(s)</button>';
   wrap.innerHTML = html;
 }
 
@@ -2221,15 +2221,22 @@ function ntdPmImportRemoveRow(idx) {
   ntdPmImportRenderPreview();
 }
 
+var _pmImportInFlight = false;
 function ntdPmImportPublish() {
-  if (!_pmImportRows.length) return;
+  if (_pmImportInFlight || !_pmImportRows.length) return;
+  _pmImportInFlight = true;
+
   var rows = _pmImportRows.slice();
   var results = { created: 0, updated: 0, errors: [] };
+  var done = 0;
+
+  var btn = document.getElementById('pmimport-publish-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Importing 0 / ' + rows.length + '…'; }
 
   var chain = rows.reduce(function(chain, row) {
     return chain.then(function() {
       var name = row.name.trim();
-      if (!name) return;
+      if (!name) { done++; return; }
       return ntdStore.matchFacility.find(name).then(function(match) {
         var contractPatch = {};
         if (row.frequency) contractPatch.frequency = row.frequency;
@@ -2245,11 +2252,15 @@ function ntdPmImportPublish() {
           .then(function(){ results.created++; });
       }).catch(function(err) {
         results.errors.push(name + ': ' + (err.message || 'failed'));
+      }).then(function() {
+        done++;
+        if (btn) btn.textContent = 'Importing ' + done + ' / ' + rows.length + '…';
       });
     });
   }, Promise.resolve());
 
   chain.then(function() {
+    _pmImportInFlight = false;
     var status = document.getElementById('pmimport-status');
     status.style.display = 'block';
     status.style.background = results.errors.length ? '#FFF3E0' : '#E6F4EA';
@@ -2260,6 +2271,17 @@ function ntdPmImportPublish() {
     document.getElementById('pmimport-preview').innerHTML = '';
     _pmImportRows = [];
     showToast('PM contracts imported');
+  }).catch(function(err) {
+    // Belt-and-suspenders — the per-row .catch() above should handle normal
+    // failures, but if something unexpected still slips through, always
+    // release the button and tell the user rather than hanging silently.
+    _pmImportInFlight = false;
+    if (btn) { btn.disabled = false; btn.textContent = 'Import These ' + rows.length + ' Contract(s)'; }
+    var status = document.getElementById('pmimport-status');
+    status.style.display = 'block';
+    status.style.background = '#FDEDEC';
+    status.style.color = 'var(--rd)';
+    status.innerHTML = '⚠ Import stopped unexpectedly: ' + esc(err.message || 'unknown error') + '. Anything already saved is safe — you can paste the remaining rows and try again.';
   });
 }
 
@@ -3271,6 +3293,7 @@ function switchScheduleView(view) {
 
 // ── PENDING REQUEST BADGE (sub-nav + dashboard) ─────────────────────────────
 function refreshSchedReqBadge() {
+  if (!ntdStore.team_calendar) return;
   ntdStore.team_calendar.list(function(e){ return e.status === 'pending'; }).then(function(rows) {
     var count = (rows || []).length;
     var badge = document.getElementById('sched-req-count');
@@ -3891,28 +3914,11 @@ document.addEventListener('click', function(e) {
 });
 
 window.addEventListener('load', function() {
-  // Safety check — if ntdStore didn't load, show error instead of hanging
-  if (typeof ntdStore === 'undefined') {
-    document.getElementById('dashboard-content').innerHTML =
-      '<div class="empty" style="padding-top:48px">' +
-        '<div class="empty-icon">⚠️</div>' +
-        '<h3>Store unavailable</h3>' +
-        '<p>ntdStore.js could not be loaded. Make sure it is uploaded to your GitHub repo alongside ntd-hub.html.</p>' +
-      '</div>';
-    return;
-  }
-  renderDashboard();
-  refreshSchedReqBadge();
-  initTvModeIfRequested();
-
-  var tvRequested = (new URLSearchParams(window.location.search)).get('tv') === '1';
-  if (!tvRequested) {
-    updateUserPillDisplay();
-    if (!getCurrentUser()) { showUserPicker(false); }
-    refreshNotifBadge();
-    notifPollTimer = setInterval(refreshNotifBadge, 45000);
-  }
-
+  // Service worker registration goes FIRST, before anything else in this
+  // handler — that way, if a later step throws (a bad ntdStore.js, a bug in
+  // a render function, whatever), it can never again prevent the SW's
+  // self-update logic from running, which is what would otherwise let a
+  // stale cached ntdStore.js persist indefinitely with no way to self-heal.
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').then(function(reg) {
       if (reg.waiting) reg.waiting.postMessage('skipWaiting');
@@ -3933,6 +3939,32 @@ window.addEventListener('load', function() {
       swRefreshed = true;
       window.location.reload();
     });
+  }
+
+  // Safety check — if ntdStore didn't load, show error instead of hanging
+  if (typeof ntdStore === 'undefined') {
+    document.getElementById('dashboard-content').innerHTML =
+      '<div class="empty" style="padding-top:48px">' +
+        '<div class="empty-icon">⚠️</div>' +
+        '<h3>Store unavailable</h3>' +
+        '<p>ntdStore.js could not be loaded. Make sure it is uploaded to your GitHub repo alongside ntd-hub.html.</p>' +
+      '</div>';
+    return;
+  }
+
+  // Each of these is independent — wrap so one throwing can't skip the rest.
+  try { renderDashboard(); } catch(e) { console.error('renderDashboard failed:', e); }
+  try { refreshSchedReqBadge(); } catch(e) { console.error('refreshSchedReqBadge failed:', e); }
+  try { initTvModeIfRequested(); } catch(e) { console.error('initTvModeIfRequested failed:', e); }
+
+  var tvRequested = (new URLSearchParams(window.location.search)).get('tv') === '1';
+  if (!tvRequested) {
+    try {
+      updateUserPillDisplay();
+      if (!getCurrentUser()) { showUserPicker(false); }
+      refreshNotifBadge();
+      notifPollTimer = setInterval(refreshNotifBadge, 45000);
+    } catch(e) { console.error('user pill / notifications setup failed:', e); }
   }
 });
 </script>
