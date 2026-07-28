@@ -1550,7 +1550,7 @@ function renderDetailTab(f) {
         '<div class="fg"><label>Annual Value</label><input type="text" id="c-val" value="'+esc(c.annual_value||'')+'" placeholder="e.g. $24,800"></div>' +
         '<div class="fg"><label>Visit Frequency</label><select id="c-freq">' +
           ['','Monthly','Quarterly','Semi-Annual','Annual','Custom'].map(function(o){
-            return '<option value="'+o+'"'+(c.frequency===o?' selected':'')+'>'+o+'</option>';
+            return '<option value="'+o+'"'+((c.frequency||'').toLowerCase()===o.toLowerCase()?' selected':'')+'>'+o+'</option>';
           }).join('') +
         '</select></div>' +
         '<div class="fg"><label>Visits Per Year</label><input type="text" id="c-vis" value="'+esc(c.visits_per_year||'')+'" placeholder="e.g. 4"></div>' +
