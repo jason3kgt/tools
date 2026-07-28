@@ -63,10 +63,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .ntd-row-in{animation:rowIn .3s ease backwards}
 
 /* ── SEARCH BAR ── */
-.search-wrap{position:relative;margin-bottom:14px}
+.search-wrap{position:sticky;top:56px;z-index:150;background:var(--bg);margin:0 -14px 14px;padding:10px 14px;transition:box-shadow .15s}
+.search-wrap.is-stuck{box-shadow:0 4px 10px rgba(15,38,71,.08)}
 .search-wrap input{width:100%;padding:11px 14px 11px 40px;border:1.5px solid var(--bd);border-radius:13px;font-size:14px;font-family:inherit;background:#fff;color:var(--tx);-webkit-appearance:none}
 .search-wrap input:focus{outline:none;border-color:var(--st);box-shadow:0 0 0 3px rgba(60,110,147,.12)}
-.search-wrap::before{content:"🔍";position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none}
+.search-wrap::before{content:"🔍";position:absolute;left:27px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none}
 
 /* ── CARDS ── */
 .card{background:#fff;border-radius:16px;border:1px solid var(--bd);margin-bottom:12px;overflow:hidden;box-shadow:var(--card-shadow)}
@@ -76,20 +77,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .card-body{padding:14px 16px}
 
 /* ── FACILITY LIST ── */
-.fac-row{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--bd);cursor:pointer;touch-action:manipulation;background:#fff;transition:background .15s;border-left:3px solid transparent}
+.fac-group-hdr{padding:5px 16px;font-size:11px;font-weight:800;color:var(--mu);background:var(--of);letter-spacing:.06em;text-transform:uppercase;position:sticky;top:114px;z-index:60}
+.fac-row{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--bd);cursor:pointer;touch-action:manipulation;background:#fff;transition:background .15s;border-left:3px solid transparent}
 .fac-row:last-child{border-bottom:none}
 .fac-row:active{background:var(--of)}
-.fac-avatar{width:42px;height:42px;border-radius:12px;background:var(--nv-grad);color:#fff;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 6px rgba(15,38,71,.25)}
+.fac-avatar{width:36px;height:36px;border-radius:10px;background:var(--nv-grad);color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 6px rgba(15,38,71,.25)}
 .fac-info{flex:1;min-width:0}
-.fac-name{font-size:15.5px;font-weight:800;color:var(--nv-deep);letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.fac-addr{font-size:11px;color:var(--mu);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.fac-tags{display:flex;gap:4px;margin-top:5px;flex-wrap:wrap}
+.fac-name{font-size:14.5px;font-weight:800;color:var(--nv-deep);letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fac-addr{font-size:10.5px;color:var(--mu);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fac-tags{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
 .tag{font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px;white-space:nowrap}
 .tag-pm{background:#E8F0FA;color:var(--nv)}
 .tag-startup{background:#E8F5EC;color:var(--gn)}
 .tag-quote{background:#FEF0EA;color:var(--or)}
 .tag-survey{background:#F3F0FA;color:#5B21B6}
-.fac-arrow{color:var(--bd2);font-size:20px;flex-shrink:0}
+.tag-more{background:var(--of);color:var(--mu)}
+.fac-arrow{color:var(--bd2);font-size:18px;flex-shrink:0}
 .followup-badge{display:inline-flex;align-items:center;gap:4px;background:#FDF0DC;color:var(--am);font-size:10px;font-weight:700;padding:3px 8px;border-radius:8px;border:1px solid #E8B65C}
 .followup-card{background:#FDF5E8;border:1.5px solid #E8B65C;border-radius:14px;padding:14px 16px;margin-bottom:14px}
 .followup-card-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px}
@@ -973,14 +976,24 @@ function renderFacilityList() {
     ]).then(function(results) {
       var startups = results[0], pmRecs = results[1], pmQuotes = results[2], equip = results[3];
       var html = '<div class="card" style="padding:0;overflow:hidden">';
+      var TAG_CAP = 2;
+      var _lastLetter = null;
       filtered.forEach(function(f, idx) {
+        // A–Z group header (only when list isn't filtered by a search term)
+        if (!q) {
+          var _letter = (f.name||'?').trim().charAt(0).toUpperCase();
+          if (_letter < 'A' || _letter > 'Z') _letter = '#';
+          if (_letter !== _lastLetter) {
+            html += '<div class="fac-group-hdr">'+_letter+'</div>';
+            _lastLetter = _letter;
+          }
+        }
         var initials = (f.name||'?').split(' ').map(function(w){ return w[0]; }).join('').substring(0,2).toUpperCase();
         var hasPM    = pmRecs.some(function(r){ return r.facility_id === f.id; });
         var hasStart = startups.some(function(r){ return r.facility_id === f.id; });
         var hasQuote = pmQuotes.some(function(r){ return r.facility_id === f.id; });
         var eqCount  = equip.filter(function(e){ return e.facility_id === f.id; }).length;
         var followups = startups.filter(function(r){ return r.facility_id === f.id && r.followup && r.followup.trim(); }).length;
-        var tags = '';
         // PM schedule status
         var _pmStatus = null;
         if (f.pm_contract && f.contract && f.contract.frequency) {
@@ -990,13 +1003,17 @@ function renderFacilityList() {
           var _nextV = calcNextVisit(_lastD, f.contract.frequency);
           _pmStatus = pmScheduleStatus(_nextV);
         }
-        if (f.pm_contract) tags += '<span class="tag tag-pm">PM Contract</span>';
-        if (_pmStatus && _pmStatus.urgent) tags += '<span class="tag" style="background:#FDEDEC;color:' + _pmStatus.color + '">' + _pmStatus.label + '</span>';
-        if (hasPM)    tags += '<span class="tag tag-pm">PM History</span>';
-        if (hasStart) tags += '<span class="tag tag-startup">Startup</span>';
-        if (hasQuote) tags += '<span class="tag tag-quote">Quoted</span>';
-        if (eqCount)  tags += '<span class="tag tag-survey">'+eqCount+' Units</span>';
-        if (followups) tags += '<span class="tag" style="background:#FFF3E0;color:var(--am)">⚠ '+followups+' Follow-up'+(followups>1?'s':'')+' </span>';
+        // Build tags in priority order (most actionable first) so the cap never hides a warning
+        var tagsArr = [];
+        if (followups) tagsArr.push('<span class="tag" style="background:#FFF3E0;color:var(--am)">⚠ '+followups+' Follow-up'+(followups>1?'s':'')+'</span>');
+        if (_pmStatus && _pmStatus.urgent) tagsArr.push('<span class="tag" style="background:#FDEDEC;color:' + _pmStatus.color + '">' + _pmStatus.label + '</span>');
+        if (f.pm_contract) tagsArr.push('<span class="tag tag-pm">PM Contract</span>');
+        if (hasPM)    tagsArr.push('<span class="tag tag-pm">PM History</span>');
+        if (hasStart) tagsArr.push('<span class="tag tag-startup">Startup</span>');
+        if (hasQuote) tagsArr.push('<span class="tag tag-quote">Quoted</span>');
+        if (eqCount)  tagsArr.push('<span class="tag tag-survey">'+eqCount+' Units</span>');
+        var tags = tagsArr.slice(0, TAG_CAP).join('');
+        if (tagsArr.length > TAG_CAP) tags += '<span class="tag tag-more">+'+(tagsArr.length-TAG_CAP)+' more</span>';
         var _accent = followups ? 'var(--am)' : (_pmStatus && _pmStatus.urgent ? _pmStatus.color : (f.pm_contract ? 'var(--gn)' : 'transparent'));
         var _delay = Math.min(idx, 14) * 0.025;
         html += '<div class="fac-row ntd-row-in" style="border-left-color:'+_accent+';animation-delay:'+_delay+'s" onclick="goDetail(\''+f.id+'\')">' +
