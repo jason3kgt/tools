@@ -358,6 +358,9 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
 .picker-item{padding:14px 16px;border-radius:12px;border:1.5px solid var(--bd);background:#fff;font-size:15px;font-weight:700;color:var(--tx);cursor:pointer;touch-action:manipulation;text-align:left}
 .picker-item:active{background:var(--of)}
 
+.tag-chip{padding:7px 13px;border-radius:20px;border:1.5px solid var(--bd);background:#fff;font-size:12.5px;font-weight:600;color:var(--tx);cursor:pointer;touch-action:manipulation;font-family:inherit}
+.tag-chip.on{background:var(--nv-grad);border-color:var(--nv);color:#fff}
+
 .notif-item{padding:12px 14px;border-radius:12px;border:1px solid var(--bd);margin-bottom:8px;cursor:pointer;background:#fff}
 .notif-item.unread{background:#EEF3FB;border-color:var(--st)}
 .notif-item-msg{font-size:13px;color:var(--tx);line-height:1.5}
@@ -615,6 +618,10 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
     </div>
     <div class="fg"><label>Label (optional)</label><input type="text" id="hp-label" placeholder="e.g. Roof Access, Damage — 7/16"></div>
     <div class="fg"><label>Photo</label><input type="file" id="hp-file" accept="image/*"></div>
+    <div class="fg">
+      <label>Tag someone (optional) — they'll get a notification</label>
+      <div id="hp-tag-list" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+    </div>
     <button class="btn btn-nv" onclick="submitHubPhoto()" type="button">Upload</button>
     <button class="btn btn-outline" onclick="closeModal('hub-photo-modal')" style="margin-top:6px">Cancel</button>
   </div>
@@ -925,6 +932,7 @@ var currentDetailTab = 'timeline';
 var editingFacilityId = null;
 var editingProjectId = null;
 var editingProjectFacilityId = null;
+var hpTaggedPeople = [];
 
 // ── SCHEDULING / TEAM CALENDAR STATE ────────────────────────────────────────
 var currentScheduleView = 'requests';
@@ -2002,9 +2010,28 @@ function renderPhotoHub() {
   });
 }
 
+function ntdPhRenderTagChips() {
+  var wrap = document.getElementById('hp-tag-list');
+  if (!wrap) return;
+  var me = getCurrentUser();
+  wrap.innerHTML = STAFF_NAMES.filter(function(n){ return n !== me; }).map(function(n) {
+    var on = hpTaggedPeople.indexOf(n) > -1;
+    return '<button type="button" class="tag-chip'+(on?' on':'')+'" onclick="ntdPhToggleTag(\''+esc(n).replace(/'/g,"\\'")+'\')">'+esc(n)+'</button>';
+  }).join('');
+}
+
+function ntdPhToggleTag(name) {
+  var i = hpTaggedPeople.indexOf(name);
+  if (i > -1) hpTaggedPeople.splice(i, 1);
+  else hpTaggedPeople.push(name);
+  ntdPhRenderTagChips();
+}
+
 function openAddHubPhoto() {
   document.getElementById('hp-label').value = '';
   document.getElementById('hp-file').value = '';
+  hpTaggedPeople = [];
+  ntdPhRenderTagChips();
   ntdPhLoadFacilityOptions('hp-facility', false).then(function() {
     document.getElementById('hp-facility').value = '';
     openModal('hub-photo-modal');
@@ -2020,6 +2047,7 @@ function submitHubPhoto() {
   var facilityName = facilityId ? facSel.options[facSel.selectedIndex].textContent : '';
   var label = document.getElementById('hp-label').value.trim();
   var tech = getCurrentUser() || '';
+  var taggedPeople = hpTaggedPeople.slice();
 
   function doUpload(blob) {
     ntdStore.photos.upload({
@@ -2034,6 +2062,15 @@ function submitHubPhoto() {
       closeModal('hub-photo-modal');
       showToast('✓ Photo uploaded');
       renderPhotoHub();
+      if (taggedPeople.length) {
+        var who = tech || 'Someone';
+        var where = facilityName ? (' at ' + facilityName) : '';
+        var what = label ? (': ' + label) : '';
+        var msg = who + ' tagged you on a photo' + where + what;
+        taggedPeople.forEach(function(name) {
+          createNotification(name, msg, doc.id, 'photo');
+        });
+      }
     }).catch(function(err) {
       alert('Upload failed: ' + (err.message || 'see console for details'));
     });
@@ -4192,7 +4229,7 @@ function openNotifPanel() {
 
   ntdStore.notifications.list(function(n){ return n.recipient_name === name; }).then(function(rows) {
     rows = (rows||[]).sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
-    if (!rows.length) { wrap.innerHTML = emptyState('🔔','No notifications yet','You\'ll see updates here when a tech request you submitted gets confirmed.'); return; }
+    if (!rows.length) { wrap.innerHTML = emptyState('🔔','No notifications yet','You\'ll see updates here when a tech request is confirmed or someone tags you on a photo.'); return; }
     wrap.innerHTML = rows.map(function(n) {
       var when = n.ts ? new Date(n.ts).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : '';
       return '<div class="notif-item'+(n.read?'':' unread')+'" onclick="notifItemClick(\''+n.id+'\',\''+(n.related_id||'')+'\')">' +
@@ -4211,13 +4248,26 @@ function notifItemClick(notifId, relatedId) {
       n.read = true;
       ntdStore.notifications.upsert(n).then(refreshNotifBadge);
     }
+    closeModal('notif-modal');
+    if (n && n.type === 'photo' && relatedId) {
+      ntdStore.documents.get(relatedId).then(function(doc) {
+        goPage('photos');
+        if (doc) {
+          ntdPhLoadFacilityOptions('ph-filter-facility', true).then(function() {
+            document.getElementById('ph-filter-facility').value = doc.facility_id || 'unassigned';
+            renderPhotoHub();
+          });
+          if (doc.file_url) window.open(doc.file_url, '_blank');
+        }
+      });
+      return;
+    }
+    if (relatedId) {
+      currentScheduleView = 'calendar';
+      goPage('schedule');
+      setTimeout(function(){ openEditCalEntry(relatedId); }, 200);
+    }
   });
-  closeModal('notif-modal');
-  if (relatedId) {
-    currentScheduleView = 'calendar';
-    goPage('schedule');
-    setTimeout(function(){ openEditCalEntry(relatedId); }, 200);
-  }
 }
 
 // ── END SCHEDULING + TEAM CALENDAR ──────────────────────────────────────────
