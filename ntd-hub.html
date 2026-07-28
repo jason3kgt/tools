@@ -2959,9 +2959,10 @@ function renderDashboard() {
     if (pmUrgent.length && prefs.pmDue) {
       html += '<div class="section-label" style="--accent:var(--rd)">'+ntdIcon('calendar',12)+' PM Visits Due</div>';
       html += '<div class="card card-acc card-acc-rd"><div class="card-body">';
-      pmUrgent.forEach(function(p) {
+      pmUrgent.slice(0,5).forEach(function(p) {
         html += pmDueRow(p, scheduledPmMap[p.facility.id]);
       });
+      if (pmUrgent.length > 5) html += '<div class="ntd-goto-pmdue" style="font-size:11px;color:var(--mu);padding-top:8px;text-align:center;cursor:pointer">View all '+pmUrgent.length+' visits due →</div>';
       html += '</div></div>';
     }
 
@@ -4059,6 +4060,7 @@ document.addEventListener('click', function(e) {
   if (e.target.closest('.ntd-goto-projects')) { goPage('projects'); return; }
   // Navigate to Scheduling > Requests
   if (e.target.closest('.ntd-goto-schedule')) { currentScheduleView = 'requests'; goPage('schedule'); return; }
+  if (e.target.closest('.ntd-goto-pmdue')) { currentScheduleView = 'pmdue'; goPage('schedule'); return; }
   // "📅 Schedule" button on a PM Due row — open the calendar modal pre-filled
   var schedBtn = e.target.closest('.ntd-schedule-pm');
   if (schedBtn) { scheduleFromPmDue(schedBtn.getAttribute('data-fid'), schedBtn.getAttribute('data-date')); return; }
