@@ -1225,6 +1225,18 @@ function ntdBackupPhoto(blob,tag,photoObj,onDone){
     photoObj.backedUp=true;
     photoObj.remotePath=path;
     if(onDone)onDone();
+    // Log to the documents table so this photo shows up in the central Photo
+    // Hub, filterable by facility. Best-effort — the raw backup above already
+    // succeeded, so a failure here never blocks the checklist.
+    if(ntdStore.photos&&ntdStore.photos.log){
+      ntdStore.photos.log({
+        path:path,
+        facilityName:gv('sf')||'',
+        formType:(tag==='site')?'site_photo':'unit_photo',
+        description:(tag==='site')?'Site Photo':('Unit '+tag),
+        tech:(typeof getCurrentUser==='function'?(getCurrentUser()||''):'')
+      });
+    }
   }).catch(function(err){
     console.warn('[NTD] Photo backup failed (will still work locally for this session):',err);
   });

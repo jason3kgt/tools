@@ -454,6 +454,26 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
   </div>
 </div>
 
+<!-- ⑤ PHOTO HUB -->
+<div class="pg" id="pg-photos">
+  <div style="display:flex;gap:8px;margin-bottom:10px">
+    <select id="ph-filter-facility" onchange="renderPhotoHub()" style="flex:1;border:1.5px solid var(--bd);border-radius:10px;padding:0 10px;height:38px;font-size:13px;color:var(--tx);background:#fff">
+      <option value="all">All Facilities</option>
+      <option value="unassigned">Unassigned</option>
+    </select>
+    <select id="ph-filter-type" onchange="renderPhotoHub()" style="flex:1;border:1.5px solid var(--bd);border-radius:10px;padding:0 10px;height:38px;font-size:13px;color:var(--tx);background:#fff">
+      <option value="all">All Types</option>
+      <option value="facility_photo">Facility</option>
+      <option value="unit_photo">Unit</option>
+      <option value="data_plate_photo">Data Plate</option>
+      <option value="site_photo">Site</option>
+    </select>
+  </div>
+  <button class="btn btn-nv" style="width:100%;margin-bottom:12px" onclick="openAddHubPhoto()">📷 Add Photo</button>
+  <div id="photo-hub-count" style="font-size:11px;color:var(--mu);margin-bottom:8px"></div>
+  <div id="photo-hub-grid"></div>
+</div>
+
 <!-- ③ SEARCH -->
 <div class="pg" id="pg-search">
   <div class="search-wrap">
@@ -533,6 +553,9 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
   <button class="bnav-btn" id="bnav-schedule" onclick="goPage('schedule')">
     <span class="bi"><svg class="ntd-ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>Schedule
   </button>
+  <button class="bnav-btn" id="bnav-photos" onclick="goPage('photos')">
+    <span class="bi"><svg class="ntd-ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span>Photos
+  </button>
   <button class="bnav-btn" id="bnav-search" onclick="goPage('search')">
     <span class="bi"><svg class="ntd-ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>Search
   </button>
@@ -576,6 +599,24 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
     <div class="fg"><label>Notes</label><textarea id="fm-notes" placeholder="Any relevant notes…"></textarea></div>
     <button class="btn btn-nv" onclick="saveFacility()">Save Facility</button>
     <button class="btn btn-outline" onclick="closeModal('fac-modal')" style="margin-top:6px">Cancel</button>
+  </div>
+</div>
+
+<!-- ADD PHOTO MODAL (Photo Hub) -->
+<div class="modal-overlay" id="hub-photo-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add Photo</div>
+    <div class="fg">
+      <label>Facility</label>
+      <select id="hp-facility">
+        <option value="">— Unassigned (tag later) —</option>
+      </select>
+    </div>
+    <div class="fg"><label>Label (optional)</label><input type="text" id="hp-label" placeholder="e.g. Roof Access, Damage — 7/16"></div>
+    <div class="fg"><label>Photo</label><input type="file" id="hp-file" accept="image/*"></div>
+    <button class="btn btn-nv" onclick="submitHubPhoto()" type="button">Upload</button>
+    <button class="btn btn-outline" onclick="closeModal('hub-photo-modal')" style="margin-top:6px">Cancel</button>
   </div>
 </div>
 
@@ -928,6 +969,10 @@ function goPage(page) {
     hdrBtn.textContent = '+ Entry';
     hdrBtn.style.display = 'block';
     renderScheduleView();
+  } else if (page === 'photos') {
+    hdrBtn.textContent = '+ Photo';
+    hdrBtn.style.display = 'block';
+    renderPhotoHub();
   } else if (page === 'search') {
     hdrBtn.style.display = 'none';
     setTimeout(function(){ var el = document.getElementById('global-search'); if(el) el.focus(); }, 100);
@@ -957,6 +1002,7 @@ function hdrAction() {
   if (currentPage === 'facilities') openAddFacility();
   else if (currentPage === 'projects') openAddProject(null);
   else if (currentPage === 'schedule') openAddCalEntry();
+  else if (currentPage === 'photos') openAddHubPhoto();
 }
 
 // ── FACILITY LIST ─────────────────────────────────────────────────────────
@@ -1874,6 +1920,129 @@ function ntdUploadFacilityPhoto(facilityId) {
     ntdRenderFacilityPhotos(facilityId);
   }).catch(function(err) {
     alert('Upload failed: ' + (err.message || 'see console for details'));
+  });
+}
+
+// ── PHOTO HUB (central, cross-facility) ────────────────────────────────────
+var NTD_PH_TYPE_LABELS = {
+  facility_photo: 'Facility', unit_photo: 'Unit', data_plate_photo: 'Data Plate', site_photo: 'Site'
+};
+
+function compressImage(file,maxDim,quality){
+  maxDim=maxDim||1600;quality=quality||0.75;
+  return new Promise(function(resolve,reject){
+    var url=URL.createObjectURL(file);
+    var img=new Image();
+    img.onload=function(){
+      URL.revokeObjectURL(url);
+      var w=img.width,h=img.height;
+      if(w>maxDim||h>maxDim){
+        if(w>=h){h=Math.round(h*maxDim/w);w=maxDim;}
+        else{w=Math.round(w*maxDim/h);h=maxDim;}
+      }
+      var canvas=document.createElement('canvas');
+      canvas.width=w;canvas.height=h;
+      var ctx=canvas.getContext('2d');
+      ctx.drawImage(img,0,0,w,h);
+      var dataUrl=canvas.toDataURL('image/jpeg',quality);
+      if(canvas.toBlob){
+        canvas.toBlob(function(blob){ resolve({dataUrl:dataUrl,blob:blob}); },'image/jpeg',quality);
+      }else{
+        resolve({dataUrl:dataUrl,blob:file});
+      }
+    };
+    img.onerror=function(e){URL.revokeObjectURL(url);reject(e);};
+    img.src=url;
+  });
+}
+
+function ntdPhLoadFacilityOptions(selectId, includeAllUnassigned) {
+  return calLoadFacilitiesCache().then(function(facs) {
+    var sel = document.getElementById(selectId);
+    if (!sel) return facs;
+    var current = sel.value;
+    var opts = includeAllUnassigned
+      ? '<option value="all">All Facilities</option><option value="unassigned">Unassigned</option>'
+      : '<option value="">— Unassigned (tag later) —</option>';
+    opts += (facs || []).slice().sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); })
+      .map(function(f){ return '<option value="'+esc(f.id)+'">'+esc(f.name||'Unnamed')+'</option>'; }).join('');
+    sel.innerHTML = opts;
+    if (current) sel.value = current;
+    return facs;
+  });
+}
+
+function renderPhotoHub() {
+  var grid = document.getElementById('photo-hub-grid');
+  var countEl = document.getElementById('photo-hub-count');
+  if (!grid) return;
+  grid.innerHTML = ntdSkeleton(4);
+  ntdPhLoadFacilityOptions('ph-filter-facility', true).then(function(facs) {
+    var facMap = {};
+    (facs || []).forEach(function(f){ facMap[f.id] = f.name || 'Unnamed'; });
+    var facFilter = document.getElementById('ph-filter-facility').value || 'all';
+    var typeFilter = document.getElementById('ph-filter-type').value || 'all';
+    ntdStore.photos.list({ facilityId: facFilter, formType: typeFilter }).then(function(photos) {
+      countEl.textContent = photos.length + (photos.length === 1 ? ' photo' : ' photos');
+      if (!photos.length) {
+        grid.innerHTML = emptyState('📷', 'No photos yet', 'Photos taken in the field tools, or added here directly, will show up in this hub.');
+        return;
+      }
+      grid.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' + photos.map(function(d) {
+        var facName = d.facility_id ? (facMap[d.facility_id] || 'Unknown Facility') : 'Unassigned';
+        return '<a href="'+esc(d.file_url)+'" target="_blank" style="display:block;border-radius:10px;overflow:hidden;border:1.5px solid var(--bd);background:#fff;text-decoration:none">' +
+          '<img src="'+esc(d.file_url)+'" style="width:100%;height:130px;object-fit:cover;display:block">' +
+          '<div style="padding:7px 9px">' +
+            '<div style="font-size:12px;font-weight:700;color:var(--tx);line-height:1.3">'+esc(facName)+'</div>' +
+            '<div style="font-size:10.5px;color:var(--mu);margin-top:2px">'+esc(NTD_PH_TYPE_LABELS[d.form_type]||d.form_type)+' · '+esc(d.date||'')+'</div>' +
+            (d.description ? '<div style="font-size:10.5px;color:var(--mu);margin-top:2px;font-style:italic">'+esc(d.description)+'</div>' : '') +
+          '</div></a>';
+      }).join('') + '</div>';
+    });
+  });
+}
+
+function openAddHubPhoto() {
+  document.getElementById('hp-label').value = '';
+  document.getElementById('hp-file').value = '';
+  ntdPhLoadFacilityOptions('hp-facility', false).then(function() {
+    document.getElementById('hp-facility').value = '';
+    openModal('hub-photo-modal');
+  });
+}
+
+function submitHubPhoto() {
+  var fileEl = document.getElementById('hp-file');
+  if (!fileEl.files || !fileEl.files[0]) { alert('Choose a photo first.'); return; }
+  var file = fileEl.files[0];
+  var facSel = document.getElementById('hp-facility');
+  var facilityId = facSel.value || null;
+  var facilityName = facilityId ? facSel.options[facSel.selectedIndex].textContent : '';
+  var label = document.getElementById('hp-label').value.trim();
+  var tech = getCurrentUser() || '';
+
+  function doUpload(blob) {
+    ntdStore.photos.upload({
+      blob: blob,
+      facilityId: facilityId,
+      facilityName: facilityName,
+      formType: 'facility_photo',
+      description: label,
+      tech: tech
+    }).then(function(doc) {
+      if (!doc) { alert('Upload failed — check your connection and try again.'); return; }
+      closeModal('hub-photo-modal');
+      showToast('✓ Photo uploaded');
+      renderPhotoHub();
+    }).catch(function(err) {
+      alert('Upload failed: ' + (err.message || 'see console for details'));
+    });
+  }
+
+  compressImage(file, 1600, 0.75).then(function(res) {
+    doUpload(res.blob || file);
+  }).catch(function() {
+    doUpload(file);
   });
 }
 

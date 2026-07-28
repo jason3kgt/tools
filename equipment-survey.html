@@ -566,6 +566,18 @@ function ntdBackupPhoto(blob,unit,photoObj){
     photoObj.backedUp=true;
     photoObj.remotePath=path;
     renderPhotos(unit.id);
+    // Log to the documents table so this photo shows up in the central Photo
+    // Hub, filterable by facility. Best-effort — the raw backup above already
+    // succeeded, so a failure here never blocks the survey.
+    if(ntdStore.photos&&ntdStore.photos.log){
+      ntdStore.photos.log({
+        path:path,
+        facilityName:gv('j-cust')||'',
+        formType:photoObj.isDataPlate?'data_plate_photo':'unit_photo',
+        description:(unit.tag?('Unit '+unit.tag):('Unit '+unit.id))+(photoObj.isDataPlate?' — Data Plate':''),
+        tech:(typeof getCurrentUser==='function'?(getCurrentUser()||''):'')
+      });
+    }
   }).catch(function(err){
     console.warn('[NTD] Photo backup failed (will still work locally for this session):',err);
   });

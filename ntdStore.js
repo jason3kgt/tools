@@ -342,6 +342,105 @@ var _exportImport = {
   }
 };
 
+// ── PHOTO HUB ────────────────────────────────────────────────────────────────
+// Shared by the three field-survey tools (which back up photos to Storage the
+// instant they're taken, independent of form submission — see ntdBackupPhoto
+// in each tool) AND the central Photo Hub page in ntd-hub.html. Both paths
+// funnel through here so every photo gets a `documents` row and is browsable
+// by facility, without changing how/when the underlying file gets uploaded.
+var NTD_PHOTO_FORM_TYPES = ['facility_photo','unit_photo','data_plate_photo','site_photo'];
+
+function _photoSignedUrl(path) {
+  return fetch(SUPABASE_URL + '/storage/v1/object/sign/ntd-files/' + path, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ expiresIn: 31536000 }) // 1 year, matches uploadFile()
+  }).then(function(r){ return r.json(); })
+    .then(function(d){ return SUPABASE_URL + '/storage/v1' + d.signedURL; });
+}
+
+function _photoDateStr() {
+  var d = new Date();
+  function _pad(n){ return n < 10 ? '0'+n : ''+n; }
+  return _pad(d.getMonth()+1) + '/' + _pad(d.getDate()) + '/' + d.getFullYear();
+}
+
+var ntdPhotos = {
+  // Log a photo file that's ALREADY been uploaded to Storage (used by
+  // ntdBackupPhoto in equipment-survey / hvac-asset-survey / pm-checklist,
+  // right after their existing raw upload succeeds — that upload itself is
+  // unchanged). Facility is resolved by EXACT name match only and is never
+  // auto-created from a photo caption; no match logs facility_id: null,
+  // which the Photo Hub shows as "Unassigned".
+  log: function(params) {
+    if (!params || !params.path) return Promise.reject(new Error('path is required'));
+    var facName = (params.facilityName || '').trim();
+    var resolveFacility = facName ? ntdFacilityMatch.find(facName) : Promise.resolve({ exact: null });
+    return resolveFacility.then(function(result) {
+      return _photoSignedUrl(params.path).then(function(signedUrl) {
+        return _sb.upsert('documents', {
+          facility_id: result.exact ? result.exact.id : null,
+          job_id:      null,
+          form_type:   params.formType || 'unit_photo',
+          description: params.description || params.formType || 'Photo',
+          file_path:   params.path,
+          file_url:    signedUrl,
+          date:        _photoDateStr(),
+          tech:        params.tech || '',
+          unit_count:  0,
+          ts:          Date.now()
+        });
+      });
+    }).catch(function(err) {
+      console.warn('[NTD] Photo log failed (raw backup already succeeded, safe to ignore for form flow):', err);
+    });
+  },
+
+  // Manual upload from the Photo Hub's "+ Add Photo" flow. facilityId is
+  // optional — omit it for an "Unassigned" photo the user can tag later.
+  upload: function(params) {
+    if (!params || !params.blob) return Promise.reject(new Error('blob is required'));
+    var slug = (params.facilityName || 'unassigned')
+      .replace(/[^a-z0-9]+/gi, '-').toLowerCase().replace(/^-+|-+$/g, '').slice(0, 40) || 'unassigned';
+    var path = 'photo-backups/' + slug + '/hub_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6) + '.jpg';
+    return ntdFiles.upload(path, params.blob, params.mimeType || 'image/jpeg').then(function() {
+      return _photoSignedUrl(path).then(function(signedUrl) {
+        return _sb.upsert('documents', {
+          facility_id: params.facilityId || null,
+          job_id:      null,
+          form_type:   params.formType || 'facility_photo',
+          description: params.description || 'Photo',
+          file_path:   path,
+          file_url:    signedUrl,
+          date:        _photoDateStr(),
+          tech:        params.tech || '',
+          unit_count:  0,
+          ts:          Date.now()
+        });
+      });
+    });
+  },
+
+  // Browse photos across every facility, or filtered to one. Excludes PDFs
+  // and other document types by only matching known photo form_types.
+  list: function(opts) {
+    opts = opts || {};
+    return _sb.list('documents').then(function(rows) {
+      return (rows || []).filter(function(d) {
+        if (NTD_PHOTO_FORM_TYPES.indexOf(d.form_type) === -1) return false;
+        if (opts.facilityId === 'unassigned' && d.facility_id) return false;
+        if (opts.facilityId && opts.facilityId !== 'unassigned' && d.facility_id !== opts.facilityId) return false;
+        if (opts.formType && opts.formType !== 'all' && d.form_type !== opts.formType) return false;
+        return true;
+      }).sort(function(a, b) { return (b.ts || 0) - (a.ts || 0); });
+    });
+  }
+};
+
 // ── EQUIPMENT DEDUPLICATION ────────────────────────────────────────────────
 // Matches an incoming equipment record against what's already on file for the
 // same facility, so the same physical unit doesn't accumulate a separate row
@@ -408,6 +507,7 @@ var ntdStore = {
   importAll:      _exportImport.importAll,
   clearAll:       _exportImport.clearAll,
   files:          ntdFiles,
+  photos:         ntdPhotos,
 
   // ── PDF UPLOAD HELPER ────────────────────────────────────────────────────
   // Call this after generating a PDF blob to upload it and save a document record
