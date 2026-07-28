@@ -63,11 +63,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .ntd-row-in{animation:rowIn .3s ease backwards}
 
 /* ── SEARCH BAR ── */
-.search-wrap{position:sticky;top:56px;z-index:150;background:var(--bg);margin:0 -14px 14px;padding:10px 14px;transition:box-shadow .15s}
-.search-wrap.is-stuck{box-shadow:0 4px 10px rgba(15,38,71,.08)}
+.search-wrap{position:relative;margin-bottom:14px}
 .search-wrap input{width:100%;padding:11px 14px 11px 40px;border:1.5px solid var(--bd);border-radius:13px;font-size:14px;font-family:inherit;background:#fff;color:var(--tx);-webkit-appearance:none}
 .search-wrap input:focus{outline:none;border-color:var(--st);box-shadow:0 0 0 3px rgba(60,110,147,.12)}
-.search-wrap::before{content:"🔍";position:absolute;left:27px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none}
+.search-wrap::before{content:"🔍";position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none}
 
 /* ── CARDS ── */
 .card{background:#fff;border-radius:16px;border:1px solid var(--bd);margin-bottom:12px;overflow:hidden;box-shadow:var(--card-shadow)}
@@ -77,22 +76,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .card-body{padding:14px 16px}
 
 /* ── FACILITY LIST ── */
-.fac-group-hdr{padding:5px 16px;font-size:11px;font-weight:800;color:var(--mu);background:var(--of);letter-spacing:.06em;text-transform:uppercase}
-.fac-row{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--bd);cursor:pointer;touch-action:manipulation;background:#fff;transition:background .15s;border-left:3px solid transparent}
+.fac-row{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid var(--bd);cursor:pointer;touch-action:manipulation;background:#fff;transition:background .15s;border-left:3px solid transparent}
 .fac-row:last-child{border-bottom:none}
 .fac-row:active{background:var(--of)}
-.fac-avatar{width:36px;height:36px;border-radius:10px;background:var(--nv-grad);color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 6px rgba(15,38,71,.25)}
+.fac-avatar{width:42px;height:42px;border-radius:12px;background:var(--nv-grad);color:#fff;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 6px rgba(15,38,71,.25)}
 .fac-info{flex:1;min-width:0}
-.fac-name{font-size:14.5px;font-weight:800;color:var(--nv-deep);letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.fac-addr{font-size:10.5px;color:var(--mu);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.fac-tags{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+.fac-name{font-size:15.5px;font-weight:800;color:var(--nv-deep);letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fac-addr{font-size:11px;color:var(--mu);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fac-tags{display:flex;gap:4px;margin-top:5px;flex-wrap:wrap}
 .tag{font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px;white-space:nowrap}
 .tag-pm{background:#E8F0FA;color:var(--nv)}
 .tag-startup{background:#E8F5EC;color:var(--gn)}
 .tag-quote{background:#FEF0EA;color:var(--or)}
 .tag-survey{background:#F3F0FA;color:#5B21B6}
-.tag-more{background:var(--of);color:var(--mu)}
-.fac-arrow{color:var(--bd2);font-size:18px;flex-shrink:0}
+.fac-arrow{color:var(--bd2);font-size:20px;flex-shrink:0}
 .followup-badge{display:inline-flex;align-items:center;gap:4px;background:#FDF0DC;color:var(--am);font-size:10px;font-weight:700;padding:3px 8px;border-radius:8px;border:1px solid #E8B65C}
 .followup-card{background:#FDF5E8;border:1.5px solid #E8B65C;border-radius:14px;padding:14px 16px;margin-bottom:14px}
 .followup-card-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px}
@@ -226,6 +223,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .divider{height:1px;background:var(--bd);margin:14px 0}
 .section-label{font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--tx);margin:20px 0 8px 2px;display:flex;align-items:center;gap:6px}
 .section-label .ntd-ic{color:var(--accent, var(--or))}
+.scope-toggle{display:inline-flex;background:var(--of);border-radius:8px;padding:2px;gap:1px}
+.scope-btn{border:none;background:none;font-family:inherit;font-size:9.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:4px 9px;border-radius:6px;color:var(--mu);cursor:pointer;touch-action:manipulation;transition:background .15s,color .15s}
+.scope-btn.on{background:var(--nv);color:#fff}
 .section-label:first-child{margin-top:0}
 .sp-link{color:var(--st);text-decoration:none;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:4px}
 .sp-link::after{content:"↗";font-size:11px}
@@ -405,6 +405,9 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
   <div class="search-wrap">
     <input type="text" id="proj-search" placeholder="Search projects…" oninput="renderProjectList()" autocomplete="off">
   </div>
+  <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+    <span class="scope-toggle" id="proj-scope-toggle"></span>
+  </div>
   <div id="proj-list-wrap"></div>
 </div>
 
@@ -413,13 +416,12 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
   <div class="sched-subnav">
     <button class="sched-subnav-btn on" id="sched-tab-requests" onclick="switchScheduleView('requests')">Requests<span class="sched-req-count" id="sched-req-count" style="display:none">0</span></button>
     <button class="sched-subnav-btn" id="sched-tab-calendar" onclick="switchScheduleView('calendar')">Calendar</button>
-    <button class="sched-subnav-btn" id="sched-tab-pmdue" onclick="switchScheduleView('pmdue')">PM Due<span class="sched-req-count" id="sched-pmdue-count" style="display:none">0</span></button>
   </div>
   <div id="sched-requests-view">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+      <span class="scope-toggle" id="req-scope-toggle"></span>
+    </div>
     <div id="sched-requests-wrap"></div>
-  </div>
-  <div id="sched-pmdue-view" style="display:none">
-    <div id="sched-pmdue-wrap"></div>
   </div>
   <div id="sched-calendar-view" style="display:none">
     <div class="cal-week-nav">
@@ -456,28 +458,6 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
 
 <!-- ④ SETTINGS -->
 <div class="pg" id="pg-settings">
-  <div class="section-label">PM Contracts</div>
-  <div class="card">
-    <div class="card-body">
-      <div class="fg">
-        <label>Bulk-import PM contracts</label>
-        <div style="font-size:11px;color:var(--mu);margin-bottom:6px">
-          Paste rows with 4 columns, in this order: <strong>Facility Name, Frequency, Start Date, Notes</strong>.
-          Frequency can be written loosely (quarterly/monthly/semi-annual/annual, or just "Q"/"4x/yr" etc.) — it gets
-          normalized automatically. Start Date can be YYYY-MM-DD or MM/DD/YYYY; for a facility with no contract start
-          on file yet, its last known PM visit date works as a stand-in so due-date tracking can start immediately.
-          A name that exactly matches an existing facility updates it (without touching anything else on file); a new
-          name creates a facility. Notes are optional and land in that facility's PM Contract "Scope" field — skip a
-          facility's Notes column if it already has real scope text you don't want overwritten.
-        </div>
-        <textarea id="pmimport-paste" placeholder="Paste rows here — Facility Name, Frequency, Start Date, Notes" style="font-family:monospace;font-size:11px;min-height:100px"></textarea>
-      </div>
-      <button class="btn btn-outline" onclick="ntdPmImportParse()" type="button">Preview Rows</button>
-      <div id="pmimport-err" class="banner err hidden"></div>
-      <div id="pmimport-preview"></div>
-      <div id="pmimport-status" style="display:none;margin-top:8px;padding:10px 12px;border-radius:10px;font-size:13px;line-height:1.5"></div>
-    </div>
-  </div>
   <div class="section-label">Data</div>
   <div class="card">
     <div class="card-body">
@@ -725,7 +705,6 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
         <option value="site_visit">Site Visit</option>
         <option value="site_inspection">Site Inspection</option>
         <option value="job_walk">Job Walk (Sales)</option>
-        <option value="pm_visit">PM Visit</option>
         <option value="pto">PTO</option>
         <option value="sick">Sick</option>
         <option value="ooo">Out of Office</option>
@@ -976,24 +955,14 @@ function renderFacilityList() {
     ]).then(function(results) {
       var startups = results[0], pmRecs = results[1], pmQuotes = results[2], equip = results[3];
       var html = '<div class="card" style="padding:0;overflow:hidden">';
-      var TAG_CAP = 2;
-      var _lastLetter = null;
       filtered.forEach(function(f, idx) {
-        // A–Z group header (only when list isn't filtered by a search term)
-        if (!q) {
-          var _letter = (f.name||'?').trim().charAt(0).toUpperCase();
-          if (_letter < 'A' || _letter > 'Z') _letter = '#';
-          if (_letter !== _lastLetter) {
-            html += '<div class="fac-group-hdr">'+_letter+'</div>';
-            _lastLetter = _letter;
-          }
-        }
         var initials = (f.name||'?').split(' ').map(function(w){ return w[0]; }).join('').substring(0,2).toUpperCase();
         var hasPM    = pmRecs.some(function(r){ return r.facility_id === f.id; });
         var hasStart = startups.some(function(r){ return r.facility_id === f.id; });
         var hasQuote = pmQuotes.some(function(r){ return r.facility_id === f.id; });
         var eqCount  = equip.filter(function(e){ return e.facility_id === f.id; }).length;
         var followups = startups.filter(function(r){ return r.facility_id === f.id && r.followup && r.followup.trim(); }).length;
+        var tags = '';
         // PM schedule status
         var _pmStatus = null;
         if (f.pm_contract && f.contract && f.contract.frequency) {
@@ -1003,17 +972,13 @@ function renderFacilityList() {
           var _nextV = calcNextVisit(_lastD, f.contract.frequency);
           _pmStatus = pmScheduleStatus(_nextV);
         }
-        // Build tags in priority order (most actionable first) so the cap never hides a warning
-        var tagsArr = [];
-        if (followups) tagsArr.push('<span class="tag" style="background:#FFF3E0;color:var(--am)">⚠ '+followups+' Follow-up'+(followups>1?'s':'')+'</span>');
-        if (_pmStatus && _pmStatus.urgent) tagsArr.push('<span class="tag" style="background:#FDEDEC;color:' + _pmStatus.color + '">' + _pmStatus.label + '</span>');
-        if (f.pm_contract) tagsArr.push('<span class="tag tag-pm">PM Contract</span>');
-        if (hasPM)    tagsArr.push('<span class="tag tag-pm">PM History</span>');
-        if (hasStart) tagsArr.push('<span class="tag tag-startup">Startup</span>');
-        if (hasQuote) tagsArr.push('<span class="tag tag-quote">Quoted</span>');
-        if (eqCount)  tagsArr.push('<span class="tag tag-survey">'+eqCount+' Units</span>');
-        var tags = tagsArr.slice(0, TAG_CAP).join('');
-        if (tagsArr.length > TAG_CAP) tags += '<span class="tag tag-more">+'+(tagsArr.length-TAG_CAP)+' more</span>';
+        if (f.pm_contract) tags += '<span class="tag tag-pm">PM Contract</span>';
+        if (_pmStatus && _pmStatus.urgent) tags += '<span class="tag" style="background:#FDEDEC;color:' + _pmStatus.color + '">' + _pmStatus.label + '</span>';
+        if (hasPM)    tags += '<span class="tag tag-pm">PM History</span>';
+        if (hasStart) tags += '<span class="tag tag-startup">Startup</span>';
+        if (hasQuote) tags += '<span class="tag tag-quote">Quoted</span>';
+        if (eqCount)  tags += '<span class="tag tag-survey">'+eqCount+' Units</span>';
+        if (followups) tags += '<span class="tag" style="background:#FFF3E0;color:var(--am)">⚠ '+followups+' Follow-up'+(followups>1?'s':'')+' </span>';
         var _accent = followups ? 'var(--am)' : (_pmStatus && _pmStatus.urgent ? _pmStatus.color : (f.pm_contract ? 'var(--gn)' : 'transparent'));
         var _delay = Math.min(idx, 14) * 0.025;
         html += '<div class="fac-row ntd-row-in" style="border-left-color:'+_accent+';animation-delay:'+_delay+'s" onclick="goDetail(\''+f.id+'\')">' +
@@ -1567,7 +1532,7 @@ function renderDetailTab(f) {
         '<div class="fg"><label>Annual Value</label><input type="text" id="c-val" value="'+esc(c.annual_value||'')+'" placeholder="e.g. $24,800"></div>' +
         '<div class="fg"><label>Visit Frequency</label><select id="c-freq">' +
           ['','Monthly','Quarterly','Semi-Annual','Annual','Custom'].map(function(o){
-            return '<option value="'+o+'"'+((c.frequency||'').toLowerCase()===o.toLowerCase()?' selected':'')+'>'+o+'</option>';
+            return '<option value="'+o+'"'+(c.frequency===o?' selected':'')+'>'+o+'</option>';
           }).join('') +
         '</select></div>' +
         '<div class="fg"><label>Visits Per Year</label><input type="text" id="c-vis" value="'+esc(c.visits_per_year||'')+'" placeholder="e.g. 4"></div>' +
@@ -2157,151 +2122,6 @@ function ntdPublishPastedUnits() {
   });
 }
 
-// ── PM CONTRACT BULK IMPORT (Settings page) ─────────────────────────────────
-// One-time / occasional bulk load of PM contract data (e.g. from a tracker
-// spreadsheet) into facilities.contract, so PM Due tracking + Schedule works
-// without hand-editing each facility. Matches the same paste → preview →
-// publish pattern as the Submittals paste box above, but writes to
-// facilities instead of equipment/jobs.
-var _pmImportRows = [];
-var PMIMPORT_FIELDS = ['name','frequency','start_date','notes'];
-var PMIMPORT_LABELS = {name:'Facility Name', frequency:'Frequency', start_date:'Start Date', notes:'Notes'};
-
-function ntdPmImportErr(msg) {
-  var el = document.getElementById('pmimport-err');
-  el.textContent = msg;
-  el.classList.remove('hidden');
-}
-function ntdPmImportHideErr() {
-  document.getElementById('pmimport-err').classList.add('hidden');
-}
-
-function ntdNormalizeFrequency(v) {
-  var s = (v || '').toLowerCase().trim();
-  if (!s) return '';
-  if (s.indexOf('semi') > -1 || s.indexOf('bi-annual') > -1 || s.indexOf('biannual') > -1) return 'semi-annual';
-  if (s.indexOf('month') > -1 || s === '12' || s === '12x/yr' || s === 'm') return 'monthly';
-  if (s.indexOf('quarter') > -1 || s === '4' || s === '4x/yr' || s === 'q') return 'quarterly';
-  if (s.indexOf('annual') > -1 || s.indexOf('year') > -1 || s === '1' || s === 'a') return 'annual';
-  return s; // unrecognized — left as typed so it's visible in preview for a manual fix
-}
-
-function ntdPmImportParse() {
-  ntdPmImportHideErr();
-  var raw = document.getElementById('pmimport-paste').value;
-  var lines = raw.split(/\r?\n/).filter(function(l){ return l.trim().length; });
-  if (!lines.length) { ntdPmImportErr('Paste some rows first.'); return; }
-
-  var hasTabs = lines.some(function(l){ return l.indexOf('\t') > -1; });
-  var hasCommas = !hasTabs && lines.some(function(l){ return l.indexOf(',') > -1; });
-  var delimiter = hasTabs ? '\t' : (hasCommas ? ',' : null);
-  if (!delimiter) { ntdPmImportErr('Couldn\u2019t find columns to split on — paste tab-separated cells (from Excel) or comma-separated text.'); return; }
-
-  var rows = lines.map(function(l){ return l.split(delimiter).map(function(c){ return c.trim(); }); });
-  var first = rows[0];
-  if (first[0] && /^(facility|site)( ?name)?$/i.test(first[0])) rows = rows.slice(1);
-
-  _pmImportRows = rows.map(function(cells) {
-    return {
-      name: cells[0] || '',
-      frequency: ntdNormalizeFrequency(cells[1] || ''),
-      start_date: cells[2] || '',
-      notes: cells[3] || ''
-    };
-  }).filter(function(r){ return r.name; });
-
-  if (!_pmImportRows.length) { ntdPmImportErr('No usable rows found — the first column must be the facility name.'); return; }
-  ntdPmImportRenderPreview();
-}
-
-function ntdPmImportRenderPreview() {
-  var wrap = document.getElementById('pmimport-preview');
-  if (!_pmImportRows.length) { wrap.innerHTML = ''; return; }
-  var html = '<div style="font-size:11px;color:var(--mu);margin:10px 0 6px">' + _pmImportRows.length + ' row(s) parsed — review before importing. An exact facility-name match updates that facility; anything else creates a new one.</div>';
-  html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">';
-  html += '<tr>' + PMIMPORT_FIELDS.map(function(f){ return '<th style="text-align:left;padding:4px;color:var(--mu);font-weight:700">'+PMIMPORT_LABELS[f]+'</th>'; }).join('') + '<th></th></tr>';
-  _pmImportRows.forEach(function(row, idx) {
-    html += '<tr>';
-    PMIMPORT_FIELDS.forEach(function(f) {
-      html += '<td style="padding:2px"><input type="text" value="'+esc(row[f]||'')+'" oninput="_pmImportRows['+idx+'].'+f+'=this.value" style="width:100%;font-size:11px;padding:4px;border:1px solid var(--bd);border-radius:4px"></td>';
-    });
-    html += '<td><span onclick="ntdPmImportRemoveRow('+idx+')" style="cursor:pointer;color:var(--rd);font-weight:700;padding:0 6px">&times;</span></td>';
-    html += '</tr>';
-  });
-  html += '</table></div>';
-  html += '<button class="btn btn-nv" id="pmimport-publish-btn" onclick="ntdPmImportPublish()" type="button" style="margin-top:10px">Import These ' + _pmImportRows.length + ' Contract(s)</button>';
-  wrap.innerHTML = html;
-}
-
-function ntdPmImportRemoveRow(idx) {
-  _pmImportRows.splice(idx, 1);
-  ntdPmImportRenderPreview();
-}
-
-var _pmImportInFlight = false;
-function ntdPmImportPublish() {
-  if (_pmImportInFlight || !_pmImportRows.length) return;
-  _pmImportInFlight = true;
-
-  var rows = _pmImportRows.slice();
-  var results = { created: 0, updated: 0, errors: [] };
-  var done = 0;
-
-  var btn = document.getElementById('pmimport-publish-btn');
-  if (btn) { btn.disabled = true; btn.textContent = 'Importing 0 / ' + rows.length + '…'; }
-
-  var chain = rows.reduce(function(chain, row) {
-    return chain.then(function() {
-      var name = row.name.trim();
-      if (!name) { done++; return; }
-      return ntdStore.matchFacility.find(name).then(function(match) {
-        var contractPatch = {};
-        if (row.frequency) contractPatch.frequency = row.frequency;
-        if (row.start_date) contractPatch.start_date = row.start_date;
-        if (row.notes) contractPatch.scope = row.notes;
-
-        if (match.exact) {
-          var mergedContract = Object.assign({}, match.exact.contract || {}, contractPatch);
-          return ntdStore.facilities.upsert({ id: match.exact.id, pm_contract: true, contract: mergedContract })
-            .then(function(){ results.updated++; });
-        }
-        return ntdStore.facilities.upsert({ name: name, pm_contract: true, contract: contractPatch })
-          .then(function(){ results.created++; });
-      }).catch(function(err) {
-        results.errors.push(name + ': ' + (err.message || 'failed'));
-      }).then(function() {
-        done++;
-        if (btn) btn.textContent = 'Importing ' + done + ' / ' + rows.length + '…';
-      });
-    });
-  }, Promise.resolve());
-
-  chain.then(function() {
-    _pmImportInFlight = false;
-    var status = document.getElementById('pmimport-status');
-    status.style.display = 'block';
-    status.style.background = results.errors.length ? '#FFF3E0' : '#E6F4EA';
-    status.style.color = results.errors.length ? 'var(--am)' : 'var(--gn)';
-    status.innerHTML = '✓ Imported — ' + results.created + ' new facility(ies) created, ' + results.updated + ' existing updated.' +
-      (results.errors.length ? '<br>⚠ ' + results.errors.length + ' error(s): ' + esc(results.errors.join('; ')) : '');
-    document.getElementById('pmimport-paste').value = '';
-    document.getElementById('pmimport-preview').innerHTML = '';
-    _pmImportRows = [];
-    showToast('PM contracts imported');
-  }).catch(function(err) {
-    // Belt-and-suspenders — the per-row .catch() above should handle normal
-    // failures, but if something unexpected still slips through, always
-    // release the button and tell the user rather than hanging silently.
-    _pmImportInFlight = false;
-    if (btn) { btn.disabled = false; btn.textContent = 'Import These ' + rows.length + ' Contract(s)'; }
-    var status = document.getElementById('pmimport-status');
-    status.style.display = 'block';
-    status.style.background = '#FDEDEC';
-    status.style.color = 'var(--rd)';
-    status.innerHTML = '⚠ Import stopped unexpectedly: ' + esc(err.message || 'unknown error') + '. Anything already saved is safe — you can paste the remaining rows and try again.';
-  });
-}
-
 // ── CONTRACT TYPE CHIPS (multi-select + custom) ────────────────────────────
 var AGR_TYPE_PRESETS = ['Construction / Install', 'Service Agreement', 'Maintenance', 'Other'];
 var _agrTypeSelected = [];
@@ -2543,7 +2363,16 @@ function convertQuoteToProject(quoteId, quoteType) {
 function renderProjectList() {
   var wrap = document.getElementById('proj-list-wrap');
   var q = (document.getElementById('proj-search').value || '').toLowerCase().trim();
+  var scope = getProjScope();
+  var curUser = getCurrentUser();
+  var scopeToggle = document.getElementById('proj-scope-toggle');
+  if (scopeToggle) {
+    scopeToggle.innerHTML =
+      '<button class="scope-btn'+(scope==='all'?' on':'')+'" onclick="setProjScope(\'all\')">All</button>' +
+      '<button class="scope-btn'+(scope==='mine'?' on':'')+'" onclick="setProjScope(\'mine\')">Mine</button>';
+  }
   ntdStore.jobs.list(function(j){ return j.type === 'project'; }).then(function(projs) {
+    if (scope === 'mine') projs = projs.filter(function(p){ return ntdIsMyProject(p, curUser); });
     var filtered = projs.filter(function(p) {
       if (!q) return true;
       return (p.name||'').toLowerCase().indexOf(q) > -1 ||
@@ -2552,7 +2381,8 @@ function renderProjectList() {
     }).sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
 
     if (!filtered.length) {
-      wrap.innerHTML = '<div class="empty"><div class="empty-icon">📁</div><h3>'+(q?'No results':'No projects yet')+'</h3><p>'+(q?'Try a different search.':'Add projects from a facility detail page or tap + Project above.')+'</p></div>';
+      var emptyMsg = scope==='mine' ? 'No projects assigned to you.' : (q?'Try a different search.':'Add projects from a facility detail page or tap + Project above.');
+      wrap.innerHTML = '<div class="empty"><div class="empty-icon">📁</div><h3>'+(q?'No results':(scope==='mine'?'Nothing here yet':'No projects yet'))+'</h3><p>'+emptyMsg+'</p></div>';
       return;
     }
 
@@ -2757,53 +2587,6 @@ function pmScheduleStatus(nextVisit) {
   if (days <= 30) return { label: 'Due in ' + days + ' days', color: 'var(--am)', urgent: true };
   return { label: 'Due ' + (nextVisit.getMonth()+1) + '/' + nextVisit.getDate() + '/' + nextVisit.getFullYear(), color: 'var(--mu)', urgent: false };
 }
-// Shared by the Dashboard's "PM Visits Due" card and the Schedule > PM Due tab —
-// keep this the single source of truth for what counts as "due" so the two views
-// never drift apart.
-function computePmDue(facilities, pmRecs) {
-  var pmDue = [];
-  (facilities||[]).forEach(function(f) {
-    if (!f.pm_contract || !f.contract || !f.contract.frequency) return;
-    var facVisits = (pmRecs||[]).filter(function(r){ return r.facility_id === f.id; });
-    var lastVisit = facVisits.sort(function(a,b){ return (b.ts||0)-(a.ts||0); })[0];
-    var lastDate = lastVisit ? lastVisit.date : (f.contract.start_date || null);
-    var nextVisit = calcNextVisit(lastDate, f.contract.frequency);
-    var status = pmScheduleStatus(nextVisit);
-    if (status) pmDue.push({ facility: f, lastDate: lastDate, nextVisit: nextVisit, status: status });
-  });
-  pmDue.sort(function(a,b){ return a.nextVisit - b.nextVisit; });
-  return pmDue;
-}
-
-// Map of facility_id -> nearest upcoming PM Visit calendar entry (today or later).
-// Used to show "✓ Scheduled" instead of a Schedule button when one already exists,
-// so dispatchers don't double-book the same facility.
-function computeScheduledPmMap(calEntries) {
-  var map = {};
-  var todayISO = fmtDateISO(new Date());
-  (calEntries||[]).forEach(function(e) {
-    if (e.entry_type !== 'pm_visit' || !e.facility_id) return;
-    if (e.date < todayISO) return;
-    if (!map[e.facility_id] || e.date < map[e.facility_id].date) map[e.facility_id] = e;
-  });
-  return map;
-}
-// Renders one PM-due row with a Schedule action — shared by the dashboard's
-// PM Visits Due card and the Schedule > PM Due tab.
-function pmDueRow(p, scheduledEntry) {
-  var actionHtml = scheduledEntry
-    ? '<span class="status-badge status-confirmed ntd-goto-cal-entry" data-calid="'+esc(scheduledEntry.id)+'" style="cursor:pointer;white-space:nowrap;flex-shrink:0">✓ '+esc(scheduledEntry.date)+'</span>'
-    : '<button class="btn btn-sm btn-outline ntd-schedule-pm" data-fid="'+esc(p.facility.id)+'" data-date="'+fmtDateISO(p.nextVisit)+'" style="white-space:nowrap;margin:0;flex-shrink:0">📅 Schedule</button>';
-  return '<div class="rec-row" style="align-items:center">' +
-    '<div class="rec-icon" style="background:#FDEDEC">📅</div>' +
-    '<div class="rec-body ntd-goto" data-fid="' + p.facility.id + '" data-tab="pm" style="cursor:pointer">' +
-      '<div class="rec-title">' + esc(p.facility.name) + '</div>' +
-      '<div class="rec-sub">' + esc(p.facility.contract.frequency || 'PM') + (p.lastDate ? ' · Last: ' + esc(p.lastDate) : ' · No visits yet') + '</div>' +
-      '<div class="rec-meta" style="color:' + p.status.color + ';font-weight:700">' + p.status.label + '</div>' +
-    '</div>' +
-    actionHtml +
-  '</div>';
-}
 // ── END PM VISIT SCHEDULER ────────────────────────────────────────────────
 // ── DASHBOARD ─────────────────────────────────────────────────────────────
 function renderDashboard() {
@@ -2818,8 +2601,7 @@ function renderDashboard() {
     ntdStore.service_quotes.list(),
     ntdStore.jobs.list(),
     ntdStore.documents ? ntdStore.documents.list() : Promise.resolve([]),
-    ntdStore.team_calendar ? ntdStore.team_calendar.list(function(e){ return e.status === 'pending'; }) : Promise.resolve([]),
-    ntdStore.team_calendar ? ntdStore.team_calendar.list() : Promise.resolve([])
+    ntdStore.team_calendar ? ntdStore.team_calendar.list(function(e){ return e.status === 'pending'; }) : Promise.resolve([])
   ]).then(function(results) {
     var facilities = results[0];
     var startups   = results[1];
@@ -2829,11 +2611,13 @@ function renderDashboard() {
     var jobs       = results[5];
     var docs       = results[6] || [];
     var pendingReqs = results[7] || [];
-    var scheduledPmMap = computeScheduledPmMap(results[8] || []);
 
     // ── Metrics ──
     var openFollowups = startups.filter(function(r){ return r.followup && r.followup.trim(); });
-    var activeProjects = jobs.filter(function(j){ return j.type==='project' && (j.status==='bidding'||j.status==='awarded'||j.status==='progress'); });
+    var projScope = getProjScope();
+    var curUser = getCurrentUser();
+    var activeProjectsAll = jobs.filter(function(j){ return j.type==='project' && (j.status==='bidding'||j.status==='awarded'||j.status==='progress'); });
+    var activeProjects = projScope === 'mine' ? activeProjectsAll.filter(function(p){ return ntdIsMyProject(p, curUser); }) : activeProjectsAll;
     var recentQuotes = pmQuotes.concat(svcQuotes).sort(function(a,b){ return (b.ts||0)-(a.ts||0); }).slice(0,5);
 
     // Expiring contracts (within 90 days)
@@ -2864,7 +2648,17 @@ function renderDashboard() {
     var prefs = getDashPrefs();
 
     // ── PM Schedule (computed early so stats row can sit right under the hero) ──
-    var pmDue = computePmDue(facilities, pmRecs);
+    var pmDue = [];
+    facilities.forEach(function(f) {
+      if (!f.pm_contract || !f.contract || !f.contract.frequency) return;
+      var facVisits = pmRecs.filter(function(r){ return r.facility_id === f.id; });
+      var lastVisit = facVisits.sort(function(a,b){ return (b.ts||0)-(a.ts||0); })[0];
+      var lastDate = lastVisit ? lastVisit.date : (f.contract.start_date || null);
+      var nextVisit = calcNextVisit(lastDate, f.contract.frequency);
+      var status = pmScheduleStatus(nextVisit);
+      if (status) pmDue.push({ facility: f, lastDate: lastDate, nextVisit: nextVisit, status: status });
+    });
+    pmDue.sort(function(a,b){ return a.nextVisit - b.nextVisit; });
     var pmUrgent = pmDue.filter(function(p){ return p.status.urgent; });
 
     var html = greetingHero(facilities.length, openFollowups.length, pendingReqs.length, prefs);
@@ -2872,7 +2666,8 @@ function renderDashboard() {
     html += tileGrid({
       facCount: facilities.length,
       projCount: activeProjects.length,
-      pmUrgentCount: pmUrgent.length
+      pmUrgentCount: pmUrgent.length,
+      projScope: projScope
     }, prefs);
 
     // ── Pending Tech Requests ──
@@ -2931,15 +2726,30 @@ function renderDashboard() {
       html += '<div class="section-label" style="--accent:var(--rd)">'+ntdIcon('calendar',12)+' PM Visits Due</div>';
       html += '<div class="card card-acc card-acc-rd"><div class="card-body">';
       pmUrgent.forEach(function(p) {
-        html += pmDueRow(p, scheduledPmMap[p.facility.id]);
+        html += '<div class="rec-row ntd-goto" data-fid="' + p.facility.id + '" data-tab="pm" style="cursor:pointer">' +
+          '<div class="rec-icon" style="background:#FDEDEC">📅</div>' +
+          '<div class="rec-body">' +
+            '<div class="rec-title">' + esc(p.facility.name) + '</div>' +
+            '<div class="rec-sub">' + esc(p.facility.contract.frequency || 'PM') + (p.lastDate ? ' · Last: ' + esc(p.lastDate) : ' · No visits yet') + '</div>' +
+            '<div class="rec-meta" style="color:' + p.status.color + ';font-weight:700">' + p.status.label + '</div>' +
+          '</div></div>';
       });
       html += '</div></div>';
     }
 
     // ── Active Projects (horizontal strip) ──
-    if (activeProjects.length && prefs.activeProjects) {
+    if (activeProjectsAll.length && prefs.activeProjects) {
       var statusLabel = {bidding:'Bidding',awarded:'Awarded',progress:'In Progress'};
-      html += '<div class="section-label" style="--accent:var(--pu)">'+ntdIcon('folder',12)+' Active Projects</div>';
+      html += '<div class="section-label" style="--accent:var(--pu);justify-content:space-between">' +
+        '<span>'+ntdIcon('folder',12)+' Active Projects</span>' +
+        '<span class="scope-toggle">' +
+          '<button class="scope-btn'+(projScope==='all'?' on':'')+'" onclick="setProjScope(\'all\')">All</button>' +
+          '<button class="scope-btn'+(projScope==='mine'?' on':'')+'" onclick="setProjScope(\'mine\')">Mine</button>' +
+        '</span>' +
+      '</div>';
+      if (!activeProjects.length) {
+        html += '<div style="font-size:12px;color:var(--mu);padding:10px 2px 4px">No projects assigned to you right now.</div>';
+      } else {
       html += '<div class="activity-strip">';
       activeProjects.slice(0,8).forEach(function(p) {
         html += '<div class="activity-card ntd-goto" data-fid="'+p.facility_id+'" data-tab="projects">'+
@@ -2951,6 +2761,7 @@ function renderDashboard() {
       });
       html += '</div>';
       if (activeProjects.length > 8) html += '<div class="ntd-goto-projects" style="font-size:11px;color:var(--mu);padding:2px 0 4px;text-align:center;cursor:pointer">View all '+activeProjects.length+' projects →</div>';
+      }
     }
 
     // ── Recent Activity (horizontal strip) ──
@@ -2986,6 +2797,7 @@ function tileGrid(counts, prefs) {
   var pmLbl = !showPm ? 'PM Schedule' : (counts.pmUrgentCount ? 'PM Visits Due' : 'PM — All Clear');
   var pmNum = showPm ? '<div class="tile-num">'+counts.pmUrgentCount+'</div>' : '';
   var projNum = showProj ? '<div class="tile-num">'+counts.projCount+'</div>' : '';
+  var projLbl = 'Active Projects' + (counts.projScope === 'mine' ? ' (Mine)' : '');
   return '<div class="tile-grid">' +
     '<button class="tile tile-nv" data-wm="🏢" onclick="goPage(\'facilities\')">' +
       '<span class="tile-icon">'+ntdIcon('building',24)+'</span>' +
@@ -2993,7 +2805,7 @@ function tileGrid(counts, prefs) {
     '</button>' +
     '<button class="tile tile-pu" data-wm="📁" onclick="goPage(\'projects\')">' +
       '<span class="tile-icon">'+ntdIcon('folder',24)+'</span>' +
-      '<div>'+projNum+'<div class="tile-lbl"'+(showProj?'':' style="margin-top:24px"')+'>Active Projects</div></div>' +
+      '<div>'+projNum+'<div class="tile-lbl"'+(showProj?'':' style="margin-top:24px"')+'>'+projLbl+'</div></div>' +
     '</button>' +
     '<button class="tile '+pmColor+'" data-wm="🗓️" onclick="goPage(\'schedule\')">' +
       '<span class="tile-icon">'+ntdIcon('calendar',24)+'</span>' +
@@ -3053,6 +2865,28 @@ function setDashPref(key, val) {
   var prefs = getDashPrefs();
   prefs[key] = val;
   try { localStorage.setItem('ntdDashPrefs_' + (getCurrentUser() || 'device'), JSON.stringify(prefs)); } catch(e) {}
+}
+
+// ── PROJECT SCOPE (All vs Mine, per-person on this device) ─────────────────
+function getProjScope() {
+  try { return localStorage.getItem('ntdProjScope_' + (getCurrentUser() || 'device')) || 'all'; } catch(e) { return 'all'; }
+}
+function setProjScope(val) {
+  try { localStorage.setItem('ntdProjScope_' + (getCurrentUser() || 'device'), val); } catch(e) {}
+  if (currentPage === 'dashboard') renderDashboard();
+  else if (currentPage === 'projects') renderProjectList();
+}
+function ntdIsMyProject(p, user) {
+  return !!user && (p.assigned_pm === user || p.apm === user);
+}
+
+// ── REQUEST SCOPE (All vs Mine, per-person on this device) ─────────────────
+function getReqScope() {
+  try { return localStorage.getItem('ntdReqScope_' + (getCurrentUser() || 'device')) || 'all'; } catch(e) { return 'all'; }
+}
+function setReqScope(val) {
+  try { localStorage.setItem('ntdReqScope_' + (getCurrentUser() || 'device'), val); } catch(e) {}
+  renderRequestsList();
 }
 function openDashPrefs() {
   var prefs = getDashPrefs();
@@ -3280,24 +3114,17 @@ function fmtDateISO(d) {
 }
 
 function renderScheduleView() {
-  document.getElementById('sched-tab-requests').classList.remove('on');
-  document.getElementById('sched-tab-calendar').classList.remove('on');
-  document.getElementById('sched-tab-pmdue').classList.remove('on');
-  document.getElementById('sched-requests-view').style.display = 'none';
-  document.getElementById('sched-calendar-view').style.display = 'none';
-  document.getElementById('sched-pmdue-view').style.display = 'none';
-
   if (currentScheduleView === 'calendar') {
+    document.getElementById('sched-tab-requests').classList.remove('on');
     document.getElementById('sched-tab-calendar').classList.add('on');
+    document.getElementById('sched-requests-view').style.display = 'none';
     document.getElementById('sched-calendar-view').style.display = 'block';
     renderCalendarWeek();
-  } else if (currentScheduleView === 'pmdue') {
-    document.getElementById('sched-tab-pmdue').classList.add('on');
-    document.getElementById('sched-pmdue-view').style.display = 'block';
-    renderPmDueList();
   } else {
     document.getElementById('sched-tab-requests').classList.add('on');
+    document.getElementById('sched-tab-calendar').classList.remove('on');
     document.getElementById('sched-requests-view').style.display = 'block';
+    document.getElementById('sched-calendar-view').style.display = 'none';
     renderRequestsList();
   }
   refreshSchedReqBadge();
@@ -3310,7 +3137,6 @@ function switchScheduleView(view) {
 
 // ── PENDING REQUEST BADGE (sub-nav + dashboard) ─────────────────────────────
 function refreshSchedReqBadge() {
-  if (!ntdStore.team_calendar) return;
   ntdStore.team_calendar.list(function(e){ return e.status === 'pending'; }).then(function(rows) {
     var count = (rows || []).length;
     var badge = document.getElementById('sched-req-count');
@@ -3325,6 +3151,14 @@ function refreshSchedReqBadge() {
 function renderRequestsList() {
   var wrap = document.getElementById('sched-requests-wrap');
   wrap.innerHTML = ntdSkeleton(2);
+  var scope = getReqScope();
+  var curUser = getCurrentUser();
+  var scopeToggle = document.getElementById('req-scope-toggle');
+  if (scopeToggle) {
+    scopeToggle.innerHTML =
+      '<button class="scope-btn'+(scope==='all'?' on':'')+'" onclick="setReqScope(\'all\')">All</button>' +
+      '<button class="scope-btn'+(scope==='mine'?' on':'')+'" onclick="setReqScope(\'mine\')">Mine</button>';
+  }
 
   Promise.all([
     ntdStore.team_calendar.list(function(e){ return e.status === 'pending'; }),
@@ -3335,14 +3169,18 @@ function renderRequestsList() {
     var facMap = {};
     facs.forEach(function(f){ facMap[f.id] = f.name; });
 
+    if (scope === 'mine') pending = pending.filter(function(e){ return e.requested_by === curUser; });
+
     if (!pending.length) {
-      wrap.innerHTML = emptyState('✅','No pending requests','Tech requests submitted from a Project will show up here for confirmation.');
+      wrap.innerHTML = scope === 'mine'
+        ? emptyState('✅','Nothing here', 'You haven\'t submitted any tech requests that are still pending.')
+        : emptyState('✅','No pending requests','Tech requests submitted from a Project will show up here for confirmation.');
       return;
     }
 
     pending.sort(function(a,b){ return (a.date||'').localeCompare(b.date||''); });
 
-    var typeLabel = {job:'Job',site_visit:'Site Visit',site_inspection:'Site Inspection',job_walk:'Job Walk',pm_visit:'PM Visit'};
+    var typeLabel = {job:'Job',site_visit:'Site Visit',site_inspection:'Site Inspection',job_walk:'Job Walk'};
     var html = '';
     pending.forEach(function(e) {
       var facName = facMap[e.facility_id] || e.title || 'Unknown facility';
@@ -3359,41 +3197,6 @@ function renderRequestsList() {
     wrap.innerHTML = html;
   }).catch(function(err) {
     wrap.innerHTML = emptyState('⚠️','Couldn\'t load requests', esc(err.message||'Please try again.'));
-  });
-}
-
-// ── PM DUE LIST (all facilities with a PM contract, due or overdue) ─────────
-function renderPmDueList() {
-  var wrap = document.getElementById('sched-pmdue-wrap');
-  wrap.innerHTML = ntdSkeleton(2);
-
-  Promise.all([
-    ntdStore.facilities.list(),
-    ntdStore.pm_records.list(),
-    ntdStore.team_calendar.list()
-  ]).then(function(results) {
-    var facilities = results[0] || [];
-    var pmRecs = results[1] || [];
-    var scheduledPmMap = computeScheduledPmMap(results[2] || []);
-
-    var pmDue = computePmDue(facilities, pmRecs);
-    var pmUrgent = pmDue.filter(function(p){ return p.status.urgent; });
-    document.getElementById('sched-pmdue-count').style.display = pmUrgent.length ? 'inline-block' : 'none';
-    document.getElementById('sched-pmdue-count').textContent = pmUrgent.length;
-
-    if (!pmDue.length) {
-      wrap.innerHTML = emptyState('📅','Nothing due','Facilities show up here once they have a PM Contract with a start date and frequency set (Facility → PM tab → Set as PM Contract).');
-      return;
-    }
-
-    var html = '<div class="card"><div class="card-body">';
-    pmDue.forEach(function(p) {
-      html += pmDueRow(p, scheduledPmMap[p.facility.id]);
-    });
-    html += '</div></div>';
-    wrap.innerHTML = html;
-  }).catch(function(err) {
-    wrap.innerHTML = emptyState('⚠️','Couldn\'t load PM schedule', esc(err.message||'Please try again.'));
   });
 }
 
@@ -3483,7 +3286,7 @@ function renderCalendarWeek() {
       var iso = fmtDateISO(d);
       var dayEntries = (all||[]).filter(function(e){ return e.date === iso; });
       var statusEntries = dayEntries.filter(function(e){ return e.entry_type==='pto'||e.entry_type==='sick'||e.entry_type==='ooo'; });
-      var jobEntries = dayEntries.filter(function(e){ return e.entry_type==='job'||e.entry_type==='site_visit'||e.entry_type==='site_inspection'||e.entry_type==='job_walk'||e.entry_type==='pm_visit'; });
+      var jobEntries = dayEntries.filter(function(e){ return e.entry_type==='job'||e.entry_type==='site_visit'||e.entry_type==='site_inspection'||e.entry_type==='job_walk'; });
       var isToday = iso === todayISO;
 
       if (slim) {
@@ -3515,8 +3318,7 @@ function renderCalendarWeek() {
         var jobTypeMeta = {
           site_visit:     {icon:'📍', label:'Site Visit — '},
           site_inspection:{icon:'🔍', label:'Site Inspection — '},
-          job_walk:       {icon:'🤝', label:'Job Walk (Sales) — '},
-          pm_visit:       {icon:'📅', label:'PM Visit — '}
+          job_walk:       {icon:'🤝', label:'Job Walk (Sales) — '}
         };
         jobEntries.forEach(function(e) {
           var isPending = e.status === 'pending';
@@ -3578,7 +3380,7 @@ function calToggleFields() {
   var titleLbl = document.getElementById('cm-title-lbl');
   var titleInput = document.getElementById('cm-title');
   var noteLbl = document.getElementById('cm-note-lbl');
-  var jobTypes = {job:1, site_visit:1, site_inspection:1, job_walk:1, pm_visit:1};
+  var jobTypes = {job:1, site_visit:1, site_inspection:1, job_walk:1};
   if (jobTypes[type]) {
     titleLbl.textContent = 'Facility / Job Site *';
     titleInput.placeholder = 'e.g. ILS Gummies';
@@ -3605,7 +3407,7 @@ function calLoadFacilitiesCache() {
 
 function calFilterFacilities() {
   var box = document.getElementById('cm-title-suggest');
-  var jobTypes = {job:1, site_visit:1, site_inspection:1, job_walk:1, pm_visit:1};
+  var jobTypes = {job:1, site_visit:1, site_inspection:1, job_walk:1};
   var type = document.getElementById('cm-type').value;
   if (!jobTypes[type]) { box.classList.remove('on'); return; }
 
@@ -3655,24 +3457,6 @@ function openAddCalEntry() {
   editingCalOriginalStatus = null;
   calToggleFields();
   openModal('cal-modal');
-}
-
-// Opens the calendar modal pre-filled as a PM Visit for a given facility/date —
-// invoked from the "📅 Schedule" button on a PM Due row (dashboard or Schedule tab).
-function scheduleFromPmDue(fid, dateISO) {
-  ntdStore.facilities.get(fid).then(function(f) {
-    openAddCalEntry();
-    document.getElementById('cal-modal-title').textContent = 'Schedule PM Visit';
-    document.getElementById('cm-type').value = 'pm_visit';
-    document.getElementById('cm-date').value = dateISO || fmtDateISO(new Date());
-    document.getElementById('cm-title').value = f ? (f.name || '') : '';
-    document.getElementById('cm-status').value = 'confirmed';
-    calPickedFacilityId = fid;
-    calToggleFields();
-    openModal('cal-modal');
-  }).catch(function(err) {
-    showToast(err.message || 'Could not load facility');
-  });
 }
 
 function openEditCalEntry(id) {
@@ -3727,7 +3511,7 @@ function saveCalEntry() {
   if (!date) { showToast('Please pick a date'); return; }
 
   var type = document.getElementById('cm-type').value;
-  var jobTypes = {job:1, site_visit:1, site_inspection:1, job_walk:1, pm_visit:1};
+  var jobTypes = {job:1, site_visit:1, site_inspection:1, job_walk:1};
 
   var record = {
     entry_type: type,
@@ -3910,18 +3694,6 @@ document.addEventListener('click', function(e) {
   if (e.target.closest('.ntd-goto-projects')) { goPage('projects'); return; }
   // Navigate to Scheduling > Requests
   if (e.target.closest('.ntd-goto-schedule')) { currentScheduleView = 'requests'; goPage('schedule'); return; }
-  // "📅 Schedule" button on a PM Due row — open the calendar modal pre-filled
-  var schedBtn = e.target.closest('.ntd-schedule-pm');
-  if (schedBtn) { scheduleFromPmDue(schedBtn.getAttribute('data-fid'), schedBtn.getAttribute('data-date')); return; }
-  // "✓ Scheduled" chip on a PM Due row — jump to the Calendar and open that entry
-  var schedChip = e.target.closest('.ntd-goto-cal-entry');
-  if (schedChip) {
-    var calId = schedChip.getAttribute('data-calid');
-    currentScheduleView = 'calendar';
-    goPage('schedule');
-    setTimeout(function(){ openEditCalEntry(calId); }, 200);
-    return;
-  }
   // Navigate to facility detail
   var el = e.target.closest('.ntd-goto');
   if (!el) return;
@@ -3931,11 +3703,28 @@ document.addEventListener('click', function(e) {
 });
 
 window.addEventListener('load', function() {
-  // Service worker registration goes FIRST, before anything else in this
-  // handler — that way, if a later step throws (a bad ntdStore.js, a bug in
-  // a render function, whatever), it can never again prevent the SW's
-  // self-update logic from running, which is what would otherwise let a
-  // stale cached ntdStore.js persist indefinitely with no way to self-heal.
+  // Safety check — if ntdStore didn't load, show error instead of hanging
+  if (typeof ntdStore === 'undefined') {
+    document.getElementById('dashboard-content').innerHTML =
+      '<div class="empty" style="padding-top:48px">' +
+        '<div class="empty-icon">⚠️</div>' +
+        '<h3>Store unavailable</h3>' +
+        '<p>ntdStore.js could not be loaded. Make sure it is uploaded to your GitHub repo alongside ntd-hub.html.</p>' +
+      '</div>';
+    return;
+  }
+  renderDashboard();
+  refreshSchedReqBadge();
+  initTvModeIfRequested();
+
+  var tvRequested = (new URLSearchParams(window.location.search)).get('tv') === '1';
+  if (!tvRequested) {
+    updateUserPillDisplay();
+    if (!getCurrentUser()) { showUserPicker(false); }
+    refreshNotifBadge();
+    notifPollTimer = setInterval(refreshNotifBadge, 45000);
+  }
+
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').then(function(reg) {
       if (reg.waiting) reg.waiting.postMessage('skipWaiting');
@@ -3956,32 +3745,6 @@ window.addEventListener('load', function() {
       swRefreshed = true;
       window.location.reload();
     });
-  }
-
-  // Safety check — if ntdStore didn't load, show error instead of hanging
-  if (typeof ntdStore === 'undefined') {
-    document.getElementById('dashboard-content').innerHTML =
-      '<div class="empty" style="padding-top:48px">' +
-        '<div class="empty-icon">⚠️</div>' +
-        '<h3>Store unavailable</h3>' +
-        '<p>ntdStore.js could not be loaded. Make sure it is uploaded to your GitHub repo alongside ntd-hub.html.</p>' +
-      '</div>';
-    return;
-  }
-
-  // Each of these is independent — wrap so one throwing can't skip the rest.
-  try { renderDashboard(); } catch(e) { console.error('renderDashboard failed:', e); }
-  try { refreshSchedReqBadge(); } catch(e) { console.error('refreshSchedReqBadge failed:', e); }
-  try { initTvModeIfRequested(); } catch(e) { console.error('initTvModeIfRequested failed:', e); }
-
-  var tvRequested = (new URLSearchParams(window.location.search)).get('tv') === '1';
-  if (!tvRequested) {
-    try {
-      updateUserPillDisplay();
-      if (!getCurrentUser()) { showUserPicker(false); }
-      refreshNotifBadge();
-      notifPollTimer = setInterval(refreshNotifBadge, 45000);
-    } catch(e) { console.error('user pill / notifications setup failed:', e); }
   }
 });
 </script>
