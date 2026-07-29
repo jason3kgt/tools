@@ -2416,18 +2416,50 @@ function ntdUploadProjectDoc() {
 }
 
 // ── PROJECT SUBMITTALS (startup jobs linked to this project) ───────────────
+var _ntdSubmittalsShowHidden = false;
 function ntdRenderProjectSubmittals(projectId, facilityId) {
   var wrap = document.getElementById('pm-submittals-list');
   wrap.innerHTML = '<div style="font-size:11px;color:var(--mu)">Loading…</div>';
   ntdStore.jobs.list(function(j){ return j.project_id === projectId && j.type === 'startup_job'; }).then(function(jobs) {
     jobs = (jobs||[]).sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
     if (!jobs.length) { wrap.innerHTML = '<div style="font-size:11px;color:var(--mu);font-style:italic">No submittals published yet for this project.</div>'; return; }
-    wrap.innerHTML = jobs.map(function(j) {
-      return '<div style="padding:8px 10px;border:1.5px solid var(--bd);border-radius:8px;margin-bottom:6px">' +
-        '<div style="font-size:12px;font-weight:700;color:var(--nv)">' + esc(j.name||'Submittal') + '</div>' +
-        '<div style="font-size:11px;color:var(--mu)">' + (j.units?j.units.length:0) + ' unit(s)' + (j.manufacturer?' · '+esc(j.manufacturer):'') + (j.equipment_type?' · '+esc(j.equipment_type):'') + '</div>' +
-        '</div>';
-    }).join('');
+    var hiddenCount = jobs.filter(function(j){ return j.hidden; }).length;
+    var visible = _ntdSubmittalsShowHidden ? jobs : jobs.filter(function(j){ return !j.hidden; });
+    var html = '';
+    if (!visible.length) {
+      html += '<div style="font-size:11px;color:var(--mu);font-style:italic">No visible submittals for this project.</div>';
+    } else {
+      html += visible.map(function(j) {
+        return '<div style="padding:8px 10px;border:1.5px solid var(--bd);border-radius:8px;margin-bottom:6px'+(j.hidden?';opacity:.55':'')+'">' +
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">' +
+            '<div style="font-size:12px;font-weight:700;color:var(--nv)">' + esc(j.name||'Submittal') + (j.hidden?' <span style="font-weight:600;color:var(--mu);font-size:10px">(hidden)</span>':'') + '</div>' +
+            '<button class="btn-outline" style="padding:3px 9px;font-size:10px;flex-shrink:0" onclick="ntdToggleSubmittalHidden(\''+j.id+'\','+(!j.hidden)+',\''+projectId+'\')">'+(j.hidden?'Unhide':'Hide')+'</button>' +
+          '</div>' +
+          '<div style="font-size:11px;color:var(--mu)">' + (j.units?j.units.length:0) + ' unit(s)' + (j.manufacturer?' · '+esc(j.manufacturer):'') + (j.equipment_type?' · '+esc(j.equipment_type):'') + '</div>' +
+          '</div>';
+      }).join('');
+    }
+    if (hiddenCount) {
+      html += '<div style="font-size:11px;color:var(--mu);text-align:center;padding-top:2px;cursor:pointer" onclick="_ntdSubmittalsShowHidden=!_ntdSubmittalsShowHidden;ntdRenderProjectSubmittals(\''+projectId+'\',\''+facilityId+'\')">' +
+        (_ntdSubmittalsShowHidden ? 'Hide hidden submittals' : 'Show ' + hiddenCount + ' hidden submittal' + (hiddenCount>1?'s':'')) + '</div>';
+    }
+    wrap.innerHTML = html;
+  });
+}
+
+// Marks a duplicate/accidental submittal publish as hidden (or restores it) without
+// deleting the underlying record — DELETE is blocked by RLS for the anon key anyway,
+// and keeping the row preserves history while decluttering the list techs pick from.
+function ntdToggleSubmittalHidden(jobId, hideIt, projectId) {
+  ntdStore.jobs.get(jobId).then(function(job) {
+    if (!job) return;
+    job.hidden = hideIt;
+    return ntdStore.jobs.upsert(job);
+  }).then(function() {
+    showToast(hideIt ? 'Submittal hidden' : 'Submittal restored');
+    ntdRenderProjectSubmittals(projectId, editingProjectFacilityId);
+  }).catch(function(err) {
+    alert('Could not update: ' + (err.message || 'see console for details'));
   });
 }
 

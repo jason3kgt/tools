@@ -35,6 +35,27 @@ var _sb = (function() {
     });
   }
 
+  // Original insert-then-update-on-conflict logic, with no offline handling —
+  // used directly by the offline queue's flush() so a replay attempt that
+  // fails again (still no connection) just rejects cleanly instead of
+  // re-enqueuing a duplicate copy of the same record.
+  function rawUpsert(table, record) {
+    var now = Date.now();
+    record.ts = record.ts || now;
+    record.updated_at = new Date().toISOString();
+    if (!record.id) {
+      record.id = _uid(table.slice(0,4));
+      record.created_at = record.updated_at;
+    }
+    return req('POST', table, undefined, record)
+      .then(function(rows) { return rows && rows.length ? rows[0] : record; })
+      .catch(function() {
+        // If insert fails try update
+        return req('PATCH', table, 'id=eq.' + encodeURIComponent(record.id), record)
+          .then(function(rows) { return rows && rows.length ? rows[0] : record; });
+      });
+  }
+
   return {
     // Get all rows, optional filter string e.g. 'facility_id=eq.abc'
     // Paginates internally in pages of 1000 (PostgREST's default row cap) so
@@ -62,23 +83,23 @@ var _sb = (function() {
         return rows && rows.length ? rows[0] : null;
       });
     },
-    // Upsert a record (insert or update by id)
+    // Upsert a record (insert or update by id). Falls back to queuing the
+    // write locally (see OFFLINE QUEUE below) if the failure looks like a
+    // connectivity problem rather than a real server-side error, so a tech's
+    // work is never silently lost in a dead-signal mechanical room.
     upsert: function(table, record) {
-      var now = Date.now();
-      record.ts = record.ts || now;
-      record.updated_at = new Date().toISOString();
-      if (!record.id) {
-        record.id = _uid(table.slice(0,4));
-        record.created_at = record.updated_at;
-      }
-      return req('POST', table, undefined, record)
-        .then(function(rows) { return rows && rows.length ? rows[0] : record; })
-        .catch(function() {
-          // If insert fails try update
-          return req('PATCH', table, 'id=eq.' + encodeURIComponent(record.id), record)
-            .then(function(rows) { return rows && rows.length ? rows[0] : record; });
-        });
+      return rawUpsert(table, record).catch(function(err) {
+        if (_ntdLooksOffline(err)) {
+          return _ntdQueue.enqueue(table, record).then(function() {
+            return Object.assign({}, record, { _queued: true });
+          });
+        }
+        throw err;
+      });
     },
+    // Insert-or-update with NO offline fallback — used internally by the
+    // offline queue when replaying a queued write.
+    _rawUpsert: rawUpsert,
     // Delete a record by id
     delete: function(table, id) {
       return req('DELETE', table, 'id=eq.' + encodeURIComponent(id))
@@ -99,9 +120,136 @@ var _sb = (function() {
   };
 })();
 
-// ── SHARED FILTER SIZE LIST ────────────────────────────────────────────────
-// Single source of truth for filter-size dropdowns across every tool. Items
-// starting with '---' are section headers (rendered as disabled options).
+// ── OFFLINE QUEUE ─────────────────────────────────────────────────────────
+// Field tools run on iPads in mechanical rooms/basements with spotty signal.
+// When a write (facility/equipment/startup/PM/quote/etc.) fails because the
+// device looks offline — not because Supabase rejected it — the record is
+// stashed in IndexedDB instead of losing the tech's work. It's replayed
+// automatically once the connection comes back (or the app is reopened).
+// Only genuine connectivity failures are queued; a real server-side error
+// (bad data, RLS, etc.) still surfaces immediately so it isn't hidden.
+//
+// Scope note: this covers data-record writes only (the ntdStore.*.upsert
+// path). PDF/photo file uploads to Supabase Storage go through a separate,
+// unqueued path and will still fail immediately if offline — a much bigger
+// lift to make replayable (blobs, signed URLs) and not part of this pass.
+function _ntdLooksOffline(err) {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
+  // A network-level fetch failure (no response at all) throws a TypeError
+  // in every major browser, including Safari's "Load failed". A real
+  // server-side error instead throws a plain Error built from a response
+  // body in _sb's req(), so checking the error's constructor cleanly tells
+  // the two apart without guessing at message text.
+  return !!(err && err.name === 'TypeError');
+}
+
+var _ntdQueueDBName = 'ntd_offline_queue';
+var _ntdQueueListeners = [];
+
+function _ntdQueueOpenDB() {
+  return new Promise(function(resolve, reject) {
+    if (typeof indexedDB === 'undefined') { reject(new Error('IndexedDB unavailable')); return; }
+    var openReq = indexedDB.open(_ntdQueueDBName, 1);
+    openReq.onupgradeneeded = function(e) {
+      var db = e.target.result;
+      if (!db.objectStoreNames.contains('ops')) db.createObjectStore('ops', { keyPath: 'qid' });
+    };
+    openReq.onsuccess = function(e) { resolve(e.target.result); };
+    openReq.onerror = function(e) { reject((e.target && e.target.error) || new Error('IndexedDB open failed')); };
+  });
+}
+
+function _ntdQueueNotify() {
+  _ntdQueue.count().then(function(n) {
+    _ntdQueueListeners.forEach(function(cb) { try { cb(n); } catch(e) {} });
+  }).catch(function() {});
+}
+
+var _ntdQueue = {
+  // Stash a failed write. Always resolves (never rejects) so the calling
+  // ntdStore.*.upsert() can still resolve "successfully" with a _queued flag
+  // rather than throwing and losing the submission.
+  enqueue: function(table, record) {
+    return _ntdQueueOpenDB().then(function(db) {
+      return new Promise(function(resolve, reject) {
+        var tx = db.transaction('ops', 'readwrite');
+        tx.objectStore('ops').add({ qid: _uid('q'), table: table, record: record, ts: Date.now() });
+        tx.oncomplete = function() { _ntdQueueNotify(); resolve(); };
+        tx.onerror = function() { reject(tx.error); };
+      });
+    }).catch(function(err) {
+      console.warn('[NTD] Offline queue unavailable, write may be lost:', err);
+    });
+  },
+  _all: function() {
+    return _ntdQueueOpenDB().then(function(db) {
+      return new Promise(function(resolve, reject) {
+        var store = db.transaction('ops', 'readonly').objectStore('ops');
+        if (store.getAll) {
+          var r = store.getAll();
+          r.onsuccess = function() { resolve(r.result || []); };
+          r.onerror = function() { reject(r.error); };
+        } else {
+          var items = [];
+          var cur = store.openCursor();
+          cur.onsuccess = function(e) {
+            var c = e.target.result;
+            if (c) { items.push(c.value); c.continue(); } else resolve(items);
+          };
+          cur.onerror = function() { reject(cur.error); };
+        }
+      });
+    });
+  },
+  count: function() {
+    return _ntdQueue._all().then(function(items) { return items.length; }).catch(function() { return 0; });
+  },
+  remove: function(qid) {
+    return _ntdQueueOpenDB().then(function(db) {
+      return new Promise(function(resolve, reject) {
+        var tx = db.transaction('ops', 'readwrite');
+        tx.objectStore('ops').delete(qid);
+        tx.oncomplete = resolve;
+        tx.onerror = function() { reject(tx.error); };
+      });
+    });
+  },
+  // Register a callback fired with the current queue count whenever it changes.
+  onChange: function(cb) { _ntdQueueListeners.push(cb); },
+  // Replay queued writes in the order they were made (oldest first — matters
+  // when a later write depends on an earlier one, e.g. equipment referencing
+  // a facility_id that was only just created locally). Stops at the first
+  // item that still fails, leaving the rest queued for the next attempt.
+  flush: function() {
+    if (_ntdQueue._flushing) return _ntdQueue._flushing;
+    var p = _ntdQueue._all().then(function(items) {
+      items.sort(function(a, b) { return (a.ts || 0) - (b.ts || 0); });
+      return items.reduce(function(chain, item) {
+        return chain.then(function() {
+          return _sb._rawUpsert(item.table, item.record).then(function() {
+            return _ntdQueue.remove(item.qid);
+          });
+        });
+      }, Promise.resolve());
+    }).then(function() {
+      _ntdQueueNotify();
+    }).catch(function() {
+      _ntdQueueNotify(); // still update the visible count even on a partial flush
+    });
+    _ntdQueue._flushing = p.then(function() { _ntdQueue._flushing = null; });
+    return p;
+  }
+};
+window.ntdQueue = _ntdQueue;
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', function() { _ntdQueue.flush(); });
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible') _ntdQueue.flush();
+  });
+  setTimeout(function() { _ntdQueue.flush(); }, 1500);
+  setInterval(function() { if (navigator.onLine) _ntdQueue.flush(); }, 30000);
+}
 window.NTD_FILTER_SIZES = [
   '--- 1" Filters ---',
   '10x20x1','12x12x1','12x24x1','14x14x1','14x20x1','14x24x1','14x25x1',
