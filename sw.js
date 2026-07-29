@@ -1,4 +1,4 @@
-var CACHE='ntd-tools-v67';
+var CACHE='ntd-tools-v68';
 var ASSETS=[
   './',
   './index.html',
@@ -22,7 +22,11 @@ self.addEventListener('activate',function(e){
 });
 self.addEventListener('fetch',function(e){
   var url=e.request.url;
-  if(url.indexOf('.html')>-1){
+  // Code files change often and a stale copy fails silently (e.g. a page
+  // calling a function that doesn't exist yet in a cached ntdStore.js), so
+  // .html and .js both go network-first, same as each other. Only truly
+  // static assets (icons, manifest) stay cache-first for offline use.
+  if(url.indexOf('.html')>-1 || url.indexOf('.js')>-1){
     e.respondWith(fetch(e.request).catch(function(){return caches.match(e.request);}));
   } else {
     e.respondWith(caches.match(e.request).then(function(r){return r||fetch(e.request);}));

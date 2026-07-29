@@ -2212,30 +2212,37 @@ function submitHubPhoto() {
   var taggedPeople = hpTaggedPeople.slice();
 
   function doUpload(blob) {
-    ntdStore.photos.upload({
-      blob: blob,
-      facilityId: facilityId,
-      facilityName: facilityName,
-      formType: 'facility_photo',
-      description: label,
-      tech: tech
-    }).then(function(doc) {
-      if (!doc) { alert('Upload failed — check your connection and try again.'); return; }
-      closeModal('hub-photo-modal');
-      showToast('✓ Photo uploaded');
-      renderPhotoHub(true);
-      if (taggedPeople.length) {
-        var who = tech || 'Someone';
-        var where = facilityName ? (' at ' + facilityName) : '';
-        var what = label ? (': ' + label) : '';
-        var msg = who + ' tagged you on a photo' + where + what;
-        taggedPeople.forEach(function(name) {
-          createNotification(name, msg, doc.id, 'photo');
-        });
-      }
-    }).catch(function(err) {
-      alert('Upload failed: ' + (err.message || 'see console for details'));
-    });
+    try {
+      ntdStore.photos.upload({
+        blob: blob,
+        facilityId: facilityId,
+        facilityName: facilityName,
+        formType: 'facility_photo',
+        description: label,
+        tech: tech
+      }).then(function(doc) {
+        if (!doc) { alert('Upload failed — check your connection and try again.'); return; }
+        closeModal('hub-photo-modal');
+        showToast('✓ Photo uploaded');
+        renderPhotoHub(true);
+        if (taggedPeople.length) {
+          var who = tech || 'Someone';
+          var where = facilityName ? (' at ' + facilityName) : '';
+          var what = label ? (': ' + label) : '';
+          var msg = who + ' tagged you on a photo' + where + what;
+          taggedPeople.forEach(function(name) {
+            createNotification(name, msg, doc.id, 'photo');
+          });
+        }
+      }).catch(function(err) {
+        alert('Upload failed: ' + (err.message || 'see console for details'));
+      });
+    } catch (err) {
+      // Catches synchronous errors too (e.g. an out-of-date cached copy of
+      // ntdStore.js missing the photos API) — without this, a stale cache
+      // fails silently and the modal just sits there with no feedback.
+      alert('Upload failed to start: ' + (err.message || 'see console for details') + '. If this persists, try a hard refresh or reinstalling the app.');
+    }
   }
 
   compressImage(file, 1600, 0.75).then(function(res) {
@@ -2862,7 +2869,6 @@ function saveProject() {
   if (!name) { alert('Project name is required.'); return; }
   var facilityId = document.getElementById('pm-facility').value;
   if (!facilityId) { alert('Please select a facility for this project.'); return; }
-  var wasNewProject = !editingProjectId;
   var data = {
     facility_id: facilityId,
     type:        'project',
@@ -2886,20 +2892,11 @@ function saveProject() {
     agr_status:  document.getElementById('pm-agr-status').value
   };
   if (editingProjectId) data.id = editingProjectId;
-  ntdStore.jobs.upsert(data).then(function(job) {
+  ntdStore.jobs.upsert(data).then(function() {
+    closeModal('proj-modal');
+    showToast(editingProjectId ? 'Project updated' : 'Project added');
     if (currentDetailTab === 'projects') ntdStore.facilities.get(currentFacilityId).then(renderDetailTab);
     renderProjectList();
-    if (wasNewProject && job && job.id) {
-      // First-time save: reopen the same project in edit mode immediately so
-      // Documents/Submittals (which need a real job_id to attach to) show up
-      // right away, instead of closing the modal and making the PM hunt for
-      // the project again in the list to get back in.
-      showToast('Project added — add documents or a submittal below');
-      openEditProject(job.id, facilityId, true);
-    } else {
-      closeModal('proj-modal');
-      showToast('Project updated');
-    }
   }).catch(function(err) {
     console.error('saveProject failed:', err);
     showToast('Save failed: ' + (err.message || 'see console for details'));
