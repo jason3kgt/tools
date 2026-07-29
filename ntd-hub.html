@@ -2862,6 +2862,7 @@ function saveProject() {
   if (!name) { alert('Project name is required.'); return; }
   var facilityId = document.getElementById('pm-facility').value;
   if (!facilityId) { alert('Please select a facility for this project.'); return; }
+  var wasNewProject = !editingProjectId;
   var data = {
     facility_id: facilityId,
     type:        'project',
@@ -2885,11 +2886,20 @@ function saveProject() {
     agr_status:  document.getElementById('pm-agr-status').value
   };
   if (editingProjectId) data.id = editingProjectId;
-  ntdStore.jobs.upsert(data).then(function() {
-    closeModal('proj-modal');
-    showToast(editingProjectId ? 'Project updated' : 'Project added');
+  ntdStore.jobs.upsert(data).then(function(job) {
     if (currentDetailTab === 'projects') ntdStore.facilities.get(currentFacilityId).then(renderDetailTab);
     renderProjectList();
+    if (wasNewProject && job && job.id) {
+      // First-time save: reopen the same project in edit mode immediately so
+      // Documents/Submittals (which need a real job_id to attach to) show up
+      // right away, instead of closing the modal and making the PM hunt for
+      // the project again in the list to get back in.
+      showToast('Project added — add documents or a submittal below');
+      openEditProject(job.id, facilityId, true);
+    } else {
+      closeModal('proj-modal');
+      showToast('Project updated');
+    }
   }).catch(function(err) {
     console.error('saveProject failed:', err);
     showToast('Save failed: ' + (err.message || 'see console for details'));
