@@ -1112,10 +1112,12 @@ function renderPhotos(uid){
   var html='';
   for(var i=0;i<eq.photos.length;i++){
     var p=eq.photos[i];
-    html+='<div class="photo-thumb'+(p.backedUp?' backed':'')+'" style="width:100px">'
+    html+='<div style="width:100px">'
+      +'<div class="photo-thumb'+(p.backedUp?' backed':'')+'">'
       +'<img src="'+p.data+'" alt="photo">'
       +'<button class="photo-del" data-uid="'+uid+'" data-pidx="'+i+'" onclick="delPhoto(this)">\u00d7</button>'
-      +'<input type="text" value="'+esc2(p.caption||'')+'" placeholder="What does this show?" data-uid="'+uid+'" data-pidx="'+i+'" oninput="updPhotoCaption(this)" style="width:100%;font-size:10px;padding:4px;margin-top:3px;border:1px solid var(--bd);border-radius:5px">'
+      +'</div>'
+      +'<input type="text" value="'+esc2(p.caption||'')+'" placeholder="What does this show?" data-uid="'+uid+'" data-pidx="'+i+'" oninput="updPhotoCaption(this)" style="width:100%;font-size:10px;padding:4px;margin-top:3px;border:1px solid var(--bd);border-radius:5px;box-sizing:border-box">'
       +'</div>';
   }
   pg.innerHTML=html;
