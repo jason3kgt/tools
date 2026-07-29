@@ -273,6 +273,14 @@ textarea{resize:vertical;min-height:70px}
         <div style="font-size:9px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Executive Summary (auto-generated)</div>
         <div id="execsum" style="font-size:12px;line-height:1.5;color:var(--tx)">Score equipment on the Units tab to generate a summary.</div>
       </div>
+      <div id="r22-alert-card" style="display:none;background:#FEF2F2;border:1.5px solid var(--rd);border-radius:8px;padding:10px 12px;margin-bottom:10px">
+        <div style="font-size:12px;font-weight:800;color:var(--rd);margin-bottom:4px">⚠️ R-22 Refrigerant Alert</div>
+        <div id="r22-alert-body" style="font-size:12px;line-height:1.5;color:#7A1F1F"></div>
+      </div>
+      <div id="key-findings-card" style="display:none;margin-bottom:10px">
+        <div style="font-size:9px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">📷 Key Findings</div>
+        <div id="key-findings-grid" style="display:flex;flex-wrap:wrap;gap:10px"></div>
+      </div>
       <div class="stats">
         <div class="stat" id="s-tot"><div class="snum" id="sn-tot">0</div><div class="slbl">Total Units</div></div>
         <div class="stat" id="s-avg"><div class="snum" id="sn-avg">-</div><div class="slbl">Avg Condition</div></div>
@@ -880,7 +888,9 @@ function eqH(eq,idx){
     +'<div class="fg"><label>Model #</label><input type="text" value="'+(eq.model||'')+'" placeholder="Model number" data-uid="'+eq.id+'" data-fld="model" oninput="udf(this)"></div></div>'
     +'<div class="r2"><div class="fg"><label>Tonnage / Size</label><input type="text" value="'+(eq.tonnage||'')+'" placeholder="e.g. 7.5 ton" data-uid="'+eq.id+'" data-fld="tonnage" oninput="udf(this)"></div>'
     +'<div class="fg"><label>Serial #</label><input type="text" value="'+(eq.serial||'')+'" placeholder="Serial number" data-uid="'+eq.id+'" data-fld="serial" oninput="udf(this)"></div></div>'
-    +'<div class="fg"><label>Install Year <span style="font-weight:400;font-size:9px;text-transform:none">(or age in yrs)</span></label><input type="text" value="'+(eq.age||'')+'" placeholder="e.g. 2014 or 11" data-uid="'+eq.id+'" data-fld="age" oninput="udf(this)"></div>'
+    +'<div class="r2"><div class="fg"><label>Install Year <span style="font-weight:400;font-size:9px;text-transform:none">(or age in yrs)</span></label><input type="text" value="'+(eq.age||'')+'" placeholder="e.g. 2014 or 11" data-uid="'+eq.id+'" data-fld="age" oninput="udf(this)"></div>'
+    +'<div class="fg"><label>Refrigerant Type</label><select data-uid="'+eq.id+'" data-fld="refrigerant" onchange="udf(this)">'
+    +'<option value="">Select...</option>'+['R-22','R-410A','R-407C','R-134a','R-32','R-454B','Other/Unknown'].map(function(r){return'<option'+(eq.refrigerant===r?' selected':'')+'>'+r+'</option>';}).join('')+'</select></div></div>'
     +'<div class="fg"><label>Area Served</label><input type="text" value="'+(eq.area||'')+'" placeholder="e.g. Suite 100, 2nd Floor West" data-uid="'+eq.id+'" data-fld="area" oninput="udf(this)"></div>'
     // Condition
     +'<div class="sh">Overall Condition</div>'
@@ -1102,9 +1112,21 @@ function renderPhotos(uid){
   var html='';
   for(var i=0;i<eq.photos.length;i++){
     var p=eq.photos[i];
-    html+='<div class="photo-thumb'+(p.backedUp?' backed':'')+'"><img src="'+p.data+'" alt="photo"><button class="photo-del" data-uid="'+uid+'" data-pidx="'+i+'" onclick="delPhoto(this)">×</button></div>';
+    html+='<div class="photo-thumb'+(p.backedUp?' backed':'')+'" style="width:100px">'
+      +'<img src="'+p.data+'" alt="photo">'
+      +'<button class="photo-del" data-uid="'+uid+'" data-pidx="'+i+'" onclick="delPhoto(this)">\u00d7</button>'
+      +'<input type="text" value="'+esc2(p.caption||'')+'" placeholder="What does this show?" data-uid="'+uid+'" data-pidx="'+i+'" oninput="updPhotoCaption(this)" style="width:100%;font-size:10px;padding:4px;margin-top:3px;border:1px solid var(--bd);border-radius:5px">'
+      +'</div>';
   }
   pg.innerHTML=html;
+}
+function updPhotoCaption(el){
+  var uid=parseInt(el.dataset.uid);
+  var idx=parseInt(el.dataset.pidx);
+  var eq=eqs.find(function(e){return e.id===uid;});
+  if(!eq||!eq.photos||!eq.photos[idx])return;
+  eq.photos[idx].caption=el.value;
+  onFieldChange();
 }
 function delPhoto(btn){
   var uid=parseInt(btn.dataset.uid);
@@ -1139,6 +1161,7 @@ function captureFormState() {
     return {
       id: e.id, tag: e.tag||'', type: e.type||'', manuf: e.manuf||'', model: e.model||'',
       tonnage: e.tonnage||'', serial: e.serial||'', age: e.age||'', area: e.area||'',
+      refrigerant: e.refrigerant||'',
       f1q: e.f1q||'', f1s: e.f1s||'', f2q: e.f2q||'', f2s: e.f2s||'', bq: e.bq||'', bs: e.bs||'',
       notes: e.notes||'', ov: e.ov||'', flags: e.flags||[]
     };
@@ -1336,7 +1359,46 @@ function updS(){
     if(fs.fair>0){parts.push(fs.fair+' unit'+(fs.fair===1?' is':'s are')+' fair and should be monitored for near-term replacement.');}
     parts.push('Recommended 3-year capital reserve: '+fcc(fs.total)+' (Yr 1: '+fcc(fs.r1)+', Yr 2: '+fcc(fs.r2)+', Yr 3\u20135: '+fcc(fs.r3)+').');
     if(hs)parts.push('Portfolio Asset Health Score: '+hs.grade+' ('+hs.score+'/100).');
+    var r22Units=eqs.filter(function(e){return e.refrigerant==='R-22';});
+    if(r22Units.length)parts.push(r22Units.length+' unit'+(r22Units.length===1?' runs':'s run')+' on R-22 refrigerant, which has been banned from production since 2020 \u2014 repair costs on these units are high and rising.');
     esEl.textContent=parts.join(' ');
+  }
+
+  // R-22 alert card
+  var r22Card=document.getElementById('r22-alert-card');
+  var r22List=eqs.filter(function(e){return e.refrigerant==='R-22';});
+  if(r22List.length){
+    r22Card.style.display='block';
+    document.getElementById('r22-alert-body').innerHTML=
+      '<strong>'+r22List.length+' unit'+(r22List.length===1?'':'s')+'</strong> on file '+(r22List.length===1?'runs':'run')+' on R-22 refrigerant: '+
+      esc2(r22List.map(function(e){return e.tag||'Unit';}).join(', '))+'. '+
+      'R-22 production and import has been banned in the U.S. since 2020 \u2014 only recycled/reclaimed supply remains, and prices continue to climb. '+
+      'A major leak or compressor failure on one of these units often costs more to repair than the unit is worth, since refrigerant alone can run several hundred dollars just to recharge. '+
+      'These units should be treated as higher-urgency replacement candidates regardless of their condition rating otherwise.';
+  }else{
+    r22Card.style.display='none';
+  }
+
+  // Key Findings — photo + caption spotlight for Poor-condition units
+  var kfCard=document.getElementById('key-findings-card');
+  var kfGrid=document.getElementById('key-findings-grid');
+  var findings=[];
+  eqs.filter(function(e){return e.ov==='poor';}).forEach(function(e){
+    if(e.photos&&e.photos.length){
+      findings.push({tag:e.tag||'Unit',photo:e.photos[0]});
+    }
+  });
+  if(findings.length){
+    kfCard.style.display='block';
+    kfGrid.innerHTML=findings.map(function(f){
+      return '<div style="width:130px">'
+        +'<img src="'+f.photo.data+'" style="width:130px;height:130px;object-fit:cover;border-radius:8px;border:1.5px solid var(--rd)">'
+        +'<div style="font-size:10px;font-weight:700;color:var(--rd);margin-top:3px">'+esc2(f.tag)+'</div>'
+        +'<div style="font-size:10px;color:var(--tx);line-height:1.3">'+esc2(f.photo.caption||'No caption added')+'</div>'
+        +'</div>';
+    }).join('');
+  }else{
+    kfCard.style.display='none';
   }
 
   // Asset register
@@ -1582,6 +1644,38 @@ function dlSummary(){
     }
     y+=bh+10;
   }
+  // R-22 alert box
+  var r22Units=eqs.filter(function(e){return e.refrigerant==='R-22';});
+  if(r22Units.length){
+    var r22h=34;
+    doc.setFillColor(254,242,242);doc.rect(14,y,W-28,r22h,'F');doc.setDrawColor(192,57,43);doc.setLineWidth(1);doc.rect(14,y,W-28,r22h,'S');
+    doc.setFont('helvetica','bold');doc.setFontSize(9);doc.setTextColor(192,57,43);doc.text('\u26A0 R-22 REFRIGERANT ALERT',20,y+13);
+    doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(90,30,30);
+    var r22txt=r22Units.length+' unit'+(r22Units.length===1?'':'s')+' ('+r22Units.map(function(e){return e.tag||'Unit';}).join(', ')+') run on R-22, banned from production since 2020. Repair costs are high and rising \u2014 treat as higher-urgency replacement candidates regardless of condition rating otherwise.';
+    doc.text(doc.splitTextToSize(r22txt,W-40),20,y+24);
+    y+=r22h+10;
+  }
+  // Key Findings — photo + caption spotlight for Poor-condition units
+  var kfFindings=[];
+  eqs.filter(function(e){return e.ov==='poor';}).forEach(function(e){
+    if(e.photos&&e.photos.length)kfFindings.push({tag:e.tag||'Unit',photo:e.photos[0]});
+  });
+  if(kfFindings.length){
+    doc.setFillColor(27,58,107);doc.rect(14,y,W-28,13,'F');doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.text('KEY FINDINGS',18,y+9);y+=17;
+    var kfSize=90,kfGap=8,kfPerRow=Math.max(1,Math.floor((W-28+kfGap)/(kfSize+kfGap)));
+    var kx=14;
+    kfFindings.forEach(function(f,i){
+      if(i>0 && i%kfPerRow===0){kx=14;y+=kfSize+30;}
+      try{doc.addImage(f.photo.data,'JPEG',kx,y,kfSize,kfSize);}catch(er){}
+      doc.setDrawColor(192,57,43);doc.setLineWidth(0.75);doc.rect(kx,y,kfSize,kfSize,'S');
+      doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(192,57,43);doc.text(f.tag,kx,y+kfSize+9);
+      doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(60,60,60);
+      doc.text(doc.splitTextToSize(f.photo.caption||'No caption added',kfSize),kx,y+kfSize+18);
+      kx+=kfSize+kfGap;
+    });
+    y+=kfSize+30+10;
+  }
+  if(y>H-100){doc.addPage();y=20;}
   var stats=[['Total Units',String(eqs.length),[27,58,107]],['Avg Condition',al,avgClr],['Good Condition',String(good),[30,122,62]],['Fair Condition',String(fair),[212,130,10]],['Poor / Action',String(poor),[192,57,43]]];
   var sw=(W-28)/stats.length;
   stats.forEach(function(s,i){
@@ -3215,7 +3309,7 @@ function ntdEqRecord(eq, facilityId) {
     condition: eq.ov||'', install_year: eq.age||'', notes: eq.notes||'',
     manufacturer: eq.manuf||'', model: eq.model||'', serial: eq.serial||'',
     tonnage: eq.tonnage||'', filter_size: filterParts.join(', '), belt_size: eq.bs||'',
-    area: eq.area||''
+    area: eq.area||'', refrigerant: eq.refrigerant||''
   };
 }
 
