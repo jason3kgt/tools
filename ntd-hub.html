@@ -3262,11 +3262,22 @@ function renderHealthPage() {
     var totalReplVal = atRisk.reduce(function(sum, e){ return sum + (e.repl_cost || 0); }, 0);
 
     var html = '<div class="section-label" style="--accent:var(--rd)">'+ntdIcon('alert',12)+' At-Risk Equipment — All Facilities</div>';
-    html += '<div class="stats-row">' +
-      statPill(poorCount, 'Poor', poorCount ? 'var(--rd)' : null) +
-      statPill(fairCount, 'Fair', fairCount ? 'var(--am)' : null) +
-      statPill(totalReplVal ? ('$'+Math.round(totalReplVal/1000)+'k') : '$0', 'Est. Replacement Value') +
-    '</div>';
+    html += '<div class="card"><div class="card-body">' +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap">' +
+        '<div style="flex:1;min-width:90px;text-align:center;padding:10px 6px;border-radius:10px;background:'+(poorCount?'#FDEDEC':'var(--of)')+'">' +
+          '<div style="font-size:22px;font-weight:800;color:'+(poorCount?'var(--rd)':'var(--mu)')+'">'+poorCount+'</div>' +
+          '<div style="font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--mu)">Poor</div>' +
+        '</div>' +
+        '<div style="flex:1;min-width:90px;text-align:center;padding:10px 6px;border-radius:10px;background:'+(fairCount?'#FFF3E0':'var(--of)')+'">' +
+          '<div style="font-size:22px;font-weight:800;color:'+(fairCount?'var(--am)':'var(--mu)')+'">'+fairCount+'</div>' +
+          '<div style="font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--mu)">Fair</div>' +
+        '</div>' +
+        '<div style="flex:1;min-width:90px;text-align:center;padding:10px 6px;border-radius:10px;background:var(--of)">' +
+          '<div style="font-size:22px;font-weight:800;color:var(--nv)">'+(totalReplVal ? '$'+Math.round(totalReplVal/1000)+'k' : '$0')+'</div>' +
+          '<div style="font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--mu)">Est. Replacement Value</div>' +
+        '</div>' +
+      '</div>' +
+    '</div></div>';
 
     if (!atRisk.length) {
       html += emptyState('✅','Nothing at risk','No units are currently marked Poor or Fair condition across any facility.');
