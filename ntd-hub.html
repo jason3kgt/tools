@@ -1116,7 +1116,7 @@ function renderFacilityList() {
         var hasStart = startups.some(function(r){ return r.facility_id === f.id; });
         var hasQuote = pmQuotes.some(function(r){ return r.facility_id === f.id; });
         var eqCount  = equip.filter(function(e){ return e.facility_id === f.id; }).length;
-        var followups = startups.filter(function(r){ return r.facility_id === f.id && r.followup && r.followup.trim(); }).length;
+        var followups = startups.filter(function(r){ return r.facility_id === f.id && _ntdOpenFollowup(r); }).length;
         // PM schedule status
         var _pmStatus = null;
         if (f.pm_contract && f.contract && f.contract.frequency) {
@@ -1300,8 +1300,8 @@ function renderDetailTab(f) {
           color: 'gn',
           title: 'Startup — ' + esc(r.unit_num || 'Unit'),
           sub:   [r.eq_type, r.tech ? 'Tech: '+r.tech : ''].filter(Boolean).join(' · '),
-          meta:  (r.followup ? '⚠ Follow-up: ' + esc(r.followup) : '') + pdfLink,
-          meta_color: r.followup ? 'var(--am)' : '',
+          meta:  (r.followup ? (r.followup_resolved ? '✓ Follow-up (resolved): ' : '⚠ Follow-up: ') + esc(r.followup) : '') + pdfLink,
+          meta_color: r.followup ? (r.followup_resolved ? 'var(--gn)' : 'var(--am)') : '',
           date:  r.sig_date || ''
         });
       });
@@ -1409,7 +1409,7 @@ function renderDetailTab(f) {
       });
 
       // Collect open follow-ups
-      var openFollowups = startups.filter(function(r){ return r.facility_id === fid && r.followup && r.followup.trim(); });
+      var openFollowups = startups.filter(function(r){ return r.facility_id === fid && _ntdOpenFollowup(r); });
 
       // Add standalone document entries only for types that don't have a matching data record
       // PM visits, startups, asset surveys get their PDF link merged into the data record below
@@ -1453,7 +1453,10 @@ function renderDetailTab(f) {
           '</div>';
         openFollowups.forEach(function(r) {
           html += '<div class="followup-item">' +
-            '<div style="font-size:13px;font-weight:700;color:var(--tx)">' + esc(r.unit_num||'Unit') + (r.eq_type?' <span style="font-weight:400;color:var(--mu)">· '+esc(r.eq_type)+'</span>':'') + '</div>' +
+            '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">' +
+              '<div style="font-size:13px;font-weight:700;color:var(--tx)">' + esc(r.unit_num||'Unit') + (r.eq_type?' <span style="font-weight:400;color:var(--mu)">· '+esc(r.eq_type)+'</span>':'') + '</div>' +
+              '<button class="btn-outline ntd-resolve-followup" data-id="'+r.id+'" style="padding:3px 9px;font-size:10px;flex-shrink:0">✓ Resolve</button>' +
+            '</div>' +
             (r.tech ? '<div style="font-size:11px;color:var(--mu);margin-top:2px">Tech: '+esc(r.tech)+(r.sig_date?' · '+esc(r.sig_date):'')+'</div>' : '') +
             '<div style="font-size:12px;color:var(--am);margin-top:4px;line-height:1.5">'+esc(r.followup)+'</div>' +
           '</div>';
@@ -1626,7 +1629,10 @@ function renderDetailTab(f) {
             '<div class="rec-title">'+esc(r.unit_num||'Unit')+'</div>' +
             '<div class="rec-sub">'+esc(r.eq_type||'')+(r.tech?' · '+esc(r.tech):'')+'</div>' +
             (r.sig_name ? '<div class="rec-meta">Signed: '+esc(r.sig_name)+(r.sig_date?' · '+esc(r.sig_date):'')+'</div>' : '') +
-            (r.followup ? '<div class="rec-meta" style="color:var(--am)">⚠ Follow-up: '+esc(r.followup)+'</div>' : '') +
+            (r.followup ? '<div class="rec-meta" style="color:var(--am);display:flex;justify-content:space-between;align-items:center;gap:8px">' +
+              '<span>⚠ Follow-up' + (r.followup_resolved ? ' <span style="color:var(--gn);font-weight:700">(resolved)</span>' : '') + ': '+esc(r.followup)+'</span>' +
+              '<button class="btn-outline ntd-resolve-followup" data-id="'+r.id+'" data-reopen="'+(r.followup_resolved?'1':'0')+'" style="padding:2px 8px;font-size:10px;flex-shrink:0">'+(r.followup_resolved?'Reopen':'✓ Resolve')+'</button>' +
+            '</div>' : '') +
           '</div></div>';
       });
       html += '</div></div>';
@@ -3268,6 +3274,30 @@ function emptyState(icon, title, msg) {
   return '<div class="empty"><div class="empty-icon">'+icon+'</div><h3>'+title+'</h3><p>'+msg+'</p></div>';
 }
 
+// A follow-up counts as "open" only while it has text AND hasn't been marked
+// resolved — single source of truth so the facility list badge, dashboard
+// card, and facility Timeline never drift apart on what still needs action.
+function _ntdOpenFollowup(r) {
+  return !!(r && r.followup && r.followup.trim() && !r.followup_resolved);
+}
+
+// Marks a follow-up resolved (or reopens one) without deleting the
+// underlying startup record — same soft pattern as the submittal hide/unhide
+// above. Refreshes whichever view is currently showing follow-ups.
+function ntdResolveFollowup(recordId, resolved) {
+  ntdStore.startup_records.get(recordId).then(function(r) {
+    if (!r) return;
+    r.followup_resolved = resolved;
+    return ntdStore.startup_records.upsert(r);
+  }).then(function() {
+    showToast(resolved ? '✓ Follow-up resolved' : 'Follow-up reopened');
+    if (currentPage === 'dashboard') renderDashboard();
+    if (currentFacilityId) ntdStore.facilities.get(currentFacilityId).then(renderDetailTab);
+  }).catch(function(err) {
+    showToast('Error: ' + (err.message || 'could not update'));
+  });
+}
+
 function showToast(msg) {
   var t = document.getElementById('toast');
   t.textContent = msg;
@@ -3389,7 +3419,7 @@ function renderDashboard() {
     var scheduledPmMap = computeScheduledPmMap(results[8] || []);
 
     // ── Metrics ──
-    var openFollowups = startups.filter(function(r){ return r.followup && r.followup.trim(); });
+    var openFollowups = startups.filter(function(r){ return _ntdOpenFollowup(r); });
     var projScope = getProjScope();
     var curUser = getCurrentUser();
     var activeProjectsAll = jobs.filter(function(j){ return j.type==='project' && (j.status==='bidding'||j.status==='awarded'||j.status==='progress'); });
@@ -3459,9 +3489,12 @@ function renderDashboard() {
       html += '<div class="followup-card">';
       openFollowups.slice(0,5).forEach(function(r) {
         html += '<div class="followup-item ntd-goto" data-fid="'+r.facility_id+'" style="cursor:pointer">'+
-          '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
-            '<div style="font-size:13px;font-weight:700;color:var(--tx)">'+esc(r.unit_num||'Unit')+'</div>' +
-            '<div style="font-size:11px;color:var(--mu)">'+esc(facMap[r.facility_id]||'')+'</div>' +
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">' +
+            '<div>' +
+              '<div style="font-size:13px;font-weight:700;color:var(--tx)">'+esc(r.unit_num||'Unit')+'</div>' +
+              '<div style="font-size:11px;color:var(--mu)">'+esc(facMap[r.facility_id]||'')+'</div>' +
+            '</div>' +
+            '<button class="btn-outline ntd-resolve-followup" data-id="'+r.id+'" style="padding:3px 9px;font-size:10px;flex-shrink:0">✓ Resolve</button>' +
           '</div>' +
           '<div style="font-size:12px;color:var(--am);margin-top:3px;line-height:1.5">'+esc(r.followup)+'</div>' +
         '</div>';
@@ -3785,7 +3818,7 @@ function runGlobalSearch() {
           title: r.unit_num || 'Unit',
           sub: facMap[r.facility_id] || 'Unknown facility',
           meta: [r.tech ? 'Tech: '+r.tech : '', r.sig_date || ''].filter(Boolean).join(' · '),
-          extra: r.followup ? '⚠ ' + r.followup : '',
+          extra: r.followup ? (r.followup_resolved ? '✓ ' : '⚠ ') + r.followup + (r.followup_resolved ? ' (resolved)' : '') : '',
           facility_id: r.facility_id
         };})
       });
@@ -4601,6 +4634,14 @@ function notifItemClick(notifId, relatedId) {
 // ── INIT ──────────────────────────────────────────────────────────────────
 // Delegated click handler for ntd-goto elements
 document.addEventListener('click', function(e) {
+  // Resolve/reopen a follow-up — checked before .ntd-goto below so tapping
+  // the button on a dashboard follow-up row doesn't also navigate away.
+  var resolveBtn = e.target.closest('.ntd-resolve-followup');
+  if (resolveBtn) {
+    var wantResolved = resolveBtn.getAttribute('data-reopen') === '1' ? false : true;
+    ntdResolveFollowup(resolveBtn.getAttribute('data-id'), wantResolved);
+    return;
+  }
   // Expand/collapse a unit's condition history trail (Units tab)
   var histToggle = e.target.closest('.ntd-hist-toggle');
   if (histToggle) {
