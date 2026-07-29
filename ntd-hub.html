@@ -1500,10 +1500,47 @@ function renderDetailTab(f) {
   if (currentDetailTab === 'equipment') {
     Promise.all([
       ntdStore.equipment.list(function(e){ return e.facility_id === fid; }),
-      ntdStore.documents.list(function(d){ return d.facility_id === fid && d.form_type === 'equipment_log'; })
+      ntdStore.documents.list(function(d){ return d.facility_id === fid && d.form_type === 'equipment_log'; }),
+      ntdStore.pm_records.list(function(r){ return r.facility_id === fid; }),
+      ntdStore.jobs.list(function(j){ return j.facility_id === fid && j.type === 'asset_survey'; })
     ]).then(function(res) {
       var equip = res[0] || [];
       var logs = (res[1] || []).sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
+      var pmRecs = res[2] || [];
+      var assetJobs = res[3] || [];
+
+      // ── Condition history per unit tag ──────────────────────────────────
+      // The `equipment` table itself only ever holds the LATEST condition
+      // (ntdUpsertEquipment merges into the same row by serial/tag) so any
+      // trend has to be reconstructed from the per-visit snapshots that
+      // never get overwritten: pm_records.units[] (one row per PM visit) and
+      // asset_survey jobs.units[] (one row per assessment). Both carry
+      // {tag, condition} at the time of that specific visit.
+      var histByTag = {};
+      function _histKey(t) { return (t||'').toString().trim().toUpperCase(); }
+      function _addHistPoint(tag, ts, date, condition, source) {
+        if (!tag || !condition) return;
+        var k = _histKey(tag);
+        if (!histByTag[k]) histByTag[k] = [];
+        histByTag[k].push({ ts: ts||0, date: date||'', condition: condition, source: source });
+      }
+      pmRecs.forEach(function(r) {
+        (r.units||[]).forEach(function(u) { _addHistPoint(u.tag, r.ts, r.date, u.condition, 'PM Visit'); });
+      });
+      assetJobs.forEach(function(j) {
+        (j.units||[]).forEach(function(u) { _addHistPoint(u.tag, j.ts, j.date, u.condition, 'Asset Survey'); });
+      });
+      Object.keys(histByTag).forEach(function(k) {
+        histByTag[k].sort(function(a,b){ return (a.ts||0)-(b.ts||0); });
+        // Collapse consecutive repeats (e.g. three "Good" PM visits in a row)
+        // down to just the change points — a trend, not a visit log.
+        var collapsed = [];
+        histByTag[k].forEach(function(p) {
+          if (!collapsed.length || collapsed[collapsed.length-1].condition !== p.condition) collapsed.push(p);
+        });
+        histByTag[k] = collapsed;
+      });
+
       var logsHtml = '';
       if (logs.length) {
         logsHtml = '<div class="card"><div class="card-body">' +
@@ -1531,6 +1568,31 @@ function renderDetailTab(f) {
         if (e.belt_size) specs.push('Belt: ' + e.belt_size);
         if (e.refrigerant) specs.push('Refrigerant: ' + e.refrigerant);
         if (e.area) specs.push('Area: ' + e.area);
+
+        var hist = histByTag[_histKey(e.tag)] || [];
+        var histHtml = '';
+        if (hist.length > 1) {
+          var trailId = 'hist-' + e.id;
+          var dotsHtml = hist.map(function(p) {
+            var pc = p.condition==='good'?'cond-good':p.condition==='fair'?'cond-fair':p.condition==='poor'?'cond-poor':'cond-none';
+            return '<span class="cond-dot '+pc+'" style="margin-right:2px"></span>';
+          }).join('<span style="color:var(--bd2);font-size:9px">→</span>');
+          var listHtml = hist.map(function(p) {
+            var pc = p.condition==='good'?'cond-good':p.condition==='fair'?'cond-fair':p.condition==='poor'?'cond-poor':'cond-none';
+            return '<div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:11px;color:var(--mu)">' +
+              '<span class="cond-dot '+pc+'"></span>' +
+              '<span style="color:var(--tx);font-weight:600">'+p.condition.charAt(0).toUpperCase()+p.condition.slice(1)+'</span>' +
+              '<span>· '+esc(p.date||'')+(p.source?' · '+esc(p.source):'')+'</span>' +
+            '</div>';
+          }).join('');
+          histHtml = '<div class="rec-meta" style="margin-top:5px">' +
+            '<span class="ntd-hist-toggle" data-target="'+trailId+'" style="cursor:pointer;display:inline-flex;align-items:center">' +
+              dotsHtml + '&nbsp;<span style="color:var(--st);font-weight:600;margin-left:4px">Condition history (' + hist.length + ')</span>' +
+            '</span>' +
+            '<div id="'+trailId+'" class="hidden" style="margin-top:4px">' + listHtml + '</div>' +
+          '</div>';
+        }
+
         html += '<div class="rec-row">' +
           '<div class="rec-icon nv">🔧</div>' +
           '<div class="rec-body">' +
@@ -1544,6 +1606,7 @@ function renderDetailTab(f) {
             (e.pm_covered ? '<div class="rec-meta" style="color:var(--nv);font-weight:600">PM Covered' + (e.pm_frequency?' · '+esc(e.pm_frequency):'') + '</div>' : '') +
             (e.repl_cost ? '<div class="rec-meta">Est. replacement: $'+Math.round(e.repl_cost).toLocaleString()+(e.repl_year?' · Year '+e.repl_year:'')+'</div>' : '') +
             (e.notes ? '<div class="rec-meta" style="margin-top:3px">'+esc(e.notes)+'</div>' : '') +
+            histHtml +
           '</div></div>';
       });
       html += '</div></div>';
@@ -4538,6 +4601,14 @@ function notifItemClick(notifId, relatedId) {
 // ── INIT ──────────────────────────────────────────────────────────────────
 // Delegated click handler for ntd-goto elements
 document.addEventListener('click', function(e) {
+  // Expand/collapse a unit's condition history trail (Units tab)
+  var histToggle = e.target.closest('.ntd-hist-toggle');
+  if (histToggle) {
+    var targetId = histToggle.getAttribute('data-target');
+    var targetEl = targetId && document.getElementById(targetId);
+    if (targetEl) targetEl.classList.toggle('hidden');
+    return;
+  }
   // Navigate to projects page
   if (e.target.closest('.ntd-goto-projects')) { goPage('projects'); return; }
   // Navigate to Scheduling > Requests
