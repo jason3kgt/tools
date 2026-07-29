@@ -37,10 +37,24 @@ var _sb = (function() {
 
   return {
     // Get all rows, optional filter string e.g. 'facility_id=eq.abc'
+    // Paginates internally in pages of 1000 (PostgREST's default row cap) so
+    // callers never get a silently-truncated result once a table grows past
+    // that — the `documents` table (which now holds every photo) is the one
+    // most likely to hit this over time.
     list: function(table, filter) {
-      var params = 'order=ts.desc.nullslast';
-      if (filter) params += '&' + filter;
-      return req('GET', table, params);
+      var pageSize = 1000;
+      function fetchPage(offset) {
+        var params = 'order=ts.desc.nullslast&limit=' + pageSize + '&offset=' + offset;
+        if (filter) params += '&' + filter;
+        return req('GET', table, params).then(function(rows) {
+          rows = rows || [];
+          if (rows.length === pageSize) {
+            return fetchPage(offset + pageSize).then(function(rest) { return rows.concat(rest); });
+          }
+          return rows;
+        });
+      }
+      return fetchPage(0);
     },
     // Get single row by id
     get: function(table, id) {

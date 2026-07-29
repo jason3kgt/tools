@@ -361,6 +361,20 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
 .tag-chip{padding:7px 13px;border-radius:20px;border:1.5px solid var(--bd);background:#fff;font-size:12.5px;font-weight:600;color:var(--tx);cursor:pointer;touch-action:manipulation;font-family:inherit}
 .tag-chip.on{background:var(--nv-grad);border-color:var(--nv);color:#fff}
 
+.lightbox-overlay{visibility:hidden;opacity:0;position:fixed;inset:0;background:rgba(8,12,18,.95);z-index:400;display:flex;flex-direction:column;transition:opacity .2s ease,visibility 0s linear .2s}
+.lightbox-overlay.on{visibility:visible;opacity:1;transition:opacity .2s ease,visibility 0s linear 0s}
+.lightbox-top{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;flex-shrink:0}
+.lightbox-top button{background:rgba(255,255,255,.14);border:none;color:#fff;width:36px;height:36px;border-radius:50%;font-size:16px;cursor:pointer;touch-action:manipulation}
+.lightbox-body{flex:1;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;touch-action:pan-y}
+.lightbox-body img{max-width:100%;max-height:100%;object-fit:contain;user-select:none;-webkit-user-select:none}
+.lightbox-nav{position:absolute;top:0;bottom:0;width:22%;display:flex;align-items:center;justify-content:center;background:none;border:none;color:rgba(255,255,255,.5);font-size:30px;cursor:pointer;touch-action:manipulation}
+.lightbox-nav.prev{left:0}
+.lightbox-nav.next{right:0}
+.lightbox-caption{padding:10px 18px 22px;color:#fff;flex-shrink:0}
+.lightbox-caption .lc-fac{font-size:14px;font-weight:700}
+.lightbox-caption .lc-meta{font-size:11.5px;color:rgba(255,255,255,.65);margin-top:2px}
+.lightbox-caption .lc-desc{font-size:12.5px;color:rgba(255,255,255,.85);margin-top:4px;font-style:italic}
+
 .notif-item{padding:12px 14px;border-radius:12px;border:1px solid var(--bd);margin-bottom:8px;cursor:pointer;background:#fff}
 .notif-item.unread{background:#EEF3FB;border-color:var(--st)}
 .notif-item-msg{font-size:13px;color:var(--tx);line-height:1.5}
@@ -459,12 +473,15 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
 
 <!-- ⑤ PHOTO HUB -->
 <div class="pg" id="pg-photos">
+  <div class="search-wrap">
+    <input type="text" id="ph-filter-search" placeholder="Search labels, facility, tech…" oninput="applyPhotoHubFilters()" autocomplete="off" autocorrect="off" spellcheck="false">
+  </div>
   <div style="display:flex;gap:8px;margin-bottom:10px">
-    <select id="ph-filter-facility" onchange="renderPhotoHub()" style="flex:1;border:1.5px solid var(--bd);border-radius:10px;padding:0 10px;height:38px;font-size:13px;color:var(--tx);background:#fff">
+    <select id="ph-filter-facility" onchange="applyPhotoHubFilters()" style="flex:1;border:1.5px solid var(--bd);border-radius:10px;padding:0 10px;height:38px;font-size:13px;color:var(--tx);background:#fff">
       <option value="all">All Facilities</option>
       <option value="unassigned">Unassigned</option>
     </select>
-    <select id="ph-filter-type" onchange="renderPhotoHub()" style="flex:1;border:1.5px solid var(--bd);border-radius:10px;padding:0 10px;height:38px;font-size:13px;color:var(--tx);background:#fff">
+    <select id="ph-filter-type" onchange="applyPhotoHubFilters()" style="flex:1;border:1.5px solid var(--bd);border-radius:10px;padding:0 10px;height:38px;font-size:13px;color:var(--tx);background:#fff">
       <option value="all">All Types</option>
       <option value="facility_photo">Facility</option>
       <option value="unit_photo">Unit</option>
@@ -602,6 +619,43 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
     <div class="fg"><label>Notes</label><textarea id="fm-notes" placeholder="Any relevant notes…"></textarea></div>
     <button class="btn btn-nv" onclick="saveFacility()">Save Facility</button>
     <button class="btn btn-outline" onclick="closeModal('fac-modal')" style="margin-top:6px">Cancel</button>
+  </div>
+</div>
+
+<!-- PHOTO LIGHTBOX (Photo Hub) -->
+<div class="lightbox-overlay" id="photo-lightbox">
+  <div class="lightbox-top">
+    <button onclick="closeLightbox()" type="button">✕</button>
+    <button onclick="lightboxEdit()" type="button">✏️</button>
+  </div>
+  <div class="lightbox-body" id="lightbox-body">
+    <button class="lightbox-nav prev" onclick="lightboxNav(-1)" type="button">‹</button>
+    <img id="lb-img" src="" alt="Photo">
+    <button class="lightbox-nav next" onclick="lightboxNav(1)" type="button">›</button>
+  </div>
+  <div class="lightbox-caption">
+    <div class="lc-fac" id="lb-fac"></div>
+    <div class="lc-meta" id="lb-meta"></div>
+    <div class="lc-desc" id="lb-desc"></div>
+  </div>
+</div>
+
+<!-- PHOTO DETAIL MODAL (Photo Hub) -->
+<div class="modal-overlay" id="photo-detail-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Photo</div>
+    <img id="pd-img" style="width:100%;max-height:280px;object-fit:cover;border-radius:10px;margin-bottom:10px;display:block">
+    <div id="pd-meta" style="font-size:11px;color:var(--mu);margin-bottom:12px"></div>
+    <div class="fg">
+      <label>Facility</label>
+      <select id="pd-facility"></select>
+    </div>
+    <div class="fg"><label>Label</label><input type="text" id="pd-label" placeholder="Optional label"></div>
+    <button class="btn btn-nv" onclick="savePhotoDetail()" type="button">Save Changes</button>
+    <a class="btn btn-outline" id="pd-view-full" href="#" target="_blank" style="display:block;text-align:center;margin-top:6px;text-decoration:none">View Full Size</a>
+    <button class="btn btn-red" onclick="deletePhotoDetail()" type="button" style="margin-top:6px">🗑 Delete Photo</button>
+    <button class="btn btn-outline" onclick="closeModal('photo-detail-modal')" style="margin-top:6px">Close</button>
   </div>
 </div>
 
@@ -1980,35 +2034,143 @@ function ntdPhLoadFacilityOptions(selectId, includeAllUnassigned) {
   });
 }
 
-function renderPhotoHub() {
-  var grid = document.getElementById('photo-hub-grid');
-  var countEl = document.getElementById('photo-hub-count');
-  if (!grid) return;
-  grid.innerHTML = ntdSkeleton(4);
-  ntdPhLoadFacilityOptions('ph-filter-facility', true).then(function(facs) {
+var photoHubCache = null;  // { photos, facMap } — refetched only after writes, not on every filter change
+var photoHubList = [];     // currently filtered/sorted set — also the lightbox's navigation order
+var photoHubLightboxIdx = -1;
+
+function loadPhotoHubCache(forceRefresh) {
+  if (photoHubCache && !forceRefresh) return Promise.resolve(photoHubCache);
+  return Promise.all([
+    calLoadFacilitiesCache(),
+    ntdStore.photos.list({})
+  ]).then(function(results) {
+    var facs = results[0] || [];
     var facMap = {};
-    (facs || []).forEach(function(f){ facMap[f.id] = f.name || 'Unnamed'; });
-    var facFilter = document.getElementById('ph-filter-facility').value || 'all';
-    var typeFilter = document.getElementById('ph-filter-type').value || 'all';
-    ntdStore.photos.list({ facilityId: facFilter, formType: typeFilter }).then(function(photos) {
-      countEl.textContent = photos.length + (photos.length === 1 ? ' photo' : ' photos');
-      if (!photos.length) {
-        grid.innerHTML = emptyState('📷', 'No photos yet', 'Photos taken in the field tools, or added here directly, will show up in this hub.');
-        return;
-      }
-      grid.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' + photos.map(function(d) {
-        var facName = d.facility_id ? (facMap[d.facility_id] || 'Unknown Facility') : 'Unassigned';
-        return '<a href="'+esc(d.file_url)+'" target="_blank" style="display:block;border-radius:10px;overflow:hidden;border:1.5px solid var(--bd);background:#fff;text-decoration:none">' +
-          '<img src="'+esc(d.file_url)+'" style="width:100%;height:130px;object-fit:cover;display:block">' +
-          '<div style="padding:7px 9px">' +
-            '<div style="font-size:12px;font-weight:700;color:var(--tx);line-height:1.3">'+esc(facName)+'</div>' +
-            '<div style="font-size:10.5px;color:var(--mu);margin-top:2px">'+esc(NTD_PH_TYPE_LABELS[d.form_type]||d.form_type)+' · '+esc(d.date||'')+'</div>' +
-            (d.description ? '<div style="font-size:10.5px;color:var(--mu);margin-top:2px;font-style:italic">'+esc(d.description)+'</div>' : '') +
-          '</div></a>';
-      }).join('') + '</div>';
-    });
+    facs.forEach(function(f){ facMap[f.id] = f.name || 'Unnamed'; });
+    photoHubCache = { photos: results[1] || [], facMap: facMap };
+    return photoHubCache;
   });
 }
+
+function renderPhotoHub(forceRefresh) {
+  var grid = document.getElementById('photo-hub-grid');
+  if (!grid) return;
+  grid.innerHTML = ntdSkeleton(4);
+  ntdPhLoadFacilityOptions('ph-filter-facility', true);
+  loadPhotoHubCache(forceRefresh).then(function() {
+    applyPhotoHubFilters();
+  });
+}
+
+function applyPhotoHubFilters() {
+  var grid = document.getElementById('photo-hub-grid');
+  var countEl = document.getElementById('photo-hub-count');
+  if (!grid || !photoHubCache) return;
+  var facFilter = document.getElementById('ph-filter-facility').value || 'all';
+  var typeFilter = document.getElementById('ph-filter-type').value || 'all';
+  var q = (document.getElementById('ph-filter-search').value || '').toLowerCase().trim();
+  var facMap = photoHubCache.facMap;
+
+  var filtered = photoHubCache.photos.filter(function(d) {
+    if (facFilter === 'unassigned' && d.facility_id) return false;
+    if (facFilter !== 'all' && facFilter !== 'unassigned' && d.facility_id !== facFilter) return false;
+    if (typeFilter !== 'all' && d.form_type !== typeFilter) return false;
+    if (q) {
+      var facName = d.facility_id ? (facMap[d.facility_id] || '') : 'unassigned';
+      var hay = ((d.description||'') + ' ' + facName + ' ' + (d.tech||'')).toLowerCase();
+      if (hay.indexOf(q) === -1) return false;
+    }
+    return true;
+  });
+
+  photoHubList = filtered.map(function(d) {
+    var copy = Object.assign({}, d);
+    copy._facName = d.facility_id ? (facMap[d.facility_id] || 'Unknown Facility') : 'Unassigned';
+    return copy;
+  });
+
+  countEl.textContent = photoHubList.length + (photoHubList.length === 1 ? ' photo' : ' photos');
+  if (!photoHubList.length) {
+    grid.innerHTML = emptyState('📷', 'No photos found', q || facFilter !== 'all' || typeFilter !== 'all'
+      ? 'Try a different search term or filter.'
+      : 'Photos taken in the field tools, or added here directly, will show up in this hub.');
+    return;
+  }
+  grid.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' + photoHubList.map(function(d, i) {
+    return '<div onclick="openLightbox('+i+')" style="display:block;border-radius:10px;overflow:hidden;border:1.5px solid var(--bd);background:#fff;cursor:pointer;touch-action:manipulation">' +
+      '<img src="'+esc(d.file_url)+'" style="width:100%;height:130px;object-fit:cover;display:block">' +
+      '<div style="padding:7px 9px">' +
+        '<div style="font-size:12px;font-weight:700;color:var(--tx);line-height:1.3">'+esc(d._facName)+'</div>' +
+        '<div style="font-size:10.5px;color:var(--mu);margin-top:2px">'+esc(NTD_PH_TYPE_LABELS[d.form_type]||d.form_type)+' · '+esc(d.date||'')+'</div>' +
+        (d.description ? '<div style="font-size:10.5px;color:var(--mu);margin-top:2px;font-style:italic">'+esc(d.description)+'</div>' : '') +
+      '</div></div>';
+  }).join('') + '</div>';
+}
+
+// ── LIGHTBOX (browse the current filtered set in-app) ──────────────────────
+function openLightbox(idx) {
+  photoHubLightboxIdx = idx;
+  renderLightboxFrame();
+  document.getElementById('photo-lightbox').classList.add('on');
+}
+
+function closeLightbox() {
+  document.getElementById('photo-lightbox').classList.remove('on');
+}
+
+function lightboxNav(dir) {
+  if (!photoHubList.length) return;
+  photoHubLightboxIdx = (photoHubLightboxIdx + dir + photoHubList.length) % photoHubList.length;
+  renderLightboxFrame();
+}
+
+function renderLightboxFrame() {
+  var d = photoHubList[photoHubLightboxIdx];
+  if (!d) return;
+  document.getElementById('lb-img').src = d.file_url;
+  document.getElementById('lb-fac').textContent = d._facName;
+  var metaBits = [NTD_PH_TYPE_LABELS[d.form_type] || d.form_type];
+  if (d.date) metaBits.push(d.date);
+  if (d.tech) metaBits.push(d.tech);
+  metaBits.push((photoHubLightboxIdx + 1) + ' of ' + photoHubList.length);
+  document.getElementById('lb-meta').textContent = metaBits.join(' · ');
+  document.getElementById('lb-desc').textContent = d.description || '';
+}
+
+function lightboxEdit() {
+  var d = photoHubList[photoHubLightboxIdx];
+  if (!d) return;
+  closeLightbox();
+  openPhotoDetail(d.id);
+}
+
+// Swipe support
+(function() {
+  var startX = null, startY = null;
+  var body = document.getElementById('lightbox-body');
+  if (!body) return;
+  body.addEventListener('touchstart', function(e) {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+  body.addEventListener('touchend', function(e) {
+    if (startX === null) return;
+    var dx = e.changedTouches[0].clientX - startX;
+    var dy = e.changedTouches[0].clientY - startY;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+      lightboxNav(dx < 0 ? 1 : -1);
+    }
+    startX = null; startY = null;
+  }, { passive: true });
+})();
+
+// Keyboard support (desktop)
+document.addEventListener('keydown', function(e) {
+  if (!document.getElementById('photo-lightbox').classList.contains('on')) return;
+  if (e.key === 'ArrowRight') lightboxNav(1);
+  else if (e.key === 'ArrowLeft') lightboxNav(-1);
+  else if (e.key === 'Escape') closeLightbox();
+});
 
 function ntdPhRenderTagChips() {
   var wrap = document.getElementById('hp-tag-list');
@@ -2061,7 +2223,7 @@ function submitHubPhoto() {
       if (!doc) { alert('Upload failed — check your connection and try again.'); return; }
       closeModal('hub-photo-modal');
       showToast('✓ Photo uploaded');
-      renderPhotoHub();
+      renderPhotoHub(true);
       if (taggedPeople.length) {
         var who = tech || 'Someone';
         var where = facilityName ? (' at ' + facilityName) : '';
@@ -2080,6 +2242,68 @@ function submitHubPhoto() {
     doUpload(res.blob || file);
   }).catch(function() {
     doUpload(file);
+  });
+}
+
+// ── PHOTO DETAIL (reassign facility / edit label / delete) ─────────────────
+var currentPhotoDetailDoc = null;
+
+function openPhotoDetail(docId) {
+  ntdStore.documents.get(docId).then(function(d) {
+    if (!d) { showToast('Photo not found — it may have been deleted.'); return; }
+    currentPhotoDetailDoc = d;
+    document.getElementById('pd-img').src = d.file_url;
+    document.getElementById('pd-label').value = d.description || '';
+    document.getElementById('pd-view-full').href = d.file_url;
+    var metaBits = [NTD_PH_TYPE_LABELS[d.form_type] || d.form_type];
+    if (d.date) metaBits.push(d.date);
+    if (d.tech) metaBits.push(d.tech);
+    document.getElementById('pd-meta').textContent = metaBits.join(' · ');
+    ntdPhLoadFacilityOptions('pd-facility', false).then(function() {
+      document.getElementById('pd-facility').value = d.facility_id || '';
+      openModal('photo-detail-modal');
+    });
+  }).catch(function() {
+    showToast('Could not load photo.');
+  });
+}
+
+function savePhotoDetail() {
+  if (!currentPhotoDetailDoc) return;
+  var facilityId = document.getElementById('pd-facility').value || null;
+  var label = document.getElementById('pd-label').value.trim();
+  // Pass through the original ts so reassigning/editing doesn't bump the
+  // photo to the top of the hub as if it were just taken.
+  ntdStore.documents.upsert({
+    id: currentPhotoDetailDoc.id,
+    ts: currentPhotoDetailDoc.ts,
+    facility_id: facilityId,
+    description: label
+  }).then(function() {
+    closeModal('photo-detail-modal');
+    showToast('✓ Saved');
+    renderPhotoHub(true);
+  }).catch(function(err) {
+    alert('Save failed: ' + (err.message || 'see console for details'));
+  });
+}
+
+function deletePhotoDetail() {
+  if (!currentPhotoDetailDoc) return;
+  if (!confirm('Delete this photo? This cannot be undone.')) return;
+  var doc = currentPhotoDetailDoc;
+  ntdStore.documents.delete(doc.id).then(function() {
+    closeModal('photo-detail-modal');
+    showToast('Photo deleted');
+    renderPhotoHub(true);
+    // Best-effort cleanup of the underlying Storage file. Non-blocking —
+    // the documents row (what makes it visible anywhere) is already gone
+    // either way.
+    if (doc.file_path && ntdStore.files && ntdStore.files.delete) {
+      ntdStore.files.delete(doc.file_path).catch(function(){});
+    }
+  }).catch(function(err) {
+    alert(err.message || 'Delete failed — this record may be protected. Contact an admin if this persists.');
   });
 }
 
