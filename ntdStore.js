@@ -574,6 +574,7 @@ var ntdPhotos = {
         return _sb.upsert('documents', {
           facility_id: params.facilityId || null,
           job_id:      null,
+          equipment_id: params.equipmentId || null,
           form_type:   params.formType || 'facility_photo',
           description: params.description || 'Photo',
           file_path:   path,

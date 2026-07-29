@@ -495,6 +495,11 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
 </div>
 
 <!-- ③ SEARCH -->
+<!-- ③.5 AT-RISK EQUIPMENT (cross-facility) -->
+<div class="pg" id="pg-health">
+  <div id="health-content"></div>
+</div>
+
 <div class="pg" id="pg-search">
   <div class="search-wrap">
     <input type="text" id="global-search" placeholder="Search everything…" oninput="runGlobalSearch()" autocomplete="off" autocorrect="off" spellcheck="false">
@@ -649,7 +654,11 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
     <div id="pd-meta" style="font-size:11px;color:var(--mu);margin-bottom:12px"></div>
     <div class="fg">
       <label>Facility</label>
-      <select id="pd-facility"></select>
+      <select id="pd-facility" onchange="ntdPhLoadUnitOptions('pd-facility','pd-unit-wrap','pd-unit')"></select>
+    </div>
+    <div class="fg" id="pd-unit-wrap" style="display:none">
+      <label>Unit (optional)</label>
+      <select id="pd-unit"></select>
     </div>
     <div class="fg"><label>Label</label><input type="text" id="pd-label" placeholder="Optional label"></div>
     <button class="btn btn-nv" onclick="savePhotoDetail()" type="button">Save Changes</button>
@@ -666,8 +675,14 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
     <div class="modal-title">Add Photo</div>
     <div class="fg">
       <label>Facility</label>
-      <select id="hp-facility">
+      <select id="hp-facility" onchange="ntdPhLoadUnitOptions()">
         <option value="">— Unassigned (tag later) —</option>
+      </select>
+    </div>
+    <div class="fg" id="hp-unit-wrap" style="display:none">
+      <label>Unit (optional) — shows this photo on that unit's record</label>
+      <select id="hp-unit">
+        <option value="">— Not a specific unit —</option>
       </select>
     </div>
     <div class="fg"><label>Label (optional)</label><input type="text" id="hp-label" placeholder="e.g. Roof Access, Damage — 7/16"></div>
@@ -1038,6 +1053,9 @@ function goPage(page) {
   } else if (page === 'search') {
     hdrBtn.style.display = 'none';
     setTimeout(function(){ var el = document.getElementById('global-search'); if(el) el.focus(); }, 100);
+  } else if (page === 'health') {
+    hdrBtn.style.display = 'none';
+    renderHealthPage();
   } else if (page === 'settings') {
     hdrBtn.style.display = 'none';
     renderSettings();
@@ -1505,12 +1523,24 @@ function renderDetailTab(f) {
       ntdStore.equipment.list(function(e){ return e.facility_id === fid; }),
       ntdStore.documents.list(function(d){ return d.facility_id === fid && d.form_type === 'equipment_log'; }),
       ntdStore.pm_records.list(function(r){ return r.facility_id === fid; }),
-      ntdStore.jobs.list(function(j){ return j.facility_id === fid && j.type === 'asset_survey'; })
+      ntdStore.jobs.list(function(j){ return j.facility_id === fid && j.type === 'asset_survey'; }),
+      ntdStore.documents.list(function(d){ return d.facility_id === fid && !!d.equipment_id; })
     ]).then(function(res) {
       var equip = res[0] || [];
       var logs = (res[1] || []).sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
       var pmRecs = res[2] || [];
       var assetJobs = res[3] || [];
+      var unitPhotos = res[4] || [];
+
+      // ── Photos tagged to a specific unit ────────────────────────────────
+      var photosByEqId = {};
+      unitPhotos.forEach(function(d) {
+        if (!photosByEqId[d.equipment_id]) photosByEqId[d.equipment_id] = [];
+        photosByEqId[d.equipment_id].push(d);
+      });
+      Object.keys(photosByEqId).forEach(function(k) {
+        photosByEqId[k].sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
+      });
 
       // ── Condition history per unit tag ──────────────────────────────────
       // The `equipment` table itself only ever holds the LATEST condition
@@ -1596,6 +1626,20 @@ function renderDetailTab(f) {
           '</div>';
         }
 
+        var unitPhotoList = photosByEqId[e.id] || [];
+        var photoHtml = '';
+        if (unitPhotoList.length) {
+          photoHtml = '<div class="rec-meta" style="margin-top:6px">' +
+            '<div style="font-size:10px;font-weight:700;color:var(--mu);margin-bottom:4px">📷 ' + unitPhotoList.length + ' photo' + (unitPhotoList.length>1?'s':'') + '</div>' +
+            '<div style="display:flex;gap:6px;flex-wrap:wrap">' +
+            unitPhotoList.map(function(d) {
+              return '<a href="'+esc(d.file_url)+'" target="_blank" title="'+esc(d.description||'')+'">' +
+                '<img src="'+esc(d.file_url)+'" style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1.5px solid var(--bd)">' +
+              '</a>';
+            }).join('') +
+            '</div></div>';
+        }
+
         html += '<div class="rec-row">' +
           '<div class="rec-icon nv">🔧</div>' +
           '<div class="rec-body">' +
@@ -1610,6 +1654,7 @@ function renderDetailTab(f) {
             (e.repl_cost ? '<div class="rec-meta">Est. replacement: $'+Math.round(e.repl_cost).toLocaleString()+(e.repl_year?' · Year '+e.repl_year:'')+'</div>' : '') +
             (e.notes ? '<div class="rec-meta" style="margin-top:3px">'+esc(e.notes)+'</div>' : '') +
             histHtml +
+            photoHtml +
           '</div></div>';
       });
       html += '</div></div>';
@@ -2103,6 +2148,35 @@ function ntdPhLoadFacilityOptions(selectId, includeAllUnassigned) {
   });
 }
 
+// Populates a unit dropdown from whatever facility is currently selected, so
+// a photo can optionally be tagged to a specific piece of equipment
+// (surfaces later on that unit's row in the Units tab) instead of just
+// being filed under the facility generally. Shared by the Add Photo modal
+// (hp-*) and the Photo Detail modal (pd-*).
+function ntdPhLoadUnitOptions(facSelectId, wrapId, unitSelectId) {
+  facSelectId = facSelectId || 'hp-facility';
+  wrapId = wrapId || 'hp-unit-wrap';
+  unitSelectId = unitSelectId || 'hp-unit';
+  var facId = document.getElementById(facSelectId).value;
+  var wrap = document.getElementById(wrapId);
+  var sel = document.getElementById(unitSelectId);
+  if (!facId) {
+    wrap.style.display = 'none';
+    sel.innerHTML = '<option value="">— Not a specific unit —</option>';
+    return Promise.resolve([]);
+  }
+  return ntdStore.equipment.list(function(e){ return e.facility_id === facId; }).then(function(equip) {
+    if (!equip.length) { wrap.style.display = 'none'; return equip; }
+    equip.sort(function(a,b){ return (a.tag||'').localeCompare(b.tag||''); });
+    var current = sel.value;
+    sel.innerHTML = '<option value="">— Not a specific unit —</option>' +
+      equip.map(function(e){ return '<option value="'+esc(e.id)+'">'+esc(e.tag||'Unit')+(e.type?' · '+esc(e.type):'')+'</option>'; }).join('');
+    if (current) sel.value = current;
+    wrap.style.display = '';
+    return equip;
+  });
+}
+
 var photoHubCache = null;  // { photos, facMap } — refetched only after writes, not on every filter change
 var photoHubList = [];     // currently filtered/sorted set — also the lightbox's navigation order
 var photoHubLightboxIdx = -1;
@@ -2261,6 +2335,8 @@ function ntdPhToggleTag(name) {
 function openAddHubPhoto() {
   document.getElementById('hp-label').value = '';
   document.getElementById('hp-file').value = '';
+  document.getElementById('hp-unit-wrap').style.display = 'none';
+  document.getElementById('hp-unit').innerHTML = '<option value="">— Not a specific unit —</option>';
   hpTaggedPeople = [];
   ntdPhRenderTagChips();
   ntdPhLoadFacilityOptions('hp-facility', false).then(function() {
@@ -2276,6 +2352,7 @@ function submitHubPhoto() {
   var facSel = document.getElementById('hp-facility');
   var facilityId = facSel.value || null;
   var facilityName = facilityId ? facSel.options[facSel.selectedIndex].textContent : '';
+  var equipmentId = document.getElementById('hp-unit').value || null;
   var label = document.getElementById('hp-label').value.trim();
   var tech = getCurrentUser() || '';
   var taggedPeople = hpTaggedPeople.slice();
@@ -2286,6 +2363,7 @@ function submitHubPhoto() {
         blob: blob,
         facilityId: facilityId,
         facilityName: facilityName,
+        equipmentId: equipmentId,
         formType: 'facility_photo',
         description: label,
         tech: tech
@@ -2337,6 +2415,9 @@ function openPhotoDetail(docId) {
     document.getElementById('pd-meta').textContent = metaBits.join(' · ');
     ntdPhLoadFacilityOptions('pd-facility', false).then(function() {
       document.getElementById('pd-facility').value = d.facility_id || '';
+      ntdPhLoadUnitOptions('pd-facility','pd-unit-wrap','pd-unit').then(function() {
+        document.getElementById('pd-unit').value = d.equipment_id || '';
+      });
       openModal('photo-detail-modal');
     });
   }).catch(function() {
@@ -2347,6 +2428,7 @@ function openPhotoDetail(docId) {
 function savePhotoDetail() {
   if (!currentPhotoDetailDoc) return;
   var facilityId = document.getElementById('pd-facility').value || null;
+  var equipmentId = document.getElementById('pd-unit').value || null;
   var label = document.getElementById('pd-label').value.trim();
   // Pass through the original ts so reassigning/editing doesn't bump the
   // photo to the top of the hub as if it were just taken.
@@ -2354,6 +2436,7 @@ function savePhotoDetail() {
     id: currentPhotoDetailDoc.id,
     ts: currentPhotoDetailDoc.ts,
     facility_id: facilityId,
+    equipment_id: equipmentId,
     description: label
   }).then(function() {
     closeModal('photo-detail-modal');
@@ -3146,6 +3229,78 @@ function renderProjectList() {
 }
 
 // ── SETTINGS ─────────────────────────────────────────────────────────────
+// ── AT-RISK EQUIPMENT (cross-facility) ──────────────────────────────────────
+// Pulls every Poor/Fair condition unit across ALL facilities into one list —
+// a ready-made outreach/replacement-conversation priority list, since that
+// view didn't exist anywhere before (Asset Survey's Health Score is scoped
+// to one survey session, not the whole portfolio). Reuses the same
+// repl_cost/repl_year fields Asset Survey already writes onto equipment
+// rows, rather than re-deriving forecast math here.
+function renderHealthPage() {
+  var wrap = document.getElementById('health-content');
+  wrap.innerHTML = ntdSkeleton(3);
+  Promise.all([
+    ntdStore.equipment.list(function(e){ return e.condition === 'poor' || e.condition === 'fair'; }),
+    ntdStore.facilities.list()
+  ]).then(function(res) {
+    var atRisk = res[0] || [];
+    var facilities = res[1] || [];
+    var facMap = {};
+    facilities.forEach(function(f){ facMap[f.id] = f; });
+
+    var rank = { poor: 0, fair: 1 };
+    atRisk.sort(function(a, b) {
+      var ra = rank[a.condition] != null ? rank[a.condition] : 2;
+      var rb = rank[b.condition] != null ? rank[b.condition] : 2;
+      if (ra !== rb) return ra - rb;
+      var ya = a.repl_year || 9999, yb = b.repl_year || 9999;
+      return ya - yb;
+    });
+
+    var poorCount = atRisk.filter(function(e){ return e.condition === 'poor'; }).length;
+    var fairCount = atRisk.filter(function(e){ return e.condition === 'fair'; }).length;
+    var totalReplVal = atRisk.reduce(function(sum, e){ return sum + (e.repl_cost || 0); }, 0);
+
+    var html = '<div class="section-label" style="--accent:var(--rd)">'+ntdIcon('alert',12)+' At-Risk Equipment — All Facilities</div>';
+    html += '<div class="stats-row">' +
+      statPill(poorCount, 'Poor', poorCount ? 'var(--rd)' : null) +
+      statPill(fairCount, 'Fair', fairCount ? 'var(--am)' : null) +
+      statPill(totalReplVal ? ('$'+Math.round(totalReplVal/1000)+'k') : '$0', 'Est. Replacement Value') +
+    '</div>';
+
+    if (!atRisk.length) {
+      html += emptyState('✅','Nothing at risk','No units are currently marked Poor or Fair condition across any facility.');
+      wrap.innerHTML = html;
+      return;
+    }
+
+    html += '<div class="card"><div class="card-body">';
+    atRisk.forEach(function(e) {
+      var f = facMap[e.facility_id];
+      var condColor = e.condition === 'poor' ? 'cond-poor' : 'cond-fair';
+      html += '<div class="rec-row ntd-goto" data-fid="'+(e.facility_id||'')+'" data-tab="equipment" style="cursor:pointer;align-items:center">' +
+        '<div class="rec-icon" style="background:'+(e.condition==='poor'?'#FDEDEC':'#FFF3E0')+'">'+(e.condition==='poor'?'🔴':'🟡')+'</div>' +
+        '<div class="rec-body">' +
+          '<div class="rec-title">'+esc(e.tag||'Unit')+(e.type?' <span style="font-weight:400;color:var(--mu)">· '+esc(e.type)+'</span>':'')+'</div>' +
+          '<div class="rec-sub">'+esc(f ? f.name : 'Unknown facility')+'</div>' +
+          '<div class="rec-meta">' +
+            '<span class="cond-dot '+condColor+'"></span>'+e.condition.charAt(0).toUpperCase()+e.condition.slice(1) +
+            (e.install_year ? ' · Installed '+e.install_year : '') +
+            (e.repl_year ? ' · Est. replace '+e.repl_year : '') +
+          '</div>' +
+          (e.repl_cost ? '<div class="rec-meta">Est. cost: $'+Math.round(e.repl_cost).toLocaleString()+'</div>' : '') +
+        '</div>' +
+        (f && f.phone ? '<a href="tel:'+esc(f.phone)+'" onclick="event.stopPropagation()" class="btn btn-sm btn-outline" style="flex-shrink:0;text-decoration:none;margin:0">📞</a>' : '') +
+      '</div>';
+    });
+    html += '</div></div>';
+    wrap.innerHTML = html;
+  }).catch(function(err) {
+    wrap.innerHTML = emptyState('⚠️','Could not load', esc(err.message||'Please try again.'));
+  });
+}
+
+
 function renderSettings() {
   Promise.all([
     ntdStore.facilities.list(),
@@ -3406,7 +3561,8 @@ function renderDashboard() {
     ntdStore.jobs.list(),
     ntdStore.documents ? ntdStore.documents.list() : Promise.resolve([]),
     ntdStore.team_calendar ? ntdStore.team_calendar.list(function(e){ return e.status === 'pending'; }) : Promise.resolve([]),
-    ntdStore.team_calendar ? ntdStore.team_calendar.list() : Promise.resolve([])
+    ntdStore.team_calendar ? ntdStore.team_calendar.list() : Promise.resolve([]),
+    ntdStore.equipment.list(function(e){ return e.condition === 'poor'; })
   ]).then(function(results) {
     var facilities = results[0];
     var startups   = results[1];
@@ -3417,6 +3573,7 @@ function renderDashboard() {
     var docs       = results[6] || [];
     var pendingReqs = results[7] || [];
     var scheduledPmMap = computeScheduledPmMap(results[8] || []);
+    var poorEquip = results[9] || [];
 
     // ── Metrics ──
     var openFollowups = startups.filter(function(r){ return _ntdOpenFollowup(r); });
@@ -3528,6 +3685,25 @@ function renderDashboard() {
         html += pmDueRow(p, scheduledPmMap[p.facility.id]);
       });
       if (pmUrgent.length > 5) html += '<div class="ntd-goto-pmdue" style="font-size:11px;color:var(--mu);padding-top:8px;text-align:center;cursor:pointer">View all '+pmUrgent.length+' visits due →</div>';
+      html += '</div></div>';
+    }
+
+    // ── At-Risk Equipment (cross-facility) ──
+    if (poorEquip.length && prefs.atRisk) {
+      var facMapForRisk = {};
+      facilities.forEach(function(f){ facMapForRisk[f.id] = f.name || 'Unknown facility'; });
+      html += '<div class="section-label" style="--accent:var(--rd)">'+ntdIcon('alert',12)+' At-Risk Equipment</div>';
+      html += '<div class="card card-acc card-acc-rd"><div class="card-body">';
+      poorEquip.slice(0,5).forEach(function(e) {
+        html += '<div class="rec-row ntd-goto" data-fid="'+(e.facility_id||'')+'" data-tab="equipment" style="cursor:pointer">' +
+          '<div class="rec-icon" style="background:#FDEDEC">🔴</div>' +
+          '<div class="rec-body">' +
+            '<div class="rec-title">'+esc(e.tag||'Unit')+(e.type?' <span style="font-weight:400;color:var(--mu)">· '+esc(e.type)+'</span>':'')+'</div>' +
+            '<div class="rec-sub">'+esc(facMapForRisk[e.facility_id]||'Unknown facility')+'</div>' +
+            '<div class="rec-meta" style="color:var(--rd);font-weight:700">Poor condition' + (e.repl_year?' · Est. replace '+e.repl_year:'') + '</div>' +
+          '</div></div>';
+      });
+      html += '<div class="ntd-goto-health" style="font-size:11px;color:var(--mu);padding-top:8px;text-align:center;cursor:pointer">View all at-risk equipment →</div>';
       html += '</div></div>';
     }
 
@@ -3643,6 +3819,7 @@ var DASH_SECTIONS = [
   { key:'followups',      label:'Open Follow-ups',    sub:'Items flagged during startups' },
   { key:'contracts',      label:'Contracts Renewing', sub:'PM contracts due within 90 days' },
   { key:'pmDue',          label:'PM Visits Due',      sub:'Upcoming and overdue PM visits' },
+  { key:'atRisk',         label:'At-Risk Equipment',  sub:'Poor-condition units, all facilities' },
   { key:'activeProjects', label:'Active Projects',    sub:'Bidding, awarded, in progress' },
   { key:'recentActivity', label:'Recent Activity',    sub:'Latest records across the Hub' }
 ];
@@ -3794,7 +3971,7 @@ function runGlobalSearch() {
 
       // Search equipment
       var eqHits = equipment.filter(function(e) {
-        return matches(q, e.tag, e.type, e.notes, e.condition, e.install_year);
+        return matches(q, e.tag, e.type, e.notes, e.condition, e.install_year, e.manufacturer, e.model, e.serial);
       });
       if (eqHits.length) groups.push({
         label: '🔧 Equipment',
@@ -3802,7 +3979,11 @@ function runGlobalSearch() {
           icon: '🔧', color: 'nv',
           title: (e.tag || 'Unit') + (e.type ? ' · ' + e.type : ''),
           sub: facMap[e.facility_id] || 'Unknown facility',
-          meta: e.condition ? e.condition.charAt(0).toUpperCase()+e.condition.slice(1)+' condition' : '',
+          meta: [
+            [e.manufacturer, e.model].filter(Boolean).join(' '),
+            e.serial ? 'SN ' + e.serial : '',
+            e.condition ? e.condition.charAt(0).toUpperCase()+e.condition.slice(1)+' condition' : ''
+          ].filter(Boolean).join(' · '),
           facility_id: e.facility_id
         };})
       });
@@ -4655,6 +4836,7 @@ document.addEventListener('click', function(e) {
   // Navigate to Scheduling > Requests
   if (e.target.closest('.ntd-goto-schedule')) { currentScheduleView = 'requests'; goPage('schedule'); return; }
   if (e.target.closest('.ntd-goto-pmdue')) { currentScheduleView = 'pmdue'; goPage('schedule'); return; }
+  if (e.target.closest('.ntd-goto-health')) { goPage('health'); return; }
   // "📅 Schedule" button on a PM Due row — open the calendar modal pre-filled
   var schedBtn = e.target.closest('.ntd-schedule-pm');
   if (schedBtn) { scheduleFromPmDue(schedBtn.getAttribute('data-fid'), schedBtn.getAttribute('data-date')); return; }
