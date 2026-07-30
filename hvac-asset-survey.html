@@ -3306,13 +3306,30 @@ function ntdEqRecord(eq, facilityId) {
   var filterParts = [];
   if (eq.f1s) filterParts.push((eq.f1q ? eq.f1q + 'x ' : '') + eq.f1s);
   if (eq.f2s) filterParts.push((eq.f2q ? eq.f2q + 'x ' : '') + eq.f2s);
-  return {
+  var record = {
     facility_id: facilityId, tag: eq.tag||'', type: eq.type||'',
     condition: eq.ov||'', install_year: eq.age||'', notes: eq.notes||'',
     manufacturer: eq.manuf||'', model: eq.model||'', serial: eq.serial||'',
     tonnage: eq.tonnage||'', filter_size: filterParts.join(', '), belt_size: eq.bs||'',
     area: eq.area||'', refrigerant: eq.refrigerant||''
   };
+  // Persist the Forecast tab's per-unit estimate onto the equipment record
+  // itself, using the exact same getReplCost/getReplYear the Forecast tab
+  // and PDF already calculate from — so the Hub's Units tab and the
+  // cross-facility At-Risk Equipment report can show a real number instead
+  // of it only ever existing inside one survey session. Only set for units
+  // that were actually scored this pass (blank condition = not assessed).
+  // Note: ntdUpsertEquipment's merge skips '' the same as undefined, so a
+  // unit that moves OUT of the 3-year replacement window on a later survey
+  // will keep its last known repl_year rather than having it cleared — the
+  // cost estimate itself still refreshes every time, since it's type-based
+  // and never empty.
+  if (eq.ov) {
+    record.repl_cost = getReplCost(eq);
+    var replYrOffset = getReplYear(eq);
+    if (replYrOffset !== -1) record.repl_year = new Date().getFullYear() + replYrOffset;
+  }
+  return record;
 }
 
 function ntdUpsertAssetFacility(callback) {
