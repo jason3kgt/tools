@@ -5180,7 +5180,7 @@ function renderDirectory() {
     var html = '';
     deptOrder.forEach(function(d) {
       if (!byDept[d]) return;
-      html += '<div style="font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--st);margin:10px 0 2px">'+esc(d)+' ('+byDept[d].length+')</div>';
+      html += '<div style="font-size:14px;font-weight:800;letter-spacing:.02em;color:var(--nv);background:var(--of);padding:7px 10px;border-radius:8px;margin:'+(html?'14px':'0')+' 0 6px">'+esc(d)+' <span style="font-weight:600;color:var(--mu);font-size:11px">('+byDept[d].length+')</span></div>';
       byDept[d].forEach(function(p) { html += directoryRow(p); });
     });
     listEl.innerHTML = html;
