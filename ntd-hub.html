@@ -356,6 +356,8 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
 
 .picker-list{display:flex;flex-direction:column;gap:8px;margin-top:4px}
 .picker-item{padding:14px 16px;border-radius:12px;border:1.5px solid var(--bd);background:#fff;font-size:15px;font-weight:700;color:var(--tx);cursor:pointer;touch-action:manipulation;text-align:left}
+.role-btn{padding:12px 8px;border-radius:10px;border:2px solid var(--bd);background:var(--of);font-size:13px;font-weight:700;color:var(--mu);cursor:pointer;touch-action:manipulation;font-family:inherit;text-align:center}
+.role-btn.on{border-color:var(--nv);background:#EEF3FB;color:var(--nv)}
 .picker-item:active{background:var(--of)}
 
 .tag-chip{padding:7px 13px;border-radius:20px;border:1.5px solid var(--bd);background:#fff;font-size:12.5px;font-weight:600;color:var(--tx);cursor:pointer;touch-action:manipulation;font-family:inherit}
@@ -515,6 +517,20 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
 
 <!-- ④ SETTINGS -->
 <div class="pg" id="pg-settings">
+  <div class="section-label">View</div>
+  <div class="card">
+    <div class="card-body">
+      <div class="fg">
+        <label>Role — simplifies what this device shows</label>
+        <div style="font-size:11px;color:var(--mu);margin-bottom:8px">
+          This device only — it just hides tabs and dashboard cards that aren't relevant, it doesn't require a login
+          or restrict what data can be reached. Office and PM see everything; Field Tech hides Projects, Documents,
+          Quotes, and contract $ figures, and drops the Schedule tab since techs aren't scheduled through this app.
+        </div>
+        <div id="role-picker-row" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px"></div>
+      </div>
+    </div>
+  </div>
   <div class="section-label">PM Contracts</div>
   <div class="card">
     <div class="card-body">
@@ -1065,6 +1081,9 @@ function goPage(page) {
 function goDetail(facilityId, tab) {
   currentFacilityId = facilityId;
   currentDetailTab = tab || 'timeline';
+  if (getUserRole() === 'field' && (currentDetailTab === 'projects' || currentDetailTab === 'quotes')) {
+    currentDetailTab = 'timeline';
+  }
   document.querySelectorAll('.pg').forEach(function(p){ p.classList.remove('on'); });
   document.getElementById('pg-detail').classList.add('on');
   document.getElementById('hdr-action-btn').textContent = '← Back';
@@ -1210,6 +1229,9 @@ function renderDetail() {
 
     // Tabs
     var tabs = ['timeline','equipment','startups','pm','quotes','projects','photos','notes'];
+    if (getUserRole() === 'field') {
+      tabs = tabs.filter(function(t){ return t !== 'quotes' && t !== 'projects'; });
+    }
     var tabIcons = {timeline:'clock',equipment:'wrench',startups:'check',pm:'clipboard',quotes:'dollar',projects:'folder',photos:'camera',notes:'fileText'};
     var tabLabels = {timeline:'Timeline',equipment:'Units',startups:'Startups',pm:'PM',quotes:'Quotes',projects:'Projects',photos:'Photos',notes:'Notes'};
     var tabsHtml = tabs.map(function(t) {
@@ -3313,6 +3335,7 @@ function renderHealthPage() {
 
 
 function renderSettings() {
+  renderRolePicker();
   Promise.all([
     ntdStore.facilities.list(),
     ntdStore.equipment.list(),
@@ -3620,6 +3643,20 @@ function renderDashboard() {
     facilities.forEach(function(f){ facMap[f.id] = f.name||'Unknown'; });
 
     var prefs = getDashPrefs();
+    // Field Tech sees a simplified dashboard — office/PM-scoped sections
+    // (dispatch requests, contract $, project pipeline, activity feed,
+    // visit scheduling since that's handled by other software) drop out
+    // regardless of this device's saved toggle state. At-Risk Equipment and
+    // Open Follow-ups stay since they're useful, non-financial context for
+    // someone about to walk into a site. This is a render-time override
+    // only — it never writes back into the saved prefs, so switching back
+    // to Office/PM restores whatever was toggled before.
+    if (getUserRole() === 'field') {
+      prefs = Object.assign({}, prefs, {
+        techRequests: false, contracts: false, activeProjects: false,
+        recentActivity: false, pmDue: false
+      });
+    }
 
     // ── PM Schedule (computed early so stats row can sit right under the hero) ──
     var pmDue = computePmDue(facilities, pmRecs);
@@ -3851,7 +3888,11 @@ function setDashPref(key, val) {
 
 // ── PROJECT SCOPE (All vs Mine, per-person on this device) ─────────────────
 function getProjScope() {
-  try { return localStorage.getItem('ntdProjScope_' + (getCurrentUser() || 'device')) || 'all'; } catch(e) { return 'all'; }
+  try {
+    var raw = localStorage.getItem('ntdProjScope_' + (getCurrentUser() || 'device'));
+    if (raw !== null) return raw; // explicit prior choice always wins over the role default
+    return getUserRole() === 'pm' ? 'mine' : 'all';
+  } catch(e) { return 'all'; }
 }
 function setProjScope(val) {
   try { localStorage.setItem('ntdProjScope_' + (getCurrentUser() || 'device'), val); } catch(e) {}
@@ -4710,6 +4751,52 @@ function initTvModeIfRequested() {
 
   setInterval(function() { renderCalendarWeek(); }, 90000);
 }
+// ── ROLE (device-local, UI simplification only — not access control) ───────
+// Independent of getCurrentUser()'s name identity. Purely changes what this
+// device shows; every role can still read/write everything the anon key
+// allows, same as before. Defaults to 'office' (today's full view) so
+// nothing changes for anyone until they explicitly pick a different role.
+var NTD_ROLES = {
+  office: { label: 'Office' },
+  pm:     { label: 'PM' },
+  field:  { label: 'Field Tech' }
+};
+function getUserRole() {
+  try { return localStorage.getItem('ntdUserRole') || 'office'; } catch(e) { return 'office'; }
+}
+function setUserRole(role) {
+  try { localStorage.setItem('ntdUserRole', role); } catch(e) {}
+  applyRoleGating();
+  if (currentPage === 'dashboard') renderDashboard();
+  if (currentFacilityId && document.getElementById('pg-detail').classList.contains('on')) {
+    ntdStore.facilities.get(currentFacilityId).then(renderDetail);
+  }
+}
+// Hides the Projects and Schedule bottom-nav entries for Field Tech — those
+// stay Office/PM-only since Projects carries contract $ and documents, and
+// techs aren't scheduled through this app (that happens in other software).
+function applyRoleGating() {
+  var isField = getUserRole() === 'field';
+  var projBtn = document.getElementById('bnav-projects');
+  var schedBtn = document.getElementById('bnav-schedule');
+  if (projBtn) projBtn.style.display = isField ? 'none' : '';
+  if (schedBtn) schedBtn.style.display = isField ? 'none' : '';
+  // If a Field Tech device is sitting on a now-hidden page (e.g. role was
+  // just switched while on Projects), bounce back to the dashboard instead
+  // of leaving a blank/inaccessible page showing.
+  if (isField && (currentPage === 'projects' || currentPage === 'schedule')) {
+    goPage('dashboard');
+  }
+}
+function renderRolePicker() {
+  var wrap = document.getElementById('role-picker-row');
+  if (!wrap) return;
+  var current = getUserRole();
+  wrap.innerHTML = Object.keys(NTD_ROLES).map(function(key) {
+    return '<button type="button" class="role-btn'+(key===current?' on':'')+'" onclick="setUserRole(\''+key+'\');renderRolePicker()">'+NTD_ROLES[key].label+'</button>';
+  }).join('');
+}
+
 // ── USER IDENTITY (Tier 1 — device-local, no password) ─────────────────────
 function getCurrentUser() {
   try { return localStorage.getItem('ntdCurrentUser') || null; } catch(e) { return null; }
@@ -4911,6 +4998,7 @@ window.addEventListener('load', function() {
   try { renderDashboard(); } catch(e) { console.error('renderDashboard failed:', e); }
   try { refreshSchedReqBadge(); } catch(e) { console.error('refreshSchedReqBadge failed:', e); }
   try { initTvModeIfRequested(); } catch(e) { console.error('initTvModeIfRequested failed:', e); }
+  try { applyRoleGating(); } catch(e) { console.error('applyRoleGating failed:', e); }
 
   var tvRequested = (new URLSearchParams(window.location.search)).get('tv') === '1';
   if (!tvRequested) {
