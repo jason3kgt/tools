@@ -139,7 +139,7 @@ textarea{resize:vertical;min-height:70px}
 .plans-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px}
 .plan-btn{padding:9px 6px;border:2px solid var(--bd);border-radius:10px;background:var(--of);text-align:center;font-size:11px;font-weight:600;color:var(--mu);cursor:pointer;touch-action:manipulation;font-family:inherit}
 .plan-btn.on{border-color:var(--nv);background:#E8EEF5;color:var(--nv)}
-.freq-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.freq-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px}
 .freq-btn{padding:10px;border:2px solid var(--bd);border-radius:10px;background:var(--of);text-align:center;font-size:12px;font-weight:600;color:var(--mu);cursor:pointer;touch-action:manipulation;font-family:inherit}
 .freq-btn.on{border-color:var(--or);background:#FEF0EA;color:var(--or)}
 .eq-table{width:100%;border-collapse:collapse;font-size:11px}
@@ -339,6 +339,7 @@ textarea{resize:vertical;min-height:70px}
       <div class="freq-row">
         <button class="freq-btn on" id="freq-q" onclick="setFreq('Quarterly')" style="touch-action:manipulation">Quarterly<br><small style="font-weight:400;font-size:10px">4x per year</small></button>
         <button class="freq-btn" id="freq-m" onclick="setFreq('Monthly')" style="touch-action:manipulation">Monthly<br><small style="font-weight:400;font-size:10px">12x per year</small></button>
+        <button class="freq-btn" id="freq-a" onclick="setFreq('Annual')" style="touch-action:manipulation">Annual<br><small style="font-weight:400;font-size:10px">1x per year</small></button>
       </div>
     </div>
   </div>
@@ -1837,6 +1838,7 @@ function setFreq(f){
   pmFreq=f;
   document.getElementById('freq-q').classList.toggle('on',f==='Quarterly');
   document.getElementById('freq-m').classList.toggle('on',f==='Monthly');
+  document.getElementById('freq-a').classList.toggle('on',f==='Annual');
   pmCalcAll();
 }
 function pmMapType(faType,tonnage){
@@ -1875,7 +1877,7 @@ function pmTypeSelect(val,idx){
 }
 function pmEsc(s){return(s||'').replace(/"/g,'&quot;');}
 function pmFmt(n){return'$'+(parseFloat(n)||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');}
-function pmGetRate(type){if(!type||!PM_RATES[type])return 0;return pmFreq==='Monthly'?PM_RATES[type].m:PM_RATES[type].q;}
+function pmGetRate(type){if(!type||!PM_RATES[type])return 0;if(pmFreq==='Monthly')return PM_RATES[type].m;if(pmFreq==='Annual')return PM_RATES[type].q*4;return PM_RATES[type].q;}
 function pmGetMatAddon(u){
   var total=0;
   if(pmPlans.mat){
@@ -1885,7 +1887,7 @@ function pmGetMatAddon(u){
   }
   if(pmPlans.coil){
     var cc=parseFloat(document.getElementById('cost-coil').value)||95;
-    var vis=pmFreq==='Monthly'?12:4;
+    var vis=pmFreq==='Monthly'?12:(pmFreq==='Annual'?1:4);
     total+=cc/vis;
   }
   return total;
@@ -1898,7 +1900,7 @@ function pmRenderTable(){
   var tb=document.getElementById('pm-body');tb.innerHTML='';
   pmUnits.forEach(function(u,i){
     var rate=pmGetRate(u.type),matA=pmGetMatAddon(u),qty=parseFloat(u.qty)||1;
-    var rpv=(rate+matA)*qty,vis=pmFreq==='Monthly'?12:4,ann=rpv*vis;
+    var rpv=(rate+matA)*qty,vis=pmFreq==='Monthly'?12:(pmFreq==='Annual'?1:4),ann=rpv*vis;
     var tr=document.createElement('tr');
     tr.innerHTML='<td style="text-align:center;color:var(--mu);font-size:10px">'+(i+1)+'</td>'
       +'<td><input type="text" value="'+pmEsc(u.tag)+'" placeholder="Tag" onchange="pmUnits['+i+'].tag=this.value"></td>'
@@ -1916,7 +1918,7 @@ function pmRenderTable(){
 }
 function pmCalcAll(){
   pmRenderTable();
-  var vis=pmFreq==='Monthly'?12:4,tot=0,totU=0;
+  var vis=pmFreq==='Monthly'?12:(pmFreq==='Annual'?1:4),tot=0,totU=0;
   pmUnits.forEach(function(u){
     if(!u.type)return;
     var rate=pmGetRate(u.type),matA=pmGetMatAddon(u),qty=parseFloat(u.qty)||1;
@@ -2031,7 +2033,7 @@ function pmGenPDF(){
   doc.setFillColor(NV[0],NV[1],NV[2]);doc.rect(M,y,IW,13,'F');
   doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(255,255,255);
   ehdrs.forEach(function(h,i){doc.text(h,ecols[i]+2,y+9);});y+=14;
-  var vis=pmFreq==='Monthly'?12:4,totalAnnual=0;
+  var vis=pmFreq==='Monthly'?12:(pmFreq==='Annual'?1:4),totalAnnual=0;
   var eqRows=pmUnits.filter(function(u){return u.type;});
   eqRows.forEach(function(u,idx){
     if(y>710){doc.addPage();pgFtr(doc,1,4);y=30;}
@@ -2697,7 +2699,7 @@ function ntdSubmitAdvancedEstimate() {
 }
 
 function pmExportJSON(){
-  var vis=pmFreq==='Monthly'?12:4,tot=0;
+  var vis=pmFreq==='Monthly'?12:(pmFreq==='Annual'?1:4),tot=0;
   pmUnits.forEach(function(u){if(!u.type)return;var r=pmGetRate(u.type),m=pmGetMatAddon(u),q=parseFloat(u.qty)||1;tot+=(r+m)*q*vis;});
   var selPlanNames=PM_PLANS.filter(function(p){return pmPlans[p.key];}).map(function(p){return p.label.replace(/\n/g,' ');});
   var data={_source:'NTD_PM_Quote',_version:1,customer_name:gv('sf'),service_address:[gv('sa'),gv('sct')].filter(Boolean).join(', '),attention:gv('pm-attn')||gv('scn'),agreement_number:gv('pm-agr-num'),agreement_date:gv('pm-agr-date'),renewal_date:gv('pm-renewal'),frequency:pmFreq,visits_per_year:vis,selected_plans:selPlanNames,annual_price:tot.toFixed(2),quarterly_price:(tot/4).toFixed(2),cost_filter:document.getElementById('cost-filter').value,cost_belt:document.getElementById('cost-belt').value,cost_coil:document.getElementById('cost-coil').value,
