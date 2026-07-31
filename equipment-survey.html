@@ -146,6 +146,7 @@ textarea{resize:vertical;min-height:70px}
 .ub{padding:12px 13px}
 .empty{text-align:center;padding:24px;color:var(--mu);font-size:13px}
 .dlb{display:block;width:100%;padding:13px;border-radius:10px;font-size:14px;font-weight:600;background:var(--or);color:#fff;box-shadow:0 2px 8px rgba(232,83,26,.3);border:none;margin-top:8px;font-family:inherit;cursor:pointer;text-align:center;transition:transform .1s}
+.dlb.sec{background:var(--nv);margin-top:6px;box-shadow:none}
 .dlb:active{opacity:.85;transform:scale(.98)}
 .addb{display:block;width:100%;padding:11px;border-radius:10px;font-size:13px;font-weight:600;border:1.5px solid var(--nv);background:#fff;color:var(--nv);margin-top:8px;font-family:inherit;cursor:pointer;text-align:center}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
@@ -207,6 +208,13 @@ textarea{resize:vertical;min-height:70px}
     <div class="fg"><label>Technician Name</label><input type="text" id="j-tech" placeholder="Full name"></div>
     <div class="fg"><label>Customer Name</label><input type="text" id="j-cust" placeholder="Company or customer name" autocomplete="off"></div>
     <div class="fg"><label>Customer Address</label><input type="text" id="j-addr" placeholder="Street address, city"></div>
+  </div>
+</div>
+<div class="card" id="shCard">
+  <div class="ch"><span class="cn">&#8635;</span><h2>Site History (NTD Hub)</h2></div>
+  <div class="cb">
+    <button class="dlb sec" onclick="lookupSiteHistory()" style="margin-bottom:10px">Look Up Prior Visits</button>
+    <div id="shResults"><div class="empty">Enter the Customer Name above, then tap Look Up to check NTD Hub for prior visits and projects at this site.</div></div>
   </div>
 </div>
 <div class="card">
@@ -288,6 +296,82 @@ function go(n){
   window.scrollTo(0,0);
 }
 function gv(id){return(document.getElementById(id)||{}).value||'';}
+
+// ── SITE HISTORY (NTD Hub) ──────────────────────────────────────────────────
+// Same "walk in with context" idea as Asset Survey's Site History card, ported
+// over since a tech doing a pre-job survey benefits from it just as much as a
+// sales visit. One real difference: this tool doesn't collect an overall
+// good/fair/poor condition rating per unit (it's a pre-existing-conditions
+// survey, not a condition assessment), so there's no equivalent value to diff
+// against prior visits — that section is intentionally left out here rather
+// than faked from data this tool doesn't actually capture.
+function _shEsc(s) {
+  return (s === null || s === undefined ? '' : String(s))
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function lookupSiteHistory(){
+  var name=gv('j-cust').trim();
+  var rw=document.getElementById('shResults');
+  if(!name){rw.innerHTML='<div class="empty">Enter a Customer Name first.</div>';return;}
+  if(typeof ntdStore==='undefined'){rw.innerHTML='<div class="empty">NTD Hub connection not available on this device.</div>';return;}
+  rw.innerHTML='<div class="empty">Searching NTD Hub&hellip;</div>';
+  ntdStore.matchFacility.find(name).then(function(result){
+    if(result.exact){loadSiteHistory(result.exact.id);return;}
+    if(!result.candidates.length){rw.innerHTML='<div class="empty">No matching site found in NTD Hub &mdash; this may be a new site, or try a shorter/simpler name.</div>';return;}
+    rw.innerHTML='<div style="font-size:11px;color:var(--mu);margin-bottom:6px">No exact match &mdash; possible matches, tap the correct site:</div>'
+      +result.candidates.map(function(f){return'<button class="addb" style="margin-bottom:6px;text-align:left" onclick="loadSiteHistory(\''+f.id+'\')">'+_shEsc(f.name)+(f.address?' &mdash; '+_shEsc(f.address):'')+'</button>';}).join('');
+  }).catch(function(err){
+    rw.innerHTML='<div class="empty">Lookup failed &mdash; '+_shEsc(err.message||'connection error')+'</div>';
+  });
+}
+function loadSiteHistory(facilityId){
+  var rw=document.getElementById('shResults');
+  rw.innerHTML='<div class="empty">Loading history&hellip;</div>';
+  Promise.all([
+    ntdStore.equipment.list(function(e){return e.facility_id===facilityId;}),
+    ntdStore.jobs.list(function(j){return j.facility_id===facilityId;}),
+    ntdStore.pm_records.list(function(p){return p.facility_id===facilityId;}),
+    ntdStore.startup_records.list(function(s){return s.facility_id===facilityId;})
+  ]).then(function(res){
+    renderSiteHistory(res[0]||[],res[1]||[],res[2]||[],res[3]||[]);
+  }).catch(function(err){
+    rw.innerHTML='<div class="empty">Could not load history &mdash; '+_shEsc(err.message||'connection error')+'</div>';
+  });
+}
+function renderSiteHistory(prevEquip,jobs,pmRecs,startups){
+  var rw=document.getElementById('shResults');
+  if(!prevEquip.length&&!jobs.length&&!pmRecs.length&&!startups.length){
+    rw.innerHTML='<div class="empty">Site found in NTD Hub, but no prior visit history is on file yet.</div>';
+    return;
+  }
+  var visits=[];
+  jobs.forEach(function(j){if(j.type!=='project')visits.push({ts:j.ts||0,label:j.type==='survey'?'Equipment Survey':j.type==='asset_survey'?'Asset Survey':j.type==='startup_job'?'Startup Job':(j.type||'Visit'),tech:j.tech||''});});
+  pmRecs.forEach(function(p){visits.push({ts:p.ts||0,label:'PM Visit',tech:p.tech||''});});
+  startups.forEach(function(s){visits.push({ts:s.ts||0,label:'Startup',tech:s.tech||''});});
+  visits.sort(function(a,b){return(b.ts||0)-(a.ts||0);});
+  var last=visits[0];
+
+  var tagSet={};
+  prevEquip.forEach(function(e){var t=(e.tag||'').trim().toUpperCase();if(t)tagSet[t]=true;});
+  var unitCount=Object.keys(tagSet).length;
+
+  var projects=jobs.filter(function(j){return j.type==='project';});
+
+  var h='';
+  if(last){
+    h+='<div style="font-size:12px;margin-bottom:8px"><b>Last visit:</b> '+_shEsc(last.label)+(last.tech?' by '+_shEsc(last.tech):'')+(last.ts?' &mdash; '+new Date(last.ts).toLocaleDateString():'')+'</div>';
+  }
+  if(unitCount){
+    h+='<div style="font-size:12px;margin-bottom:8px"><b>'+unitCount+'</b> unit'+(unitCount===1?'':'s')+' already on file from prior visits &mdash; specs may already be captured, worth checking before re-entering everything from scratch.</div>';
+  }
+  if(projects.length){
+    h+='<div style="font-size:9px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.04em;margin:8px 0 4px">Projects On File</div>';
+    h+=projects.map(function(p){return'<div style="font-size:11px;padding:4px 0;border-bottom:1px solid var(--bd)">'+_shEsc(p.name||'Project')+(p.status?' &mdash; <span style="color:var(--am);font-weight:600">'+_shEsc(p.status)+'</span>':'')+'</div>';}).join('');
+  }
+  if(!h)h='<div class="empty">Site found, but no comparable prior visit details are on file yet.</div>';
+  rw.innerHTML=h;
+}
+
 
 function tog(btn,hid,val){
   var p=btn.parentElement;

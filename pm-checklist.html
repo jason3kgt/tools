@@ -919,9 +919,11 @@ function eqH(eq, idx) {
   h += '</div>';
 
   // Notes
-  h += '<button class="ab" onclick="tacc(' + eq.id + ',\'notes\')" type="button">Notes / Findings <span id="ar-' + eq.id + '-notes"></span></button>';
+  h += '<button class="ab" onclick="tacc(' + eq.id + ',\'notes\')" type="button">Notes / Findings' + (eq.followup ? ' \u26a0\ufe0f' : '') + ' <span id="ar-' + eq.id + '-notes"></span></button>';
   h += '<div class="ac" id="ac-' + eq.id + '-notes"><div style="padding-top:8px"><div class="fg"><label>Findings / Recommendations</label>';
-  h += '<textarea placeholder="e.g. Belt worn, recommend replacement next visit\u2026" rows="3" oninput="udf(' + eq.id + ',\'notes\',this.value)">' + (eq.notes || '') + '</textarea></div></div></div>';
+  h += '<textarea placeholder="e.g. Belt worn, recommend replacement next visit\u2026" rows="3" oninput="udf(' + eq.id + ',\'notes\',this.value)">' + (eq.notes || '') + '</textarea></div>';
+  h += '<div class="fg" style="margin-top:8px"><label>Follow-up needed? (shows on the office dashboard until resolved)</label>';
+  h += '<textarea placeholder="e.g. Customer requested a quote for the failing capacitor\u2026" rows="2" oninput="udf(' + eq.id + ',\'followup\',this.value)">' + (eq.followup || '') + '</textarea></div></div></div>';
   h += '</div></div>';
   return h;
 }
@@ -1704,7 +1706,7 @@ function ntdAutoSubmitPMVisit() {
       visit_label: gv('sv') || 'PM Visit',
       unit_count: eqs.length,
       good_count: good, fair_count: fair, poor_count: poor,
-      units: eqs.map(function(e){ return {tag:e.tag,type:e.type,condition:e.ov,notes:e.notes}; })
+      units: eqs.map(function(e){ return {tag:e.tag,type:e.type,condition:e.ov,notes:e.notes,followup:e.followup||'',followup_resolved:false}; })
     }).then(function(){ console.log('[NTD] PM visit auto-saved'); })
       .catch(function(e){ console.warn('[NTD] PM visit auto-save failed:', e.message); });
   });

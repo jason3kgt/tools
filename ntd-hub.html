@@ -1165,7 +1165,7 @@ function renderFacilityList() {
         var hasStart = startups.some(function(r){ return r.facility_id === f.id; });
         var hasQuote = pmQuotes.some(function(r){ return r.facility_id === f.id; });
         var eqCount  = equip.filter(function(e){ return e.facility_id === f.id; }).length;
-        var followups = startups.filter(function(r){ return r.facility_id === f.id && _ntdOpenFollowup(r); }).length;
+        var followups = getOpenFollowupItems(startups, pmRecs).filter(function(it){ return it.facility_id === f.id; }).length;
         // PM schedule status
         var _pmStatus = null;
         if (f.pm_contract && f.contract && f.contract.frequency) {
@@ -1460,8 +1460,8 @@ function renderDetailTab(f) {
         });
       });
 
-      // Collect open follow-ups
-      var openFollowups = startups.filter(function(r){ return r.facility_id === fid && _ntdOpenFollowup(r); });
+      // Collect open follow-ups (Startup Checklist + PM Checklist)
+      var openFollowups = getOpenFollowupItems(startups, pmRecs).filter(function(it){ return it.facility_id === fid; });
 
       // Add standalone document entries only for types that don't have a matching data record
       // PM visits, startups, asset surveys get their PDF link merged into the data record below
@@ -1503,15 +1503,8 @@ function renderDetailTab(f) {
           '<div class="followup-card-hdr">' +
             '<span>⚠ ' + openFollowups.length + ' Open Follow-up' + (openFollowups.length>1?'s':'') + '</span>' +
           '</div>';
-        openFollowups.forEach(function(r) {
-          html += '<div class="followup-item">' +
-            '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">' +
-              '<div style="font-size:13px;font-weight:700;color:var(--tx)">' + esc(r.unit_num||'Unit') + (r.eq_type?' <span style="font-weight:400;color:var(--mu)">· '+esc(r.eq_type)+'</span>':'') + '</div>' +
-              '<button class="btn-outline ntd-resolve-followup" data-id="'+r.id+'" style="padding:3px 9px;font-size:10px;flex-shrink:0">✓ Resolve</button>' +
-            '</div>' +
-            (r.tech ? '<div style="font-size:11px;color:var(--mu);margin-top:2px">Tech: '+esc(r.tech)+(r.sig_date?' · '+esc(r.sig_date):'')+'</div>' : '') +
-            '<div style="font-size:12px;color:var(--am);margin-top:4px;line-height:1.5">'+esc(r.followup)+'</div>' +
-          '</div>';
+        openFollowups.forEach(function(it) {
+          html += followupItemRow(it, null);
         });
         html += '</div>';
       }
@@ -1797,6 +1790,13 @@ function renderDetailTab(f) {
             var pdfLinks = matchDocs.map(function(d){
               return d.file_url ? '<a href="'+esc(d.file_url)+'" target="_blank" style="color:var(--st);font-weight:600;text-decoration:none;font-size:11px;margin-right:8px">📥 '+esc((d.description||'').replace('ILS Gummies — ','').replace(/ — Monthly.*$/,'').replace(/ — Quarterly.*$/,'').replace(/ — .*$/,''))+'</a>' : '';
             }).join('');
+            var visitFollowups = (r.units||[]).filter(function(u){ return u.followup && u.followup.trim(); });
+            var followupsHtml = visitFollowups.length ? '<div style="margin-top:6px">' + visitFollowups.map(function(u) {
+              return '<div class="rec-meta" style="color:'+(u.followup_resolved?'var(--gn)':'var(--am)')+';display:flex;justify-content:space-between;align-items:center;gap:8px">' +
+                '<span>'+(u.followup_resolved?'✓':'⚠')+' '+esc(u.tag||'Unit')+(u.followup_resolved?' <span style="color:var(--gn);font-weight:700">(resolved)</span>':'')+': '+esc(u.followup)+'</span>' +
+                '<button class="btn-outline ntd-resolve-followup" data-id="'+r.id+'" data-tag="'+esc(u.tag||'')+'" data-source="pm" data-reopen="'+(u.followup_resolved?'1':'0')+'" style="padding:2px 8px;font-size:10px;flex-shrink:0">'+(u.followup_resolved?'Reopen':'✓ Resolve')+'</button>' +
+              '</div>';
+            }).join('') + '</div>' : '';
             html += '<div class="rec-row">' +
               '<div class="rec-icon nv">📋</div>' +
               '<div class="rec-body">' +
@@ -1810,6 +1810,7 @@ function renderDetailTab(f) {
                 '</div>' +
                 (r.notes ? '<div class="rec-meta" style="margin-top:3px">'+esc(r.notes)+'</div>' : '') +
                 (pdfLinks ? '<div style="margin-top:6px">'+pdfLinks+'</div>' : '') +
+                followupsHtml +
               '</div></div>';
           });
           html += '</div></div>';
@@ -3602,6 +3603,77 @@ function ntdResolveFollowup(recordId, resolved) {
   });
 }
 
+// PM Checklist follow-ups live one-per-UNIT inside a pm_record's units[]
+// JSONB array (a single PM visit can flag more than one unit), unlike
+// Startup Checklist's one-per-record flag — so resolving one means fetching
+// the whole visit record, flipping just the matching unit's flag, and
+// re-upserting the row, rather than a simple top-level field update.
+function ntdResolvePmFollowup(recordId, tag, resolved) {
+  ntdStore.pm_records.get(recordId).then(function(r) {
+    if (!r || !r.units) return;
+    var changed = false;
+    r.units = r.units.map(function(u) {
+      if (u.tag === tag && u.followup) { changed = true; return Object.assign({}, u, { followup_resolved: resolved }); }
+      return u;
+    });
+    if (!changed) return;
+    return ntdStore.pm_records.upsert(r);
+  }).then(function() {
+    showToast(resolved ? '✓ Follow-up resolved' : 'Follow-up reopened');
+    if (currentPage === 'dashboard') renderDashboard();
+    if (currentFacilityId) ntdStore.facilities.get(currentFacilityId).then(renderDetailTab);
+  }).catch(function(err) {
+    showToast('Error: ' + (err.message || 'could not update'));
+  });
+}
+
+// Normalizes follow-ups from BOTH sources — Startup Checklist's one-per-
+// record flag and PM Checklist's one-per-unit flag inside pm_records.units[]
+// — into one consistent shape, so every place that lists/counts open
+// follow-ups (facility badges, dashboard, facility Timeline, global search)
+// only has to deal with one thing instead of two different data shapes.
+function getFollowupItems(startups, pmRecs) {
+  var items = [];
+  (startups || []).forEach(function(r) {
+    if (!r.followup || !r.followup.trim()) return;
+    items.push({
+      source: 'startup', recordId: r.id, tag: r.unit_num || 'Unit', eqType: r.eq_type || '',
+      facility_id: r.facility_id, followup: r.followup, resolved: !!r.followup_resolved,
+      date: r.sig_date || '', tech: r.tech || '', ts: r.ts || 0
+    });
+  });
+  (pmRecs || []).forEach(function(r) {
+    (r.units || []).forEach(function(u) {
+      if (!u.followup || !u.followup.trim()) return;
+      items.push({
+        source: 'pm', recordId: r.id, tag: u.tag || 'Unit', eqType: u.type || '',
+        facility_id: r.facility_id, followup: u.followup, resolved: !!u.followup_resolved,
+        date: r.date || '', tech: r.tech || '', ts: r.ts || 0
+      });
+    });
+  });
+  return items;
+}
+function getOpenFollowupItems(startups, pmRecs) {
+  return getFollowupItems(startups, pmRecs).filter(function(it){ return !it.resolved; });
+}
+// Shared row + resolve-button markup for a normalized follow-up item —
+// used by the dashboard card and the facility Timeline card so both stay
+// visually identical without copy-pasting the button wiring twice.
+function followupItemRow(it, facName) {
+  return '<div class="followup-item ntd-goto" data-fid="'+it.facility_id+'" style="cursor:pointer">' +
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">' +
+      '<div>' +
+        '<div style="font-size:13px;font-weight:700;color:var(--tx)">'+esc(it.tag)+(it.eqType?' <span style="font-weight:400;color:var(--mu)">· '+esc(it.eqType)+'</span>':'')+'</div>' +
+        (facName ? '<div style="font-size:11px;color:var(--mu)">'+esc(facName)+'</div>' : '') +
+        (it.tech ? '<div style="font-size:11px;color:var(--mu)">'+(it.source==='pm'?'PM Visit':'Startup')+' · '+esc(it.tech)+(it.date?' · '+esc(it.date):'')+'</div>' : '') +
+      '</div>' +
+      '<button class="btn-outline ntd-resolve-followup" data-id="'+it.recordId+'" data-tag="'+esc(it.tag)+'" data-source="'+it.source+'" style="padding:3px 9px;font-size:10px;flex-shrink:0">✓ Resolve</button>' +
+    '</div>' +
+    '<div style="font-size:12px;color:var(--am);margin-top:3px;line-height:1.5">'+esc(it.followup)+'</div>' +
+  '</div>';
+}
+
 function showToast(msg) {
   var t = document.getElementById('toast');
   t.textContent = msg;
@@ -3725,7 +3797,7 @@ function renderDashboard() {
     var poorEquip = results[9] || [];
 
     // ── Metrics ──
-    var openFollowups = startups.filter(function(r){ return _ntdOpenFollowup(r); });
+    var openFollowups = getOpenFollowupItems(startups, pmRecs);
     var projScope = getProjScope();
     var curUser = getCurrentUser();
     var activeProjectsAll = jobs.filter(function(j){ return j.type==='project' && (j.status==='bidding'||j.status==='awarded'||j.status==='progress'); });
@@ -3807,17 +3879,8 @@ function renderDashboard() {
     if (openFollowups.length && prefs.followups) {
       html += '<div class="section-label" style="--accent:var(--am)">'+ntdIcon('alert',12)+' Open Follow-ups</div>';
       html += '<div class="followup-card">';
-      openFollowups.slice(0,5).forEach(function(r) {
-        html += '<div class="followup-item ntd-goto" data-fid="'+r.facility_id+'" style="cursor:pointer">'+
-          '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">' +
-            '<div>' +
-              '<div style="font-size:13px;font-weight:700;color:var(--tx)">'+esc(r.unit_num||'Unit')+'</div>' +
-              '<div style="font-size:11px;color:var(--mu)">'+esc(facMap[r.facility_id]||'')+'</div>' +
-            '</div>' +
-            '<button class="btn-outline ntd-resolve-followup" data-id="'+r.id+'" style="padding:3px 9px;font-size:10px;flex-shrink:0">✓ Resolve</button>' +
-          '</div>' +
-          '<div style="font-size:12px;color:var(--am);margin-top:3px;line-height:1.5">'+esc(r.followup)+'</div>' +
-        '</div>';
+      openFollowups.slice(0,5).forEach(function(it) {
+        html += followupItemRow(it, facMap[it.facility_id]);
       });
       if (openFollowups.length > 5) html += '<div style="font-size:11px;color:var(--mu);padding-top:8px;text-align:center">+ '+(openFollowups.length-5)+' more — use Search to find all</div>';
       html += '</div>';
@@ -4175,15 +4238,21 @@ function runGlobalSearch() {
 
       // Search PM visits
       var pmHits = pmRecs.filter(function(r) {
-        return matches(q, r.visit_label, r.tech, r.notes, r.date);
+        var followupTexts = (r.units||[]).map(function(u){ return u.followup||''; });
+        return matches.apply(null, [q, r.visit_label, r.tech, r.notes, r.date].concat(followupTexts));
       });
       if (pmHits.length) groups.push({
         label: '📋 PM Visits',
-        items: pmHits.map(function(r) { return {
+        items: pmHits.map(function(r) {
+          var followupUnits = (r.units||[]).filter(function(u){ return u.followup && u.followup.trim(); });
+          return {
           icon: '📋', color: 'nv',
           title: r.visit_label || 'PM Visit',
           sub: facMap[r.facility_id] || 'Unknown facility',
           meta: [r.date, r.tech ? 'Tech: '+r.tech : ''].filter(Boolean).join(' · '),
+          extra: followupUnits.length ? followupUnits.map(function(u){
+            return (u.followup_resolved ? '✓ ' : '⚠ ') + (u.tag||'Unit') + ': ' + u.followup + (u.followup_resolved ? ' (resolved)' : '');
+          }).join(' · ') : '',
           facility_id: r.facility_id
         };})
       });
@@ -5053,7 +5122,12 @@ document.addEventListener('click', function(e) {
   var resolveBtn = e.target.closest('.ntd-resolve-followup');
   if (resolveBtn) {
     var wantResolved = resolveBtn.getAttribute('data-reopen') === '1' ? false : true;
-    ntdResolveFollowup(resolveBtn.getAttribute('data-id'), wantResolved);
+    var src = resolveBtn.getAttribute('data-source') || 'startup';
+    if (src === 'pm') {
+      ntdResolvePmFollowup(resolveBtn.getAttribute('data-id'), resolveBtn.getAttribute('data-tag'), wantResolved);
+    } else {
+      ntdResolveFollowup(resolveBtn.getAttribute('data-id'), wantResolved);
+    }
     return;
   }
   // Expand/collapse a unit's condition history trail (Units tab)
