@@ -1223,7 +1223,7 @@ function renderDetail() {
       '</div>' +
       '<div class="detail-actions">' +
         '<button class="detail-act-btn" onclick="openEditFacility(\''+f.id+'\')">✏️ Edit</button>' +
-        '<button class="detail-act-btn" onclick="openAddProject(\''+f.id+'\')">+ Project</button>' +
+        (getUserRole() === 'field' ? '' : '<button class="detail-act-btn" onclick="openAddProject(\''+f.id+'\')">+ Project</button>') +
         '<button class="detail-act-btn primary" onclick="confirmDeleteFacility(\''+f.id+'\')">Delete</button>' +
       '</div>';
 
@@ -3975,7 +3975,7 @@ function runGlobalSearch() {
   var wrap = document.getElementById('global-search-results');
 
   if (!q || q.length < 2) {
-    wrap.innerHTML = '<div class="empty" style="padding-top:32px"><div class="empty-icon">🔍</div><h3>Search everything</h3><p>Search across facilities, equipment, startups, PM visits, quotes, and projects.</p></div>';
+    wrap.innerHTML = '<div class="empty" style="padding-top:32px"><div class="empty-icon">🔍</div><h3>Search everything</h3><p>Search across facilities, equipment, startups, PM visits, quotes, projects, and photos.</p></div>';
     return;
   }
 
@@ -3990,7 +3990,8 @@ function runGlobalSearch() {
       ntdStore.pm_records.list(),
       ntdStore.pm_quotes.list(),
       ntdStore.service_quotes.list(),
-      ntdStore.jobs.list()
+      ntdStore.jobs.list(),
+      ntdStore.documents.list()
     ]).then(function(results) {
       var facilities = results[0];
       var equipment  = results[1];
@@ -3999,6 +4000,7 @@ function runGlobalSearch() {
       var pmQuotes   = results[4];
       var svcQuotes  = results[5];
       var jobs       = results[6];
+      var docs       = results[7];
 
       // Build facility name lookup
       var facMap = {};
@@ -4087,6 +4089,24 @@ function runGlobalSearch() {
         };})
       });
 
+      // Search photos
+      var photoHits = docs.filter(function(d) {
+        return NTD_PHOTO_FORM_TYPES.indexOf(d.form_type) > -1 && matches(q, d.description, d.tech, facMap[d.facility_id]);
+      });
+      if (photoHits.length) groups.push({
+        label: '📷 Photos',
+        items: photoHits.map(function(d) { return {
+          icon: '📷', color: 'am',
+          thumb: d.file_url,
+          title: d.description || 'Photo',
+          sub: d.facility_id ? (facMap[d.facility_id] || 'Unknown facility') : 'Unassigned',
+          meta: [d.date || '', d.tech ? 'By '+d.tech : ''].filter(Boolean).join(' · '),
+          facility_id: d.facility_id || '',
+          tab: d.facility_id ? 'photos' : null,
+          photosHub: !d.facility_id
+        };})
+      });
+
       // Render results
       if (!groups.length) {
         wrap.innerHTML = '<div class="empty" style="padding-top:32px"><div class="empty-icon">🔍</div><h3>No results for "'+esc(q)+'"</h3><p>Try a different search term.</p></div>';
@@ -4100,8 +4120,8 @@ function runGlobalSearch() {
         html += '<div class="section-label">'+g.label+'</div>';
         html += '<div class="card"><div class="card-body">';
         g.items.forEach(function(item) {
-          html += '<div class="rec-row ntd-goto" data-fid="'+item.facility_id+'"'+(item.tab?' data-tab="'+item.tab+'"':'')+' style="cursor:pointer">' +
-            '<div class="rec-icon '+item.color+'">'+item.icon+'</div>' +
+          html += '<div class="rec-row ntd-goto" data-fid="'+(item.facility_id||'')+'"'+(item.tab?' data-tab="'+item.tab+'"':'')+(item.photosHub?' data-photos-hub="1"':'')+' style="cursor:pointer">' +
+            (item.thumb ? '<div class="rec-icon" style="padding:0;overflow:hidden"><img src="'+esc(item.thumb)+'" style="width:100%;height:100%;object-fit:cover"></div>' : '<div class="rec-icon '+item.color+'">'+item.icon+'</div>') +
             '<div class="rec-body">' +
               '<div class="rec-title">'+esc(item.title)+'</div>' +
               (item.sub  ? '<div class="rec-sub">'+esc(item.sub)+'</div>' : '') +
@@ -4952,7 +4972,8 @@ document.addEventListener('click', function(e) {
   if (!el) return;
   var fid = el.getAttribute('data-fid');
   var tab = el.getAttribute('data-tab');
-  if (fid) goDetail(fid, tab || null);
+  if (fid) { goDetail(fid, tab || null); return; }
+  if (el.getAttribute('data-photos-hub') === '1') { goPage('photos'); return; }
 });
 
 window.addEventListener('load', function() {
