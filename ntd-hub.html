@@ -280,6 +280,31 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .status-pending{background:#FFF3E0;color:var(--am)}
 .status-confirmed{background:#E6F4EA;color:var(--gn)}
 
+/* ── SERVICE TICKETS (DISPATCH) ── */
+.ticket-filter-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.ticket-filter-chip{border:1.5px solid var(--bd);background:#fff;color:var(--mu);font-size:11px;font-weight:700;padding:6px 11px;border-radius:20px;cursor:pointer;font-family:inherit;touch-action:manipulation;white-space:nowrap}
+.ticket-filter-chip.on{background:var(--nv);border-color:var(--nv);color:#fff}
+.ticket-card{background:#fff;border-radius:14px;border:1px solid var(--bd);border-left:4px solid var(--mu);margin-bottom:10px;box-shadow:var(--card-shadow);padding:14px 16px;cursor:pointer}
+.ticket-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px}
+.ticket-fac{font-size:14px;font-weight:700;color:var(--nv)}
+.ticket-num{font-size:10px;color:var(--mu);font-weight:700;letter-spacing:.02em}
+.ticket-meta-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.ticket-desc{font-size:12.5px;color:var(--tx);line-height:1.5;margin-top:8px}
+.ticket-footer{font-size:11px;color:var(--mu);margin-top:8px;padding-top:8px;border-top:1px solid var(--of);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tpriority-emergency{background:#FDEDEC;color:var(--rd)}
+.tpriority-same_day{background:#FFF3E0;color:var(--am)}
+.tpriority-routine{background:#EEF3FB;color:var(--st)}
+.tstatus-new{background:#FFF3E0;color:var(--am)}
+.tstatus-scheduled{background:#EEF3FB;color:var(--st)}
+.tstatus-dispatched{background:#F3EBFA;color:var(--pu)}
+.tstatus-en_route{background:#FEF0EA;color:var(--or)}
+.tstatus-on_site{background:#E8F0FA;color:var(--nv)}
+.tstatus-complete{background:#E6F4EA;color:var(--gn)}
+.tstatus-needs_follow_up{background:#FDEDEC;color:var(--rd)}
+.tstatus-invoiced{background:#F1ECE2;color:var(--mu)}
+.tstatus-canceled{background:#F1ECE2;color:var(--mu);text-decoration:line-through}
+.ticket-empty-fab{position:fixed;right:16px;bottom:86px;z-index:40}
+
 /* ── TEAM CALENDAR ── */
 .cal-week-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:8px}
 .cal-week-nav .btn-sm{margin:0}
@@ -440,11 +465,16 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
 <!-- ④ SCHEDULING -->
 <div class="pg" id="pg-schedule">
   <div class="sched-subnav">
-    <button class="sched-subnav-btn on" id="sched-tab-requests" onclick="switchScheduleView('requests')">Requests<span class="sched-req-count" id="sched-req-count" style="display:none">0</span></button>
+    <button class="sched-subnav-btn on" id="sched-tab-tickets" onclick="switchScheduleView('tickets')">Tickets<span class="sched-req-count" id="sched-ticket-count" style="display:none">0</span></button>
+    <button class="sched-subnav-btn" id="sched-tab-requests" onclick="switchScheduleView('requests')">Requests<span class="sched-req-count" id="sched-req-count" style="display:none">0</span></button>
     <button class="sched-subnav-btn" id="sched-tab-calendar" onclick="switchScheduleView('calendar')">Calendar</button>
     <button class="sched-subnav-btn" id="sched-tab-pmdue" onclick="switchScheduleView('pmdue')">PM Due<span class="sched-req-count" id="sched-pmdue-count" style="display:none">0</span></button>
   </div>
-  <div id="sched-requests-view">
+  <div id="sched-tickets-view">
+    <div class="ticket-filter-row" id="ticket-filter-row"></div>
+    <div id="sched-tickets-wrap"></div>
+  </div>
+  <div id="sched-requests-view" style="display:none">
     <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
       <span class="scope-toggle" id="req-scope-toggle"></span>
     </div>
@@ -940,6 +970,95 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
   </div>
 </div>
 
+<!-- SERVICE TICKET MODAL (Dispatch board) -->
+<div class="modal-overlay" id="ticket-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="ticket-modal-title">New Ticket</div>
+    <div class="r2">
+      <div class="fg">
+        <label>Ticket Type</label>
+        <select id="tk-type">
+          <option value="service_call">Service Call</option>
+          <option value="pm_visit">PM Visit</option>
+          <option value="startup">Startup</option>
+          <option value="survey">Equipment Survey</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Priority</label>
+        <select id="tk-priority">
+          <option value="routine">Routine</option>
+          <option value="same_day">Same Day</option>
+          <option value="emergency">Emergency</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg" id="tk-site-fg" style="position:relative">
+      <label>Facility / Site Name *</label>
+      <input type="text" id="tk-site" placeholder="e.g. ILS Gummies" autocomplete="off" oninput="ticketFilterFacilities()" onfocus="ticketFilterFacilities()">
+      <div id="tk-site-suggest" class="cal-suggest"></div>
+      <div style="font-size:10.5px;color:var(--mu);margin-top:4px" id="tk-site-hint">No matching facility on file yet — this will be tracked as a new site until it's matched or created.</div>
+    </div>
+    <div class="r2">
+      <div class="fg"><label>Contact Name</label><input type="text" id="tk-contact-name" placeholder="Who called"></div>
+      <div class="fg"><label>Contact Phone</label><input type="text" id="tk-contact-phone" placeholder="(945) 555-0100"></div>
+    </div>
+    <div class="r2">
+      <div class="fg"><label>PO Number</label><input type="text" id="tk-po" placeholder="If provided"></div>
+      <div class="fg">
+        <label>Billing Type</label>
+        <select id="tk-billing">
+          <option value="t&m">T&amp;M</option>
+          <option value="contract_pm">Contract PM</option>
+          <option value="warranty">Warranty</option>
+          <option value="quote_pending">Quote Pending</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label>Problem Reported *</label><textarea id="tk-problem" placeholder="e.g. RTU-2 not cooling, tripping breaker"></textarea></div>
+    <div class="r2">
+      <div class="fg"><label>Scheduled Date</label><input type="date" id="tk-date"></div>
+      <div class="fg"><label>Time Window</label><input type="text" id="tk-window" placeholder="e.g. 8am–10am"></div>
+    </div>
+    <div class="r2">
+      <div class="fg">
+        <label>Assigned Tech</label>
+        <select id="tk-tech">
+          <option value="">— Select Tech —</option>
+          <option value="Carlos Mendoza">Carlos Mendoza</option>
+          <option value="Conner Rouse">Conner Rouse</option>
+          <option value="Diego Preciado">Diego Preciado</option>
+          <option value="Geoff Grider">Geoff Grider</option>
+          <option value="Nicholas Hosack">Nicholas Hosack</option>
+          <option value="Raul Lopez">Raul Lopez</option>
+          <option value="Scott Adkins">Scott Adkins</option>
+          <option value="Tristan Black">Tristan Black</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Status</label>
+        <select id="tk-status">
+          <option value="new">New</option>
+          <option value="scheduled">Scheduled</option>
+          <option value="dispatched">Dispatched</option>
+          <option value="en_route">En Route</option>
+          <option value="on_site">On Site</option>
+          <option value="complete">Complete</option>
+          <option value="needs_follow_up">Needs Follow-Up</option>
+          <option value="invoiced">Invoiced</option>
+          <option value="canceled">Canceled</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label>Dispatcher Notes</label><textarea id="tk-notes" placeholder="Internal notes — not shown to the customer"></textarea></div>
+    <div class="fg"><label>Entered By</label><input type="text" id="tk-by" placeholder="Your name"></div>
+    <button class="btn btn-nv" onclick="saveTicket()">Save Ticket</button>
+    <button class="btn btn-outline" onclick="closeModal('ticket-modal')" style="margin-top:6px">Cancel</button>
+    <button class="btn btn-red" id="tk-delete-btn" style="display:none" onclick="deleteTicket()">Delete Ticket</button>
+  </div>
+</div>
+
 <!-- REQUEST TECH MODAL (used from a Project card) -->
 <div class="modal-overlay" id="req-modal">
   <div class="modal-sheet">
@@ -1042,7 +1161,7 @@ var editingProjectFacilityId = null;
 var hpTaggedPeople = [];
 
 // ── SCHEDULING / TEAM CALENDAR STATE ────────────────────────────────────────
-var currentScheduleView = 'requests';
+var currentScheduleView = 'tickets';
 var editingCalId = null;
 var calWeekStart = startOfWeek(new Date());
 var calWeeksToShow = 1;
@@ -1050,6 +1169,12 @@ var calTypeFilter = 'all';
 var calFacilitiesCache = null;
 var isTvMode = false;
 var requestingFacilityId = null;
+
+// ── SERVICE TICKETS STATE ───────────────────────────────────────────────────
+var editingTicketId = null;
+var ticketFacilitiesCache = null;
+var ticketPickedFacilityId = null;
+var ticketStatusFilter = 'open';   // 'open' | 'all' | a specific status
 var editingCalRequester = null;
 var editingCalContact = null;
 var editingCalOriginalStatus = null;
@@ -1239,7 +1364,10 @@ function hdrAction() {
   }
   if (currentPage === 'facilities') openAddFacility();
   else if (currentPage === 'projects') openAddProject(null);
-  else if (currentPage === 'schedule') openAddCalEntry();
+  else if (currentPage === 'schedule') {
+    if (currentScheduleView === 'tickets') openAddTicket();
+    else openAddCalEntry();
+  }
   else if (currentPage === 'photos') openAddHubPhoto();
 }
 
@@ -4491,25 +4619,37 @@ function fmtDateISO(d) {
 }
 
 function renderScheduleView() {
+  document.getElementById('sched-tab-tickets').classList.remove('on');
   document.getElementById('sched-tab-requests').classList.remove('on');
   document.getElementById('sched-tab-calendar').classList.remove('on');
   document.getElementById('sched-tab-pmdue').classList.remove('on');
+  document.getElementById('sched-tickets-view').style.display = 'none';
   document.getElementById('sched-requests-view').style.display = 'none';
   document.getElementById('sched-calendar-view').style.display = 'none';
   document.getElementById('sched-pmdue-view').style.display = 'none';
 
+  var hdrBtn = document.getElementById('hdr-action-btn');
+
   if (currentScheduleView === 'calendar') {
     document.getElementById('sched-tab-calendar').classList.add('on');
     document.getElementById('sched-calendar-view').style.display = 'block';
+    if (hdrBtn) hdrBtn.textContent = '+ Entry';
     renderCalendarWeek();
   } else if (currentScheduleView === 'pmdue') {
     document.getElementById('sched-tab-pmdue').classList.add('on');
     document.getElementById('sched-pmdue-view').style.display = 'block';
+    if (hdrBtn) hdrBtn.textContent = '+ Entry';
     renderPmDueList();
-  } else {
+  } else if (currentScheduleView === 'requests') {
     document.getElementById('sched-tab-requests').classList.add('on');
     document.getElementById('sched-requests-view').style.display = 'block';
+    if (hdrBtn) hdrBtn.textContent = '+ Entry';
     renderRequestsList();
+  } else {
+    document.getElementById('sched-tab-tickets').classList.add('on');
+    document.getElementById('sched-tickets-view').style.display = 'block';
+    if (hdrBtn) hdrBtn.textContent = '+ Ticket';
+    renderTicketsList();
   }
   refreshSchedReqBadge();
 }
@@ -5306,6 +5446,283 @@ function notifItemClick(notifId, relatedId) {
     }
   });
 }
+
+// ── SERVICE TICKETS (DISPATCH BOARD) ────────────────────────────────────────
+var TICKET_TYPE_LABELS = {service_call:'Service Call', pm_visit:'PM Visit', startup:'Startup', survey:'Equipment Survey'};
+var TICKET_PRIORITY_LABELS = {emergency:'Emergency', same_day:'Same Day', routine:'Routine'};
+var TICKET_STATUS_LABELS = {
+  new:'New', scheduled:'Scheduled', dispatched:'Dispatched', en_route:'En Route',
+  on_site:'On Site', complete:'Complete', needs_follow_up:'Needs Follow-Up',
+  invoiced:'Invoiced', canceled:'Canceled'
+};
+var TICKET_FILTER_CHIPS = [
+  {key:'open', label:'Open'},
+  {key:'new', label:'New'},
+  {key:'scheduled', label:'Scheduled'},
+  {key:'dispatched', label:'Dispatched'},
+  {key:'complete', label:'Complete'},
+  {key:'all', label:'All'}
+];
+var TICKET_OPEN_STATUSES = {new:1, scheduled:1, dispatched:1, en_route:1, on_site:1, needs_follow_up:1};
+var TICKET_DISPATCHED_GROUP = {dispatched:1, en_route:1, on_site:1};
+
+function newTicketNumber() {
+  return 'SVC-' + Date.now().toString().slice(-6);
+}
+
+function renderTicketFilterRow() {
+  var wrap = document.getElementById('ticket-filter-row');
+  if (!wrap) return;
+  wrap.innerHTML = TICKET_FILTER_CHIPS.map(function(c) {
+    return '<button class="ticket-filter-chip'+(ticketStatusFilter===c.key?' on':'')+'" onclick="setTicketFilter(\''+c.key+'\')">'+esc(c.label)+'</button>';
+  }).join('');
+}
+
+function setTicketFilter(key) {
+  ticketStatusFilter = key;
+  renderTicketFilterRow();
+  renderTicketsList();
+}
+
+function ticketMatchesFilter(t) {
+  if (ticketStatusFilter === 'all') return true;
+  if (ticketStatusFilter === 'open') return !!TICKET_OPEN_STATUSES[t.status];
+  if (ticketStatusFilter === 'dispatched') return !!TICKET_DISPATCHED_GROUP[t.status];
+  return t.status === ticketStatusFilter;
+}
+
+function renderTicketsList() {
+  renderTicketFilterRow();
+  var wrap = document.getElementById('sched-tickets-wrap');
+  if (!wrap) return;
+  if (!ntdStore.service_tickets) { wrap.innerHTML = emptyState('⚠️','Dispatch not set up yet','Run the service_tickets schema in Supabase, then reload.'); return; }
+  wrap.innerHTML = ntdSkeleton(2);
+
+  Promise.all([
+    ntdStore.service_tickets.list(),
+    ntdStore.facilities.list()
+  ]).then(function(results) {
+    var tickets = results[0] || [];
+    var facs = results[1] || [];
+    var facMap = {};
+    facs.forEach(function(f){ facMap[f.id] = f.name; });
+
+    var count = tickets.filter(function(t){ return TICKET_OPEN_STATUSES[t.status]; }).length;
+    var badge = document.getElementById('sched-ticket-count');
+    if (badge) {
+      if (count) { badge.textContent = count; badge.style.display = 'inline-block'; }
+      else { badge.style.display = 'none'; }
+    }
+
+    var filtered = tickets.filter(ticketMatchesFilter);
+
+    if (!filtered.length) {
+      wrap.innerHTML = emptyState('🎫','No tickets here','Tap "+ Ticket" above to log a service call, PM visit, or job.');
+      return;
+    }
+
+    var priorityRank = {emergency:0, same_day:1, routine:2};
+    filtered.sort(function(a,b) {
+      var pr = (priorityRank[a.priority]||3) - (priorityRank[b.priority]||3);
+      if (pr !== 0) return pr;
+      return (a.scheduled_date||a.requested_date||'').localeCompare(b.scheduled_date||b.requested_date||'');
+    });
+
+    var priorityBorder = {emergency:'var(--rd)', same_day:'var(--am)', routine:'var(--st)'};
+    var html = '';
+    filtered.forEach(function(t) {
+      var siteName = (t.facility_id && facMap[t.facility_id]) || t.site_name_raw || 'Unknown site';
+      var techs = (t.assigned_techs || []).join(', ');
+      var dateStr = t.scheduled_date || t.requested_date || '';
+      html += '<div class="ticket-card" style="border-left-color:'+(priorityBorder[t.priority]||'var(--mu)')+'" onclick="openEditTicket(\''+esc(t.id)+'\')">' +
+        '<div class="ticket-hdr">' +
+          '<div><div class="ticket-fac">'+esc(siteName)+'</div>' +
+          '<div class="ticket-num">'+esc(t.ticket_number||'')+' · '+esc(TICKET_TYPE_LABELS[t.ticket_type]||'Service Call')+'</div></div>' +
+          '<span class="status-badge tstatus-'+esc(t.status||'new')+'">'+esc(TICKET_STATUS_LABELS[t.status]||'New')+'</span>' +
+        '</div>' +
+        '<div class="ticket-meta-row">' +
+          '<span class="status-badge tpriority-'+esc(t.priority||'routine')+'">'+esc(TICKET_PRIORITY_LABELS[t.priority]||'Routine')+'</span>' +
+          (dateStr ? '<span class="status-badge" style="background:var(--of);color:var(--tx)">'+esc(dateStr)+(t.time_window?' · '+esc(t.time_window):'')+'</span>' : '') +
+        '</div>' +
+        (t.problem_description ? '<div class="ticket-desc">'+esc(t.problem_description)+'</div>' : '') +
+        '<div class="ticket-footer">' +
+          '<span>'+(techs ? '👷 '+esc(techs) : 'Unassigned')+'</span>' +
+          (t.contact_phone ? '<a href="'+telHref(t.contact_phone)+'" onclick="event.stopPropagation()" style="color:var(--nv);font-weight:700;text-decoration:none">📞 '+esc(t.contact_phone)+'</a>' : '<span></span>') +
+        '</div>' +
+      '</div>';
+    });
+    wrap.innerHTML = html;
+  }).catch(function(err) {
+    wrap.innerHTML = emptyState('⚠️','Couldn\'t load tickets', esc(err.message||'Please try again.'));
+  });
+}
+
+function openAddTicket() {
+  editingTicketId = null;
+  ticketFacilitiesCache = null;
+  ticketPickedFacilityId = null;
+  document.getElementById('tk-site-suggest').classList.remove('on');
+  document.getElementById('ticket-modal-title').textContent = 'New Ticket';
+  document.getElementById('tk-type').value = 'service_call';
+  document.getElementById('tk-priority').value = 'routine';
+  document.getElementById('tk-site').value = '';
+  document.getElementById('tk-site-hint').style.display = 'none';
+  document.getElementById('tk-contact-name').value = '';
+  document.getElementById('tk-contact-phone').value = '';
+  document.getElementById('tk-po').value = '';
+  document.getElementById('tk-billing').value = 't&m';
+  document.getElementById('tk-problem').value = '';
+  document.getElementById('tk-date').value = fmtDateISO(new Date());
+  document.getElementById('tk-window').value = '';
+  document.getElementById('tk-tech').value = '';
+  document.getElementById('tk-status').value = 'new';
+  document.getElementById('tk-notes').value = '';
+  document.getElementById('tk-by').value = getCurrentUser() || '';
+  document.getElementById('tk-delete-btn').style.display = 'none';
+  openModal('ticket-modal');
+}
+
+function openEditTicket(id) {
+  ntdStore.service_tickets.get(id).then(function(t) {
+    if (!t) return;
+    editingTicketId = id;
+    ticketFacilitiesCache = null;
+    ticketPickedFacilityId = t.facility_id || null;
+    document.getElementById('tk-site-suggest').classList.remove('on');
+    document.getElementById('ticket-modal-title').textContent = t.ticket_number || 'Edit Ticket';
+    document.getElementById('tk-type').value = t.ticket_type || 'service_call';
+    document.getElementById('tk-priority').value = t.priority || 'routine';
+    document.getElementById('tk-site').value = (t.facility_id ? '' : t.site_name_raw) || '';
+    if (t.facility_id) {
+      ntdStore.facilities.get(t.facility_id).then(function(f) {
+        if (f) document.getElementById('tk-site').value = f.name || '';
+      });
+    }
+    document.getElementById('tk-site-hint').style.display = 'none';
+    document.getElementById('tk-contact-name').value = t.contact_name || '';
+    document.getElementById('tk-contact-phone').value = t.contact_phone || '';
+    document.getElementById('tk-po').value = t.po_number || '';
+    document.getElementById('tk-billing').value = t.billing_type || 't&m';
+    document.getElementById('tk-problem').value = t.problem_description || '';
+    document.getElementById('tk-date').value = t.scheduled_date || t.requested_date || '';
+    document.getElementById('tk-window').value = t.time_window || '';
+    document.getElementById('tk-tech').value = (t.assigned_techs && t.assigned_techs[0]) || '';
+    document.getElementById('tk-status').value = t.status || 'new';
+    document.getElementById('tk-notes').value = t.dispatcher_notes || '';
+    document.getElementById('tk-by').value = t.entered_by || getCurrentUser() || '';
+    document.getElementById('tk-delete-btn').style.display = 'block';
+    openModal('ticket-modal');
+  }).catch(function(err) {
+    showToast(err.message || 'Could not load ticket');
+  });
+}
+
+function saveTicket() {
+  var site = document.getElementById('tk-site').value.trim();
+  var problem = document.getElementById('tk-problem').value.trim();
+  if (!site) { showToast('Please enter a facility or site name'); return; }
+  if (!problem) { showToast('Please describe the problem or reason for the visit'); return; }
+
+  var tech = document.getElementById('tk-tech').value.trim();
+  var record = {
+    ticket_type: document.getElementById('tk-type').value,
+    priority: document.getElementById('tk-priority').value,
+    facility_id: ticketPickedFacilityId || null,
+    site_name_raw: ticketPickedFacilityId ? '' : site,
+    contact_name: document.getElementById('tk-contact-name').value.trim(),
+    contact_phone: document.getElementById('tk-contact-phone').value.trim(),
+    po_number: document.getElementById('tk-po').value.trim(),
+    billing_type: document.getElementById('tk-billing').value,
+    problem_description: problem,
+    scheduled_date: document.getElementById('tk-date').value,
+    time_window: document.getElementById('tk-window').value.trim(),
+    assigned_techs: tech ? [tech] : [],
+    status: document.getElementById('tk-status').value,
+    dispatcher_notes: document.getElementById('tk-notes').value.trim(),
+    entered_by: document.getElementById('tk-by').value.trim()
+  };
+
+  var wasUnassigned = true;
+  var savePromise;
+  if (editingTicketId) {
+    record.id = editingTicketId;
+    savePromise = ntdStore.service_tickets.get(editingTicketId).then(function(existing) {
+      wasUnassigned = !existing || !(existing.assigned_techs && existing.assigned_techs.length);
+      if (existing && !record.ticket_number) record.ticket_number = existing.ticket_number;
+      return ntdStore.service_tickets.upsert(record);
+    });
+  } else {
+    record.ticket_number = newTicketNumber();
+    savePromise = ntdStore.service_tickets.upsert(record);
+  }
+
+  savePromise.then(function() {
+    closeModal('ticket-modal');
+    showToast('Ticket saved');
+    if (tech && wasUnassigned) {
+      createNotification(tech, 'New ticket assigned: ' + site + ' — ' + problem.slice(0, 80), record.id || '', 'ticket_assigned');
+    }
+    renderTicketsList();
+  }).catch(function(err) {
+    showToast('Error: ' + (err.message || 'could not save ticket'));
+  });
+}
+
+function deleteTicket() {
+  if (!editingTicketId) return;
+  if (!confirm('Delete this ticket?')) return;
+  ntdStore.service_tickets.delete(editingTicketId).then(function() {
+    closeModal('ticket-modal');
+    showToast('Deleted');
+    renderTicketsList();
+  }).catch(function(err) {
+    showToast(err.message || 'Delete failed');
+  });
+}
+
+// ── TICKET FACILITY AUTOCOMPLETE ────────────────────────────────────────────
+function ticketLoadFacilitiesCache() {
+  if (ticketFacilitiesCache) return Promise.resolve(ticketFacilitiesCache);
+  return ntdStore.facilities.list().then(function(rows) {
+    ticketFacilitiesCache = rows || [];
+    return ticketFacilitiesCache;
+  }).catch(function(){ ticketFacilitiesCache = []; return ticketFacilitiesCache; });
+}
+
+function ticketFilterFacilities() {
+  var box = document.getElementById('tk-site-suggest');
+  var q = (document.getElementById('tk-site').value || '').trim().toLowerCase();
+  ticketPickedFacilityId = null;
+  document.getElementById('tk-site-hint').style.display = 'none';
+  ticketLoadFacilitiesCache().then(function(facilities) {
+    var matches = !q ? facilities.slice(0, 6) :
+      facilities.filter(function(f){ return (f.name||'').toLowerCase().indexOf(q) > -1; }).slice(0, 6);
+    if (!matches.length) {
+      box.classList.remove('on');
+      if (q) document.getElementById('tk-site-hint').style.display = 'block';
+      return;
+    }
+    box.innerHTML = matches.map(function(f) {
+      return '<div class="cal-suggest-item" onmousedown="event.preventDefault();ticketPickFacility(\''+esc(f.id)+'\',\''+esc(f.name).replace(/'/g,"\\'")+'\')">'+esc(f.name)+'</div>';
+    }).join('');
+    box.classList.add('on');
+  });
+}
+
+function ticketPickFacility(id, name) {
+  ticketPickedFacilityId = id;
+  document.getElementById('tk-site').value = name;
+  document.getElementById('tk-site-suggest').classList.remove('on');
+  document.getElementById('tk-site-hint').style.display = 'none';
+}
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('#tk-site-fg')) {
+    var box = document.getElementById('tk-site-suggest');
+    if (box) box.classList.remove('on');
+  }
+});
+// ── END SERVICE TICKETS ─────────────────────────────────────────────────────
 
 // ── END SCHEDULING + TEAM CALENDAR ──────────────────────────────────────────
 
