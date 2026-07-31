@@ -510,7 +510,7 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
     <div class="empty" style="padding-top:32px">
       <div class="empty-icon">🔍</div>
       <h3>Search everything</h3>
-      <p>Search across facilities, equipment, startups, PM visits, quotes, and projects.</p>
+      <p>Search across facilities, equipment, startups, PM visits, quotes, projects, photos, and staff.</p>
     </div>
   </div>
 </div>
@@ -577,6 +577,16 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
         manual; deleting/merging isn't done from here (deletes are Jason-only, via the Supabase dashboard).
       </div>
       <div id="dupe-facilities-list"><div style="font-size:11px;color:var(--mu)">Checking…</div></div>
+    </div>
+  </div>
+  <div class="section-label">Company Directory</div>
+  <div class="card">
+    <div class="card-body">
+      <input type="text" id="dir-search" placeholder="Search name, department, or role…" oninput="renderDirectory()" autocomplete="off" autocorrect="off" spellcheck="false"
+        style="width:100%;padding:10px 12px;border:1.5px solid var(--bd);border-radius:8px;font-size:13px;font-family:inherit;margin-bottom:10px;box-sizing:border-box">
+      <div id="dir-list"></div>
+      <div style="font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mu);margin:14px 0 6px">Office Info</div>
+      <div id="dir-info"></div>
     </div>
   </div>
   <div class="section-label">About</div>
@@ -1046,6 +1056,123 @@ var editingCalOriginalStatus = null;
 
 // ── USER IDENTITY (Tier 1 — device-local, no password) ─────────────────────
 var STAFF_NAMES = ['Amy Carreon','Billy Davis','Blake Orite','Cary Reese','Evyn Fairman','Jaidon Lacewell','Jason Ezell','Julie Shindoll','Kyle Mackey','Landon Cantrell','Liz Parker','Mari Torres','Toby Sharp','Valeria Ramirez','Yesenia Garcia'];
+
+// ── COMPANY DIRECTORY ────────────────────────────────────────────────────
+// Hardcoded from the company phone list (2026_06_22_NTD_Phone_List.xlsx) —
+// same maintenance pattern as the PM/APM/Superintendent rosters below:
+// update by hand here if someone joins/leaves or a number changes. Not tied
+// to STAFF_NAMES (the identity picker) since this covers the full company
+// (96 people across Office/HVAC/Plumbing/Service/Warehouse), not just the
+// smaller set of Hub users.
+var NTD_DIRECTORY = [
+  {name:'Amy Carreon',phone:'(214) 799-3458',dept:'Office',role:'Office',ext:'552'},
+  {name:'Ben Plunk',phone:'(945) 346-7435',dept:'Office',role:'Office',ext:'533'},
+  {name:'Billy Davis',phone:'(214) 802-2779',dept:'Office',role:'Office',ext:'514'},
+  {name:'Blake Orite',phone:'(972) 742-4884',dept:'Office',role:'Office',ext:'528'},
+  {name:'Braley Keen',phone:'(945) 346-7431',dept:'Office',role:'Office',ext:'525'},
+  {name:'Carmen Autry',phone:'(214) 435-2841',dept:'Office',role:'Office',ext:'517'},
+  {name:'Cary Reese',phone:'(214) 205-8467',dept:'Office',role:'Office',ext:'527'},
+  {name:'Edna Ramos',phone:'(469) 474-5908',dept:'Office',role:'Office',ext:'516'},
+  {name:'Evyn Fairman',phone:'(469) 235-5766',dept:'Office',role:'Office',ext:'518'},
+  {name:'Jaidon Lacewell',phone:'(945) 346-7441',dept:'Office',role:'Office',ext:'512'},
+  {name:'Jason Ezell',phone:'(945) 346-7443',dept:'Office',role:'Office',ext:'536'},
+  {name:'Julie Shindoll',phone:'(214) 773-2788',dept:'Office',role:'Office',ext:'519'},
+  {name:'Kyle Mackey',phone:'(817) 253-5952',dept:'Office',role:'Office',ext:'534'},
+  {name:'Landon Cantrell',phone:'(325) 642-4217',dept:'Office',role:'Office',ext:'529'},
+  {name:'Liz Parker',phone:'(817) 828-4127',dept:'Office',role:'Office',ext:'523'},
+  {name:'Mari Torres',phone:'(469) 426-4390',dept:'Office',role:'Office',ext:'530'},
+  {name:'Michael Allen',phone:'(972) 955-4297',dept:'Office',role:'Office',ext:'522'},
+  {name:'Steve Hopkins',phone:'(945) 346-7396',dept:'Office',role:'Office',ext:'521'},
+  {name:'Toby Sharp',phone:'(214) 783-7128',dept:'Office',role:'Office',ext:'524'},
+  {name:'Valeria Ramirez',phone:'(915) 222-3818',dept:'Office',role:'Office',ext:'532'},
+  {name:'Yesenia Garcia',phone:'(214) 229-8735',dept:'Office',role:'Office',ext:'513'},
+  {name:'Alejandro Gonzalez',phone:'(214) 912-9426',dept:'HVAC',role:'Lead Man'},
+  {name:'Alejandro Ramirez',phone:'(469) 515-5876',dept:'HVAC',role:'Foreman'},
+  {name:'Alejandro Villatoro',phone:'(210) 809-8287',dept:'HVAC',role:'Helper'},
+  {name:'Arturo Marin Tenorio',phone:'(214) 715-1435',dept:'HVAC',role:'Helper'},
+  {name:'Arturo Valles',phone:'(469) 233-4107',dept:'HVAC',role:'Foreman'},
+  {name:'Arturo Valles Alonso',phone:'(469) 705-0941',dept:'HVAC',role:'Helper'},
+  {name:'Brandon Sanchez',phone:'(214) 839-9816',dept:'HVAC',role:'Helper'},
+  {name:'Brayam Lule Garcia',phone:'(762) 226-0174',dept:'HVAC',role:'Helper'},
+  {name:'Bryan Cortes',phone:'(682) 436-6525',dept:'HVAC',role:'Mechanic'},
+  {name:'Carlos E Valdez',phone:'(469) 987-7011',dept:'HVAC',role:'Helper'},
+  {name:'Daniel Castorena',phone:'(214) 583-7650',dept:'HVAC',role:'Superintendent'},
+  {name:'Dario Mendoza',phone:'(972) 854-9687',dept:'HVAC',role:'Mechanic'},
+  {name:'David Barrera',phone:'(817) 637-6824',dept:'HVAC',role:'Piping Superintendent'},
+  {name:'Delfino Deaquino',phone:'(214) 480-6724',dept:'HVAC',role:'Mechanic'},
+  {name:'Edgar Carreras',phone:'(945) 334-5616',dept:'HVAC',role:'Helper'},
+  {name:'Edmundo Velazquez',phone:'(214) 431-6292',dept:'HVAC',role:'Mechanic'},
+  {name:'Edwin Falcon',phone:'(214) 907-8683',dept:'HVAC',role:'Helper'},
+  {name:'Eladio Sanchez',phone:'(469) 315-9298',dept:'HVAC',role:'Superintendent'},
+  {name:'Eric Vega',phone:'(682) 298-0024',dept:'HVAC',role:'Helper'},
+  {name:'Erick Gonzalez',phone:'(972) 897-1601',dept:'HVAC',role:'Helper'},
+  {name:'Francisco Jimenez',phone:'(434) 250-5442',dept:'HVAC',role:'Helper'},
+  {name:'Gerardo Martinez',phone:'(817) 812-6080',dept:'HVAC',role:'Helper'},
+  {name:'Gilberto Perez',phone:'(817) 730-8797',dept:'HVAC',role:'Mechanic'},
+  {name:'Giovanni Aguilar',phone:'(940) 999-8541',dept:'HVAC',role:'Mechanic'},
+  {name:'Heriberto Aguilar',phone:'(214) 863-9827',dept:'HVAC',role:'Helper'},
+  {name:'Hernaldo Rivera Gonzalez',phone:'(210) 419-9148',dept:'HVAC',role:'Helper'},
+  {name:'Israel Castorena',phone:'(469) 276-5362',dept:'HVAC',role:'Helper'},
+  {name:'Israel Garcia',phone:'(469) 855-5274',dept:'HVAC',role:'Lead Man'},
+  {name:'Jesus Cruz',phone:'(469) 613-8311',dept:'HVAC',role:'Mechanic'},
+  {name:'Jesus Garcia',phone:'(214) 772-1062',dept:'HVAC',role:'Mechanic'},
+  {name:'Jonathan Morales',phone:'(214) 499-8143',dept:'HVAC',role:'Helper'},
+  {name:'Jorge Colorado',phone:'(469) 441-7904',dept:'HVAC',role:'Foreman'},
+  {name:'Jorge Martinez',phone:'(559) 358-7242',dept:'HVAC',role:'Mechanic'},
+  {name:'Jose Cadena',phone:'(940) 514-4131',dept:'HVAC',role:'Mechanic'},
+  {name:'Jose Renteria',phone:'(214) 394-0886',dept:'HVAC',role:'Foreman'},
+  {name:'Jose Serrano',phone:'(505) 569-2414',dept:'HVAC',role:'Helper'},
+  {name:'Juan C Gonzalez',phone:'(214) 290-5061',dept:'HVAC',role:'Mechanic'},
+  {name:'Juan Carlos Estrada',phone:'(214) 625-1074',dept:'HVAC',role:'Helper'},
+  {name:'Juan Carlos Gonzalez',phone:'(214) 874-5814',dept:'HVAC',role:'Helper'},
+  {name:'Juan Valdez',phone:'(469) 859-0270',dept:'HVAC',role:'Foreman'},
+  {name:'Luis C Gonzalez',phone:'(214) 854-9819',dept:'HVAC',role:'Helper'},
+  {name:'Luis Contreras',phone:'(817) 876-8369',dept:'HVAC',role:'Foreman'},
+  {name:'Luis Guzman',phone:'(469) 569-0284',dept:'HVAC',role:'Mechanic'},
+  {name:'Manuel Del Rio',phone:'(469) 837-9682',dept:'HVAC',role:'Lead Man'},
+  {name:'Marco Escobar',phone:'(214) 939-9796',dept:'HVAC',role:'Mechanic'},
+  {name:'Maycon Perez',phone:'(972) 333-6735',dept:'HVAC',role:'Mechanic'},
+  {name:'Obdulio Huezo Vasquez',phone:'(817) 770-2175',dept:'HVAC',role:'Helper'},
+  {name:'Raul Carreras',phone:'(972) 946-2022',dept:'HVAC',role:'Mechanic'},
+  {name:'Ricardo Sanchez',phone:'(214) 985-9393',dept:'HVAC',role:'Mechanic'},
+  {name:'Samuel Castorena',phone:'(214) 923-2381',dept:'HVAC',role:'Foreman'},
+  {name:'Uriel Cruz',phone:'(832) 759-8224',dept:'HVAC',role:'Mechanic'},
+  {name:'Uriel Sanchez',phone:'(682) 460-5231',dept:'HVAC',role:'Helper'},
+  {name:'Victor Lozano',phone:'(940) 390-5269',dept:'HVAC',role:'General Superintendent'},
+  {name:'Victor Olguin',phone:'(940) 230-9980',dept:'HVAC',role:'Mechanic'},
+  {name:'Armando Delgado',phone:'(214) 440-9256',dept:'Plumbing',role:'Apprentice'},
+  {name:'Daniel Rojas Avila',phone:'(682) 715-1740',dept:'Plumbing',role:'Foreman'},
+  {name:'Frank Sanchez',phone:'(469) 432-3926',dept:'Plumbing',role:'Apprentice'},
+  {name:'Harrison Obermeyer',phone:'(817) 455-7147',dept:'Plumbing',role:'Lead Man'},
+  {name:'Jaime Cordero',phone:'(817) 714-3375',dept:'Plumbing',role:'Lead Man'},
+  {name:'Kenneth Jacob Hilton',phone:'(214) 527-8644',dept:'Plumbing',role:'Apprentice'},
+  {name:'Oscar Sanguino',phone:'(682) 438-2386',dept:'Plumbing',role:'Apprentice'},
+  {name:'Raul Juarez Pedraza',phone:'(817) 707-0097',dept:'Plumbing',role:'Apprentice'},
+  {name:'Roque Cantu',phone:'(817) 500-3670',dept:'Plumbing',role:'Apprentice'},
+  {name:'Ruben Martinez',phone:'(817) 940-4861',dept:'Plumbing',role:'Plumbing Superintendent'},
+  {name:'Tyler Caruso',phone:'(936) 641-3276',dept:'Plumbing',role:'Foreman'},
+  {name:'Carlos Mendoza',phone:'(469) 651-2117',dept:'Service',role:'Technician'},
+  {name:'Conner Rouse',phone:'(945) 346-4385',dept:'Service',role:'Technician'},
+  {name:'Diego Preciado',phone:'(945) 346-9500',dept:'Service',role:'Technician'},
+  {name:'Geoff Grider',phone:'(945) 346-7421',dept:'Service',role:'Technician'},
+  {name:'Nicholas Hosack',phone:'(945) 346-7434',dept:'Service',role:'Technician'},
+  {name:'Raul Lopez',phone:'(945) 346-7437',dept:'Service',role:'Technician'},
+  {name:'Ronnie Love',phone:'(945) 346-7394',dept:'Service',role:'Field Tech Supervisor'},
+  {name:'Scott Adkins',phone:'(945) 346-7436',dept:'Service',role:'Technician'},
+  {name:'Tristan Black',phone:'(945) 346-7438',dept:'Service',role:'Technician'},
+  {name:'Dan Roberts',phone:'(214) 709-6918',dept:'Warehouse',role:'Warehouse'},
+];
+
+var NTD_DIRECTORY_INFO = [
+  {label:'Conference Room',value:'Ext 550'},
+  {label:'Training Room',value:'Ext 551'},
+  {label:'WIFI - NTD',value:'wifi@ntd18'},
+  {label:'WIFI - GUEST',value:'ntdwGuest18'},
+  {label:'Address',value:'2477 Merritt Dr'},
+  {label:'City, State, ZIP',value:'Garland, TX 75041'},
+  {label:'Office Number',value:'4693230454'},
+  {label:'Emergency Closing',value:'4693750795'},
+];
 var notifPollTimer = null;
 
 // ── NAV ───────────────────────────────────────────────────────────────────
@@ -3349,6 +3476,7 @@ function renderHealthPage() {
 
 function renderSettings() {
   renderRolePicker();
+  renderDirectory();
   Promise.all([
     ntdStore.facilities.list(),
     ntdStore.equipment.list(),
@@ -4153,7 +4281,7 @@ function runGlobalSearch() {
   var wrap = document.getElementById('global-search-results');
 
   if (!q || q.length < 2) {
-    wrap.innerHTML = '<div class="empty" style="padding-top:32px"><div class="empty-icon">🔍</div><h3>Search everything</h3><p>Search across facilities, equipment, startups, PM visits, quotes, projects, and photos.</p></div>';
+    wrap.innerHTML = '<div class="empty" style="padding-top:32px"><div class="empty-icon">🔍</div><h3>Search everything</h3><p>Search across facilities, equipment, startups, PM visits, quotes, projects, photos, and staff.</p></div>';
     return;
   }
 
@@ -4291,6 +4419,21 @@ function runGlobalSearch() {
         };})
       });
 
+      // Search company directory
+      var staffHits = NTD_DIRECTORY.filter(function(p) {
+        return matches(q, p.name, p.dept, p.role, p.ext);
+      });
+      if (staffHits.length) groups.push({
+        label: '📇 Staff',
+        items: staffHits.map(function(p) { return {
+          icon: '📇', color: 'pu',
+          title: p.name,
+          sub: p.dept + (p.role && p.role!==p.dept ? ' · '+p.role : '') + (p.ext ? ' · Ext '+p.ext : ''),
+          meta: p.phone,
+          callHref: telHref(p.phone)
+        };})
+      });
+
       // Render results
       if (!groups.length) {
         wrap.innerHTML = '<div class="empty" style="padding-top:32px"><div class="empty-icon">🔍</div><h3>No results for "'+esc(q)+'"</h3><p>Try a different search term.</p></div>';
@@ -4304,7 +4447,10 @@ function runGlobalSearch() {
         html += '<div class="section-label">'+g.label+'</div>';
         html += '<div class="card"><div class="card-body">';
         g.items.forEach(function(item) {
-          html += '<div class="rec-row ntd-goto" data-fid="'+(item.facility_id||'')+'"'+(item.tab?' data-tab="'+item.tab+'"':'')+(item.photosHub?' data-photos-hub="1"':'')+' style="cursor:pointer">' +
+          var tag = item.callHref ? 'a' : 'div';
+          var hrefAttr = item.callHref ? ' href="'+esc(item.callHref)+'"' : '';
+          var gotoAttrs = item.callHref ? '' : ' class="rec-row ntd-goto" data-fid="'+(item.facility_id||'')+'"'+(item.tab?' data-tab="'+item.tab+'"':'')+(item.photosHub?' data-photos-hub="1"':'');
+          html += '<'+tag+(item.callHref?' class="rec-row"'+hrefAttr+' style="cursor:pointer;text-decoration:none"':gotoAttrs+' style="cursor:pointer"')+'>' +
             (item.thumb ? '<div class="rec-icon" style="padding:0;overflow:hidden"><img src="'+esc(item.thumb)+'" style="width:100%;height:100%;object-fit:cover"></div>' : '<div class="rec-icon '+item.color+'">'+item.icon+'</div>') +
             '<div class="rec-body">' +
               '<div class="rec-title">'+esc(item.title)+'</div>' +
@@ -4312,8 +4458,8 @@ function runGlobalSearch() {
               (item.meta ? '<div class="rec-meta">'+esc(item.meta)+'</div>' : '') +
               (item.extra ? '<div class="rec-meta" style="color:var(--am)">'+esc(item.extra)+'</div>' : '') +
             '</div>' +
-            '<div class="fac-arrow">›</div>' +
-          '</div>';
+            (item.callHref ? '<div class="fac-arrow">📞</div>' : '<div class="fac-arrow">›</div>') +
+          '</'+tag+'>';
         });
         html += '</div></div>';
       });
@@ -4999,6 +5145,55 @@ function renderRolePicker() {
   wrap.innerHTML = Object.keys(NTD_ROLES).map(function(key) {
     return '<button type="button" class="role-btn'+(key===current?' on':'')+'" onclick="setUserRole(\''+key+'\');renderRolePicker()">'+NTD_ROLES[key].label+'</button>';
   }).join('');
+}
+
+// ── COMPANY DIRECTORY ────────────────────────────────────────────────────
+function telHref(phone) {
+  return 'tel:' + (phone || '').replace(/[^\d+]/g, '');
+}
+function directoryRow(p) {
+  return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--bd)">' +
+    '<div style="min-width:0">' +
+      '<div style="font-size:12px;font-weight:700;color:var(--tx)">'+esc(p.name)+'</div>' +
+      '<div style="font-size:10px;color:var(--mu)">'+esc(p.dept)+(p.role && p.role!==p.dept?' · '+esc(p.role):'')+(p.ext?' · Ext '+esc(p.ext):'')+'</div>' +
+    '</div>' +
+    '<a href="'+telHref(p.phone)+'" style="flex-shrink:0;font-size:12px;font-weight:700;color:var(--nv);text-decoration:none;white-space:nowrap">'+esc(p.phone)+'</a>' +
+  '</div>';
+}
+function renderDirectory() {
+  var listEl = document.getElementById('dir-list');
+  var infoEl = document.getElementById('dir-info');
+  if (!listEl) return; // Settings page not currently showing
+  var q = (document.getElementById('dir-search').value || '').trim().toLowerCase();
+  var matched = q ? NTD_DIRECTORY.filter(function(p) {
+    return (p.name||'').toLowerCase().indexOf(q) > -1 ||
+           (p.dept||'').toLowerCase().indexOf(q) > -1 ||
+           (p.role||'').toLowerCase().indexOf(q) > -1;
+  }) : NTD_DIRECTORY;
+
+  if (!matched.length) {
+    listEl.innerHTML = '<div style="font-size:12px;color:var(--mu);padding:8px 0">No matches.</div>';
+  } else {
+    var deptOrder = ['Office','HVAC','Plumbing','Service','Warehouse'];
+    var byDept = {};
+    matched.forEach(function(p) { (byDept[p.dept] = byDept[p.dept] || []).push(p); });
+    var html = '';
+    deptOrder.forEach(function(d) {
+      if (!byDept[d]) return;
+      html += '<div style="font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--st);margin:10px 0 2px">'+esc(d)+' ('+byDept[d].length+')</div>';
+      byDept[d].forEach(function(p) { html += directoryRow(p); });
+    });
+    listEl.innerHTML = html;
+  }
+
+  if (infoEl && !infoEl.dataset.rendered) {
+    infoEl.innerHTML = NTD_DIRECTORY_INFO.map(function(m) {
+      return '<div style="display:flex;justify-content:space-between;gap:8px;padding:4px 0;font-size:11px">' +
+        '<span style="color:var(--mu)">'+esc(m.label)+'</span><span style="font-weight:700;color:var(--tx)">'+esc(m.value)+'</span>' +
+      '</div>';
+    }).join('');
+    infoEl.dataset.rendered = '1';
+  }
 }
 
 // ── USER IDENTITY (Tier 1 — device-local, no password) ─────────────────────
