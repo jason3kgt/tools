@@ -999,6 +999,7 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
       <input type="text" id="tk-site" placeholder="e.g. ILS Gummies" autocomplete="off" oninput="ticketFilterFacilities()" onfocus="ticketFilterFacilities()">
       <div id="tk-site-suggest" class="cal-suggest"></div>
       <div style="font-size:10.5px;color:var(--mu);margin-top:4px" id="tk-site-hint">No matching facility on file yet — this will be tracked as a new site until it's matched or created.</div>
+      <div id="tk-dup-warning" style="display:none;font-size:11px;font-weight:600;color:var(--am);background:#FFF3E0;border:1.5px solid var(--am);border-radius:8px;padding:8px 10px;margin-top:6px"></div>
     </div>
     <div class="r2">
       <div class="fg"><label>Contact Name</label><input type="text" id="tk-contact-name" placeholder="Who called"></div>
@@ -5587,6 +5588,7 @@ function openAddTicket() {
   document.getElementById('tk-priority').value = 'routine';
   document.getElementById('tk-site').value = '';
   document.getElementById('tk-site-hint').style.display = 'none';
+  document.getElementById('tk-dup-warning').style.display = 'none';
   document.getElementById('tk-contact-name').value = '';
   document.getElementById('tk-contact-phone').value = '';
   document.getElementById('tk-po').value = '';
@@ -5619,6 +5621,7 @@ function openEditTicket(id) {
       });
     }
     document.getElementById('tk-site-hint').style.display = 'none';
+    document.getElementById('tk-dup-warning').style.display = 'none';
     document.getElementById('tk-contact-name').value = t.contact_name || '';
     document.getElementById('tk-contact-phone').value = t.contact_phone || '';
     document.getElementById('tk-po').value = t.po_number || '';
@@ -5734,6 +5737,24 @@ function ticketPickFacility(id, name) {
   document.getElementById('tk-site').value = name;
   document.getElementById('tk-site-suggest').classList.remove('on');
   document.getElementById('tk-site-hint').style.display = 'none';
+  ticketCheckDuplicate(id);
+}
+
+// Warns (doesn't block) if this site already has an open ticket — dispatchers
+// can still proceed if it's genuinely a second, unrelated issue.
+function ticketCheckDuplicate(facilityId) {
+  var box = document.getElementById('tk-dup-warning');
+  box.style.display = 'none';
+  if (!facilityId || typeof ntdStore === 'undefined') return;
+  ntdStore.service_tickets.list(function(t) {
+    return t.facility_id === facilityId && TICKET_OPEN_STATUSES[t.status] && t.id !== editingTicketId;
+  }).then(function(existing) {
+    if (!existing.length) return;
+    existing.sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
+    var t = existing[0];
+    box.textContent = '⚠ This site already has an open ticket: ' + (t.ticket_number||'') + ' (' + (TICKET_STATUS_LABELS[t.status]||t.status) + '). Confirm this is a separate issue before saving.';
+    box.style.display = 'block';
+  }).catch(function(){});
 }
 
 document.addEventListener('click', function(e) {

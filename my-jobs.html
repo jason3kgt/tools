@@ -162,6 +162,9 @@ textarea{resize:vertical;min-height:70px}
 .job-actions .btn{flex:1;min-width:110px;padding:11px;border-radius:9px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;text-align:center;border:none}
 .btn-start{background:var(--or);color:#fff}
 .btn-status{background:var(--of);color:var(--nv);border:1.5px solid var(--bd) !important}
+.btn-decline{background:#fff;color:var(--rd);border:1.5px solid #F5C6C0 !important}
+.done-row{background:#fff;border:1px solid var(--bd);border-radius:10px;padding:9px 12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12.5px}
+.done-site{color:var(--tx);font-weight:600}
 .status-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:8px;display:inline-block}
 .tpriority-emergency{background:#FDEDEC;color:var(--rd)}
 .tpriority-same_day{background:#FFF3E0;color:var(--am)}
@@ -207,6 +210,9 @@ textarea{resize:vertical;min-height:70px}
   <div class="mj-section-lbl">Today's Jobs</div>
   <div id="mj-jobs-wrap"></div>
 
+  <div class="mj-section-lbl">Completed Today</div>
+  <div id="mj-done-wrap"></div>
+
   <div class="mj-section-lbl">New / Unscheduled Call</div>
   <div class="fallback-grid">
     <a class="fallback-tile" href="service-call.html"><span class="ti">&#128295;</span><span class="tn">Service Call</span></a>
@@ -219,6 +225,7 @@ textarea{resize:vertical;min-height:70px}
 </div>
 <script>
 function esc(s){ return (s||'').toString().replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function fmtDateISO(d){ function p(n){return n<10?'0'+n:''+n;} return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
 
 var TICKET_TYPE_LABELS = {service_call:'Service Call', pm_visit:'PM Visit', startup:'Startup', survey:'Equipment Survey'};
 var TICKET_PRIORITY_LABELS = {emergency:'Emergency', same_day:'Same Day', routine:'Routine'};
@@ -274,6 +281,7 @@ function mjShowJobs() {
 
 function mjRenderJobs() {
   var wrap = document.getElementById('mj-jobs-wrap');
+  var doneWrap = document.getElementById('mj-done-wrap');
   var name = mjGetTech();
   if (typeof ntdStore === 'undefined' || !ntdStore.service_tickets) {
     wrap.innerHTML = '<div class="empty">Dispatch board not available right now.</div>';
@@ -282,53 +290,75 @@ function mjRenderJobs() {
   wrap.innerHTML = '<div class="empty">Loading…</div>';
 
   ntdStore.service_tickets.list().then(function(tickets) {
-    var mine = (tickets || []).filter(function(t) {
+    tickets = tickets || [];
+    var mine = tickets.filter(function(t) {
       return TICKET_OPEN_STATUSES[t.status] && (t.assigned_techs || []).indexOf(name) > -1;
     });
 
-    if (!mine.length) {
-      wrap.innerHTML = '<div class="empty">Nothing assigned to you right now. Check "New / Unscheduled Call" below if you\'re on-site for something not yet on the board.</div>';
-      return;
-    }
+    var todayStr = fmtDateISO(new Date());
+    var doneToday = tickets.filter(function(t) {
+      return (t.status === 'complete' || t.status === 'needs_follow_up') &&
+        (t.assigned_techs || []).indexOf(name) > -1 &&
+        t.updated_at && t.updated_at.slice(0,10) === todayStr;
+    }).sort(function(a,b){ return (b.ts||0) - (a.ts||0); });
 
-    var priorityRank = {emergency:0, same_day:1, routine:2};
-    mine.sort(function(a,b) {
-      var pr = (priorityRank[a.priority]||3) - (priorityRank[b.priority]||3);
-      if (pr !== 0) return pr;
-      return (a.scheduled_date||a.requested_date||'').localeCompare(b.scheduled_date||b.requested_date||'');
-    });
-
-    var facIds = mine.map(function(t){ return t.facility_id; }).filter(Boolean);
     ntdStore.facilities.list().then(function(facs) {
       var facMap = {};
-      (facs||[]).forEach(function(f){ facMap[f.id] = f.name; });
+      (facs||[]).forEach(function(f){ facMap[f.id] = f; });
 
-      var priorityBorder = {emergency:'var(--rd)', same_day:'var(--am)', routine:'var(--st)'};
-      var html = '';
-      mine.forEach(function(t) {
-        var siteName = (t.facility_id && facMap[t.facility_id]) || t.site_name_raw || 'Unknown site';
-        var dateStr = t.scheduled_date || t.requested_date || '';
-        var tool = TICKET_TOOL_MAP[t.ticket_type] || 'service-call.html';
-        html += '<div class="job-card" style="border-left-color:'+(priorityBorder[t.priority]||'var(--mu)')+'">' +
-          '<div class="job-card-body">' +
-            '<div class="job-hdr">' +
-              '<div><div class="job-site">'+esc(siteName)+'</div>' +
-              '<div class="job-num">'+esc(t.ticket_number||'')+' · '+esc(TICKET_TYPE_LABELS[t.ticket_type]||'Service Call')+'</div></div>' +
-              '<span class="status-badge tstatus-'+esc(t.status||'new')+'">'+esc(TICKET_STATUS_LABELS[t.status]||'New')+'</span>' +
+      if (!mine.length) {
+        wrap.innerHTML = '<div class="empty">Nothing assigned to you right now. Check "New / Unscheduled Call" below if you\'re on-site for something not yet on the board.</div>';
+      } else {
+        var priorityRank = {emergency:0, same_day:1, routine:2};
+        mine.sort(function(a,b) {
+          var pr = (priorityRank[a.priority]||3) - (priorityRank[b.priority]||3);
+          if (pr !== 0) return pr;
+          return (a.scheduled_date||a.requested_date||'').localeCompare(b.scheduled_date||b.requested_date||'');
+        });
+
+        var priorityBorder = {emergency:'var(--rd)', same_day:'var(--am)', routine:'var(--st)'};
+        var html = '';
+        mine.forEach(function(t) {
+          var fac = t.facility_id ? facMap[t.facility_id] : null;
+          var siteName = (fac && fac.name) || t.site_name_raw || 'Unknown site';
+          var dateStr = t.scheduled_date || t.requested_date || '';
+          var tool = TICKET_TOOL_MAP[t.ticket_type] || 'service-call.html';
+          var mapsQuery = (fac && fac.address) ? (fac.name + ', ' + fac.address + (fac.city ? ', ' + fac.city : '')) : siteName;
+          var mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(mapsQuery);
+          html += '<div class="job-card" style="border-left-color:'+(priorityBorder[t.priority]||'var(--mu)')+'">' +
+            '<div class="job-card-body">' +
+              '<div class="job-hdr">' +
+                '<div><div class="job-site">'+esc(siteName)+'</div>' +
+                '<div class="job-num">'+esc(t.ticket_number||'')+' · '+esc(TICKET_TYPE_LABELS[t.ticket_type]||'Service Call')+'</div></div>' +
+                '<span class="status-badge tstatus-'+esc(t.status||'new')+'">'+esc(TICKET_STATUS_LABELS[t.status]||'New')+'</span>' +
+              '</div>' +
+              '<div class="job-meta-row">' +
+                '<span class="status-badge tpriority-'+esc(t.priority||'routine')+'">'+esc(TICKET_PRIORITY_LABELS[t.priority]||'Routine')+'</span>' +
+                (dateStr ? '<span class="status-badge" style="background:var(--of);color:var(--tx)">'+esc(dateStr)+(t.time_window?' · '+esc(t.time_window):'')+'</span>' : '') +
+              '</div>' +
+              (t.problem_description ? '<div class="job-desc">'+esc(t.problem_description)+'</div>' : '') +
+              '<div class="job-actions">' +
+                '<button type="button" class="btn btn-start" onclick="location.href=\''+tool+'?ticket='+esc(t.id)+'\'">Start Job</button>' +
+                (t.status !== 'dispatched' && t.status !== 'en_route' ? '<button type="button" class="btn btn-status" onclick="mjSetStatus(\''+esc(t.id)+'\',\'en_route\')">On My Way</button>' : '') +
+                '<a class="btn btn-status" href="'+esc(mapsUrl)+'" target="_blank" rel="noopener">Directions</a>' +
+                '<button type="button" class="btn btn-decline" onclick="mjDeclineJob(\''+esc(t.id)+'\')">Can\'t Make It</button>' +
+              '</div>' +
             '</div>' +
-            '<div class="job-meta-row">' +
-              '<span class="status-badge tpriority-'+esc(t.priority||'routine')+'">'+esc(TICKET_PRIORITY_LABELS[t.priority]||'Routine')+'</span>' +
-              (dateStr ? '<span class="status-badge" style="background:var(--of);color:var(--tx)">'+esc(dateStr)+(t.time_window?' · '+esc(t.time_window):'')+'</span>' : '') +
-            '</div>' +
-            (t.problem_description ? '<div class="job-desc">'+esc(t.problem_description)+'</div>' : '') +
-            '<div class="job-actions">' +
-              '<button type="button" class="btn btn-start" onclick="location.href=\''+tool+'?ticket='+esc(t.id)+'\'">Start Job</button>' +
-              (t.status !== 'dispatched' && t.status !== 'en_route' ? '<button type="button" class="btn btn-status" onclick="mjSetStatus(\''+esc(t.id)+'\',\'en_route\')">On My Way</button>' : '') +
-            '</div>' +
-          '</div>' +
-        '</div>';
-      });
-      wrap.innerHTML = html;
+          '</div>';
+        });
+        wrap.innerHTML = html;
+      }
+
+      if (!doneToday.length) {
+        doneWrap.innerHTML = '<div class="empty">Nothing completed yet today.</div>';
+      } else {
+        doneWrap.innerHTML = doneToday.map(function(t) {
+          var fac = t.facility_id ? facMap[t.facility_id] : null;
+          var siteName = (fac && fac.name) || t.site_name_raw || 'Unknown site';
+          return '<div class="done-row"><span class="done-site">'+esc(siteName)+'</span>' +
+            '<span class="status-badge tstatus-'+esc(t.status)+'">'+esc(TICKET_STATUS_LABELS[t.status]||'')+'</span></div>';
+        }).join('');
+      }
     });
   }).catch(function(err) {
     wrap.innerHTML = '<div class="empty">Couldn\'t load your jobs — ' + esc(err.message||'please try again') + '</div>';
@@ -341,6 +371,30 @@ function mjSetStatus(ticketId, status) {
     mjRenderJobs();
   }).catch(function(err) {
     alert('Could not update status: ' + (err.message || ''));
+  });
+}
+
+// Hands a ticket back to dispatch — clears the assignment and re-opens it as
+// "New" so it shows up unassigned on the dispatch board again, with a note
+// explaining why so ops has context when reassigning.
+function mjDeclineJob(ticketId) {
+  var name = mjGetTech();
+  var reason = prompt('Why can\'t you make this one? (goes to dispatch)');
+  if (reason === null) return; // canceled
+  ntdStore.service_tickets.get(ticketId).then(function(t) {
+    if (!t) return;
+    var noteLine = '[Declined by ' + (name||'tech') + ']' + (reason ? ': ' + reason : '');
+    var notes = t.dispatcher_notes ? (t.dispatcher_notes + '\n' + noteLine) : noteLine;
+    return ntdStore.service_tickets.upsert({
+      id: ticketId,
+      status: 'new',
+      assigned_techs: [],
+      dispatcher_notes: notes
+    });
+  }).then(function() {
+    mjRenderJobs();
+  }).catch(function(err) {
+    alert('Could not send back to dispatch: ' + (err.message || ''));
   });
 }
 
