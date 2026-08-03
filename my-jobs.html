@@ -316,6 +316,32 @@ function mjRenderJobs() {
       var facMap = {};
       (facs||[]).forEach(function(f){ facMap[f.id] = f; });
 
+      var recPromise = doneToday.length
+        ? Promise.all([
+            ntdStore.service_records ? ntdStore.service_records.list() : Promise.resolve([]),
+            ntdStore.pm_records ? ntdStore.pm_records.list() : Promise.resolve([]),
+            ntdStore.startup_records ? ntdStore.startup_records.list() : Promise.resolve([]),
+            ntdStore.jobs ? ntdStore.jobs.list() : Promise.resolve([])
+          ])
+        : Promise.resolve([[],[],[],[]]);
+
+      recPromise.then(function(results) {
+        var serviceRecs = results[0] || [], pmRecs = results[1] || [], startupRecs = results[2] || [], jobs = results[3] || [];
+        var recByTicket = {};
+        serviceRecs.forEach(function(r){ if (r.ticket_id) recByTicket[r.ticket_id] = r; });
+        // For pm/startup/survey, the ticket points at the record via linked_record_id
+        // (pm_records/startup_records) or linked_job_id (survey's jobs row) — resolve
+        // those here so every ticket type gets a "View PDF" link when one's on file.
+        var pmById = {}; pmRecs.forEach(function(r){ pmById[r.id] = r; });
+        var startupById = {}; startupRecs.forEach(function(r){ startupById[r.id] = r; });
+        var jobById = {}; jobs.forEach(function(j){ jobById[j.id] = j; });
+        doneToday.forEach(function(t) {
+          if (recByTicket[t.id]) return;
+          if (t.ticket_type === 'pm_visit' && t.linked_record_id && pmById[t.linked_record_id]) recByTicket[t.id] = pmById[t.linked_record_id];
+          else if (t.ticket_type === 'startup' && t.linked_record_id && startupById[t.linked_record_id]) recByTicket[t.id] = startupById[t.linked_record_id];
+          else if (t.ticket_type === 'survey' && t.linked_job_id && jobById[t.linked_job_id]) recByTicket[t.id] = jobById[t.linked_job_id];
+        });
+
       if (!mine.length) {
         wrap.innerHTML = '<div class="empty">Nothing assigned to you right now. Check "New / Unscheduled Call" below if you\'re on-site for something not yet on the board.</div>';
       } else {
@@ -369,10 +395,15 @@ function mjRenderJobs() {
         doneWrap.innerHTML = doneToday.map(function(t) {
           var fac = t.facility_id ? facMap[t.facility_id] : null;
           var siteName = (fac && fac.name) || t.site_name_raw || 'Unknown site';
-          return '<div class="done-row"><span class="done-site">'+esc(siteName)+'</span>' +
-            '<span class="status-badge tstatus-'+esc(t.status)+'">'+esc(TICKET_STATUS_LABELS[t.status]||'')+'</span></div>';
+          var rec = recByTicket[t.id];
+          var pdfUrl = rec ? rec.pdf_url : null;
+          var right = pdfUrl
+            ? '<a href="'+esc(pdfUrl)+'" target="_blank" rel="noopener" style="color:var(--nv);font-weight:700;font-size:11px;text-decoration:none">📄 View PDF</a>'
+            : '<span class="status-badge tstatus-'+esc(t.status)+'">'+esc(TICKET_STATUS_LABELS[t.status]||'')+'</span>';
+          return '<div class="done-row"><span class="done-site">'+esc(siteName)+'</span>' + right + '</div>';
         }).join('');
       }
+      }); // end recPromise.then
     });
   }).catch(function(err) {
     wrap.innerHTML = '<div class="empty">Couldn\'t load your jobs — ' + esc(err.message||'please try again') + '</div>';

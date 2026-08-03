@@ -1459,8 +1459,9 @@ function dlEquip() {
     var burl = URL.createObjectURL(blob);
     window.open(burl, '_blank');
     setTimeout(function(){URL.revokeObjectURL(burl);}, 60000);
-    ntdUploadPDFWithFeedback(blob,'pm_checklist','PM Equipment Report — '+(gv('sf')||'Site')+' — '+(gv('sv')||gv('sd')||''),{unitCount:eqs.length});
-    ntdAutoSubmitPMVisit();
+    ntdAutoSubmitPMVisit().then(function(result){
+      ntdUploadPDFWithFeedback(blob,'pm_checklist','PM Equipment Report — '+(gv('sf')||'Site')+' — '+(gv('sv')||gv('sd')||''),{unitCount:eqs.length}, result&&result.facilityId, result&&result.recordId?{table:'pm_records',id:result.recordId}:null);
+    });
   });
 }
 
@@ -1599,8 +1600,9 @@ function dlSummary() {
     var burl = URL.createObjectURL(blob);
     window.open(burl, '_blank');
     setTimeout(function(){URL.revokeObjectURL(burl);}, 60000);
-    ntdUploadPDFWithFeedback(blob,'pm_checklist','PM Visit Summary — '+(gv('sf')||'Site')+' — '+(gv('sv')||gv('sd')||''),{unitCount:eqs.length});
-    ntdAutoSubmitPMVisit();
+    ntdAutoSubmitPMVisit().then(function(result){
+      ntdUploadPDFWithFeedback(blob,'pm_checklist','PM Visit Summary — '+(gv('sf')||'Site')+' — '+(gv('sv')||gv('sd')||''),{unitCount:eqs.length}, result&&result.facilityId, result&&result.recordId?{table:'pm_records',id:result.recordId}:null);
+    });
   });
 }
 
@@ -1644,7 +1646,7 @@ function ntdResolvePmFacility(callback) {
   _ntdPmFacilityPromise.then(function(id){ callback(id); });
 }
 
-function ntdUploadPDFWithFeedback(blob, formType, description, extraParams, facilityId) {
+function ntdUploadPDFWithFeedback(blob, formType, description, extraParams, facilityId, linkRecord) {
   if (typeof ntdStore === 'undefined' || !ntdStore.uploadPDF) return;
   var doUpload = function(fid) {
     if (!fid) { ntdShowToast('⚠ Not saved — no facility found', '#D4820A'); return; }
@@ -1657,6 +1659,9 @@ function ntdUploadPDFWithFeedback(blob, formType, description, extraParams, faci
       if (doc) {
         console.log('[NTD] PDF uploaded:', doc.file_path);
         ntdShowToast('✓ Saved to NTD Hub', '#1E7A3E');
+        if (linkRecord && linkRecord.table && linkRecord.id && doc.file_url && ntdStore[linkRecord.table]) {
+          ntdStore[linkRecord.table].upsert({ id: linkRecord.id, pdf_url: doc.file_url }).catch(function(){});
+        }
       }
     }).catch(function(e) {
       console.warn('[NTD] PDF upload failed:', e.message);
@@ -1694,9 +1699,10 @@ function ntdUploadPDF(blob, formType, description, extraParams) {
 
 // ── AUTO-SUBMIT ON PDF DOWNLOAD ───────────────────────────────────────────
 function ntdAutoSubmitPMVisit() {
-  if (typeof ntdStore === 'undefined' || !eqs.length) return;
+  if (typeof ntdStore === 'undefined' || !eqs.length) return Promise.resolve(null);
+  return new Promise(function(resolve) {
   ntdResolvePmFacility(function(facilityId) {
-    if (!facilityId) return;
+    if (!facilityId) { resolve(null); return; }
     var good = eqs.filter(function(e){ return e.ov==='good'; }).length;
     var fair = eqs.filter(function(e){ return e.ov==='fair'; }).length;
     var poor = eqs.filter(function(e){ return e.ov==='poor'; }).length;
@@ -1716,8 +1722,10 @@ function ntdAutoSubmitPMVisit() {
             resolution_summary: 'PM visit completed — ' + good + ' good, ' + fair + ' fair, ' + poor + ' poor.'
           });
         }
+        resolve({ facilityId: facilityId, recordId: saved && saved.id });
       })
-      .catch(function(e){ console.warn('[NTD] PM visit auto-save failed:', e.message); });
+      .catch(function(e){ console.warn('[NTD] PM visit auto-save failed:', e.message); resolve(null); });
+  });
   });
 }
 // ── END AUTO-SUBMIT ───────────────────────────────────────────────────────

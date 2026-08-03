@@ -1480,8 +1480,9 @@ function dlPDF(){
   if (typeof ntdEnsureFacility === 'function') {
     ntdEnsureFacility(function(fid) {
       if (!fid) return;
-      ntdUploadPDF(_blob,'startup','Startup — '+(gv('unit_num')||'Unit')+' — '+(gv('facility')||''));
-      ntdAutoSubmitStartup(null);
+      ntdAutoSubmitStartup(null).then(function(result){
+        ntdUploadPDF(_blob,'startup','Startup — '+(gv('unit_num')||'Unit')+' — '+(gv('facility')||''), null, result&&result.recordId?{table:'startup_records',id:result.recordId}:null);
+      });
     });
   }
   var _win=window.open(_burl,'_blank');
@@ -2870,7 +2871,7 @@ function ntdUploadPDFWithFeedback(blob, formType, description, extraParams, faci
 }
 // ── END NTD UPLOAD WITH FEEDBACK ─────────────────────────────────────────
 
-function ntdUploadPDF(blob, formType, description, extraParams) {
+function ntdUploadPDF(blob, formType, description, extraParams, linkRecord) {
   if (typeof ntdStore === 'undefined' || !ntdStore.uploadPDF) return;
   var facName = gv('facility') || gv('sf') || '';
   if (!facName) { console.warn('[NTD] No facility name for PDF upload'); return; }
@@ -2886,7 +2887,12 @@ function ntdUploadPDF(blob, formType, description, extraParams) {
       tech: gv('tech') || ''
     }, extraParams || {}));
   }).then(function(doc) {
-    if(doc) console.log('[NTD] PDF uploaded:', doc.file_path);
+    if(doc) {
+      console.log('[NTD] PDF uploaded:', doc.file_path);
+      if (linkRecord && linkRecord.table && linkRecord.id && doc.file_url && ntdStore[linkRecord.table]) {
+        ntdStore[linkRecord.table].upsert({ id: linkRecord.id, pdf_url: doc.file_url }).catch(function(){});
+      }
+    }
   }).catch(function(e) {
     console.warn('[NTD] PDF upload failed:', e.message);
   });
@@ -2895,12 +2901,13 @@ function ntdUploadPDF(blob, formType, description, extraParams) {
 
 // ── AUTO-SUBMIT ON PDF DOWNLOAD ───────────────────────────────────────────
 function ntdAutoSubmitStartup(snap) {
-  if (typeof ntdStore === 'undefined') return;
+  if (typeof ntdStore === 'undefined') return Promise.resolve(null);
   var facName = gv('facility') || gv('sf') || '';
-  if (!facName) return;
+  if (!facName) return Promise.resolve(null);
   var facilityId = _ntdFacilityId || null;
+  return new Promise(function(resolve) {
   var doSave = function(fid) {
-    if (!fid) return;
+    if (!fid) { resolve(null); return; }
     ntdStore.startup_records.upsert({
       facility_id: fid,
       job_id: _ntdJobId || null,
@@ -2921,13 +2928,15 @@ function ntdAutoSubmitStartup(snap) {
             resolution_summary: 'Startup completed' + (snap && snap.label ? ' — ' + snap.label : '')
           });
         }
+        resolve({ facilityId: fid, recordId: saved && saved.id });
       })
-      .catch(function(e){ console.warn('[NTD] Startup auto-save failed:', e.message); });
+      .catch(function(e){ console.warn('[NTD] Startup auto-save failed:', e.message); resolve(null); });
   };
   if (facilityId) { doSave(facilityId); return; }
   ntdStore.matchFacility.find(facName).then(function(r) {
-    if (r.exact) doSave(r.exact.id);
-  }).catch(function(){});
+    if (r.exact) doSave(r.exact.id); else resolve(null);
+  }).catch(function(){ resolve(null); });
+  });
 }
 // ── END AUTO-SUBMIT ───────────────────────────────────────────────────────
 </script>

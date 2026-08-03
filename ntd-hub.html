@@ -5551,14 +5551,24 @@ function renderTicketsList() {
   Promise.all([
     ntdStore.service_tickets.list(),
     ntdStore.facilities.list(),
-    ntdStore.service_records ? ntdStore.service_records.list() : Promise.resolve([])
+    ntdStore.service_records ? ntdStore.service_records.list() : Promise.resolve([]),
+    ntdStore.pm_records ? ntdStore.pm_records.list() : Promise.resolve([]),
+    ntdStore.startup_records ? ntdStore.startup_records.list() : Promise.resolve([]),
+    ntdStore.jobs ? ntdStore.jobs.list() : Promise.resolve([])
   ]).then(function(results) {
     var tickets = results[0] || [];
     var facs = results[1] || [];
     var facMap = {};
     facs.forEach(function(f){ facMap[f.id] = f.name; });
+    // Map every ticket type's linked record to its pdf_url — service_records
+    // links via id (== linked_record_id), same as pm/startup; survey links
+    // via linked_job_id into the jobs table instead.
     var recMap = {};
     (results[2] || []).forEach(function(r){ recMap[r.id] = r; });
+    (results[3] || []).forEach(function(r){ recMap[r.id] = r; });
+    (results[4] || []).forEach(function(r){ recMap[r.id] = r; });
+    var jobMap = {};
+    (results[5] || []).forEach(function(j){ jobMap[j.id] = j; });
 
     var count = tickets.filter(function(t){ return TICKET_OPEN_STATUSES[t.status]; }).length;
     var badge = document.getElementById('sched-ticket-count');
@@ -5587,7 +5597,9 @@ function renderTicketsList() {
       var siteName = (t.facility_id && facMap[t.facility_id]) || t.site_name_raw || 'Unknown site';
       var techs = (t.assigned_techs || []).join(', ');
       var dateStr = t.scheduled_date || t.requested_date || '';
-      var linkedRec = t.linked_record_id ? recMap[t.linked_record_id] : null;
+      var linkedRec = t.ticket_type === 'survey'
+        ? (t.linked_job_id ? jobMap[t.linked_job_id] : null)
+        : (t.linked_record_id ? recMap[t.linked_record_id] : null);
       var pdfUrl = linkedRec ? linkedRec.pdf_url : null;
       html += '<div class="ticket-card" style="border-left-color:'+(priorityBorder[t.priority]||'var(--mu)')+'" onclick="openEditTicket(\''+esc(t.id)+'\')">' +
         '<div class="ticket-hdr">' +
