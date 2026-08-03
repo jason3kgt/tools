@@ -5572,6 +5572,7 @@ function renderTicketsList() {
           '<div><div class="ticket-fac">'+esc(siteName)+'</div>' +
           '<div class="ticket-num">'+esc(t.ticket_number||'')+' · '+esc(TICKET_TYPE_LABELS[t.ticket_type]||'Service Call')+'</div></div>' +
           '<span class="status-badge tstatus-'+esc(t.status||'new')+'">'+esc(TICKET_STATUS_LABELS[t.status]||'New')+'</span>' +
+          (t.is_declined ? ' <span class="status-badge" style="background:#FDEDEC;color:var(--rd)" title="'+esc((t.declined_by?t.declined_by+' — ':'')+(t.declined_reason||''))+'">🚫 Declined</span>' : '') +
         '</div>' +
         '<div class="ticket-meta-row">' +
           '<span class="status-badge tpriority-'+esc(t.priority||'routine')+'">'+esc(TICKET_PRIORITY_LABELS[t.priority]||'Routine')+'</span>' +
@@ -5680,6 +5681,11 @@ function saveTicket() {
     dispatcher_notes: document.getElementById('tk-notes').value.trim(),
     entered_by: document.getElementById('tk-by').value.trim()
   };
+  if (techs.length) {
+    record.is_declined = false;
+    record.declined_by = '';
+    record.declined_reason = '';
+  }
 
   var wasUnassigned = true;
   var savePromise;

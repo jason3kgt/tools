@@ -225,6 +225,16 @@ textarea{resize:vertical;min-height:70px}
 </div>
 <script>
 function esc(s){ return (s||'').toString().replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function createNotification(recipientName, message, relatedId, type) {
+  if (!recipientName || typeof ntdStore === 'undefined' || !ntdStore.notifications) return Promise.resolve();
+  return ntdStore.notifications.upsert({
+    recipient_name: recipientName,
+    message: message,
+    related_id: relatedId || '',
+    type: type || '',
+    read: false
+  }).catch(function(err) { console.error('createNotification failed:', err); });
+}
 function fmtDateISO(d){ function p(n){return n<10?'0'+n:''+n;} return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
 
 var TICKET_TYPE_LABELS = {service_call:'Service Call', pm_visit:'PM Visit', startup:'Startup', survey:'Equipment Survey'};
@@ -381,15 +391,24 @@ function mjDeclineJob(ticketId) {
   var name = mjGetTech();
   var reason = prompt('Why can\'t you make this one? (goes to dispatch)');
   if (reason === null) return; // canceled
+  var siteLabel = '';
   ntdStore.service_tickets.get(ticketId).then(function(t) {
     if (!t) return;
     var noteLine = '[Declined by ' + (name||'tech') + ']' + (reason ? ': ' + reason : '');
     var notes = t.dispatcher_notes ? (t.dispatcher_notes + '\n' + noteLine) : noteLine;
+    siteLabel = t.site_name_raw || t.ticket_number || 'a ticket';
     return ntdStore.service_tickets.upsert({
       id: ticketId,
       status: 'new',
       assigned_techs: [],
-      dispatcher_notes: notes
+      dispatcher_notes: notes,
+      is_declined: true,
+      declined_by: name || '',
+      declined_reason: reason || ''
+    }).then(function() {
+      if (t.entered_by) {
+        createNotification(t.entered_by, (name||'A tech') + ' declined ' + (t.ticket_number||siteLabel) + (reason ? ' — ' + reason : ''), ticketId, 'ticket_declined');
+      }
     });
   }).then(function() {
     mjRenderJobs();
