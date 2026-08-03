@@ -59,6 +59,7 @@
   </div>
 
   <!-- SALES TOOLS -->
+  <div id="sales-tools-section">
   <div class="section-label">Sales Tools</div>
 
   <a class="card" href="hvac-asset-survey.html">
@@ -73,6 +74,7 @@
       <div class="arrow">›</div>
     </div>
   </a>
+  </div>
 
   <!-- FIELD / TECH TOOLS -->
   <div class="section-label">Field &amp; Tech Tools</div>
@@ -89,6 +91,10 @@
       <div class="arrow">›</div>
     </div>
   </a>
+
+  <button type="button" id="more-field-tools-btn" onclick="showMoreFieldTools()" style="display:none;width:100%;padding:12px;border-radius:12px;border:1.5px dashed #CBD5E1;background:none;color:#64748B;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;margin-bottom:12px">More tools (manual entry, no ticket) &#8964;</button>
+
+  <div id="field-tools-more">
 
   <a class="card" href="service-call.html">
     <div class="card-top">
@@ -139,7 +145,10 @@
     </div>
   </a>
 
+  </div>
+
   <!-- MANAGEMENT -->
+  <div id="management-section">
   <div class="section-label">Management</div>
 
   <a class="card" href="ntd-hub.html">
@@ -154,6 +163,7 @@
       <div class="arrow">›</div>
     </div>
   </a>
+  </div>
 
 
 
@@ -197,6 +207,30 @@ function doUpdate(){
   if(_pendingSW){ _pendingSW.postMessage('skipWaiting'); }
   setTimeout(function(){ window.location.reload(); }, 500);
 }
+
+// ── SIMPLIFY FOR FIELD TECHS ────────────────────────────────────────────
+// If this device has already identified itself as a tech (picked a name in
+// My Jobs), collapse the individual manual-entry tools by default so the
+// launcher isn't a wall of options — My Jobs is the front door for anything
+// dispatched. Nothing is removed, just tucked behind "More tools" for the
+// rare walk-up/manual case. Devices that have never opened My Jobs (office
+// staff, a brand-new install) see the full list, unchanged.
+function showMoreFieldTools() {
+  document.getElementById('field-tools-more').style.display = 'block';
+  document.getElementById('more-field-tools-btn').style.display = 'none';
+}
+(function(){
+  var isTech = false;
+  try { isTech = !!localStorage.getItem('ntdFieldTechName'); } catch(e) {}
+  if (isTech) {
+    document.getElementById('field-tools-more').style.display = 'none';
+    document.getElementById('more-field-tools-btn').style.display = 'block';
+    var sales = document.getElementById('sales-tools-section');
+    var mgmt = document.getElementById('management-section');
+    if (sales) sales.style.display = 'none';
+    if (mgmt) mgmt.style.display = 'none';
+  }
+})();
 </script>
 </body>
 </html>
