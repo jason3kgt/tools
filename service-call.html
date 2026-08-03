@@ -845,6 +845,7 @@ function scSubmitToStore(pdfBlob) {
       work_performed: gv('sc-work'),
       parts_used: parts.filter(function(p){ return p.description; }),
       units_serviced: servicedUnitsForSave,
+      job_photos: jobPhotos.map(function(p){ return { tag: p.tag, url: p.url || null }; }),
       resolution_status: gv('sc-resolution'),
       follow_up_note: gv('sc-followup-note'),
       signed_name: gv('sc-signame'),
@@ -876,6 +877,18 @@ function scSubmitToStore(pdfBlob) {
           follow_up_needed: res !== 'resolved',
           follow_up_note: gv('sc-followup-note')
         });
+      }
+
+      // A photo taken right before submitting may still be backing up to
+      // Supabase when the record saves, so its url isn't ready yet. Re-check
+      // once shortly after and patch the record if any resolved late.
+      if (saved && saved.id && jobPhotos.length) {
+        setTimeout(function() {
+          var refreshed = jobPhotos.map(function(p){ return { tag: p.tag, url: p.url || null }; });
+          if (refreshed.some(function(p){ return p.url; })) {
+            ntdStore.service_records.upsert({ id: saved.id, job_photos: refreshed }).catch(function(){});
+          }
+        }, 4000);
       }
     });
   }).catch(function(err) {
