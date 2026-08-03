@@ -1009,8 +1009,10 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
       <div class="fg">
         <label>Billing Type</label>
         <select id="tk-billing">
+          <option value="standard">Standard</option>
           <option value="t&m">T&amp;M</option>
           <option value="contract_pm">Contract PM</option>
+          <option value="quoted">Quoted Job</option>
           <option value="warranty">Warranty</option>
           <option value="quote_pending">Quote Pending</option>
         </select>
@@ -1019,7 +1021,25 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
     <div class="fg"><label>Problem Reported *</label><textarea id="tk-problem" placeholder="e.g. RTU-2 not cooling, tripping breaker"></textarea></div>
     <div class="r2">
       <div class="fg"><label>Scheduled Date</label><input type="date" id="tk-date"></div>
-      <div class="fg"><label>Time Window</label><input type="text" id="tk-window" placeholder="e.g. 8am–10am"></div>
+      <div class="fg"><label>Time Window</label>
+        <select id="tk-window">
+          <option value="">— Not Set —</option>
+          <option value="ASAP / Emergency">ASAP / Emergency</option>
+          <option value="7am–9am">7am–9am</option>
+          <option value="8am–10am">8am–10am</option>
+          <option value="9am–11am">9am–11am</option>
+          <option value="10am–12pm">10am–12pm</option>
+          <option value="11am–1pm">11am–1pm</option>
+          <option value="12pm–2pm">12pm–2pm</option>
+          <option value="1pm–3pm">1pm–3pm</option>
+          <option value="2pm–4pm">2pm–4pm</option>
+          <option value="3pm–5pm">3pm–5pm</option>
+          <option value="4pm–6pm">4pm–6pm</option>
+          <option value="Morning">Morning</option>
+          <option value="Afternoon">Afternoon</option>
+          <option value="Anytime">Anytime</option>
+        </select>
+      </div>
     </div>
     <div class="r2">
       <div class="fg">
