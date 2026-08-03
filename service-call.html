@@ -159,6 +159,12 @@ textarea{resize:vertical;min-height:70px}
 .eq-check-row input[type=checkbox]{width:18px;height:18px;flex-shrink:0}
 .eq-check-lbl{font-size:13px;color:var(--tx)}
 .eq-check-sub{font-size:10px;color:var(--mu)}
+.sh-note{background:var(--of);border:1.5px solid var(--bd);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--tx);line-height:1.5;margin-bottom:10px;white-space:pre-wrap}
+.sh-sub-lbl{font-size:9px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.04em;margin:10px 0 4px}
+.sh-doc-row{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;padding:6px 0;border-bottom:1px solid var(--of);text-decoration:none;color:var(--tx)}
+.sh-doc-row:last-child{border-bottom:none}
+.sh-doc-name{flex:1}
+.sh-doc-date{color:var(--mu);font-size:10px;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -201,7 +207,11 @@ textarea{resize:vertical;min-height:70px}
   </div>
 </div></div>
 
-<div class="card"><div class="ch"><span class="cn">2</span><h2>Call Details</h2></div><div class="cb">
+<div class="card" id="sc-history-card" style="display:none"><div class="ch"><span class="cn">2</span><h2>Site History</h2></div><div class="cb">
+  <div id="sc-history-results"><div class="empty">Loading…</div></div>
+</div></div>
+
+<div class="card"><div class="ch"><span class="cn">3</span><h2>Call Details</h2></div><div class="cb">
   <div class="r2">
     <div class="fg"><label>Priority</label>
       <select id="sc-priority">
@@ -222,7 +232,7 @@ textarea{resize:vertical;min-height:70px}
   <div class="fg"><label>Problem Reported *</label><textarea id="sc-problem" placeholder="What the customer reported"></textarea></div>
 </div></div>
 
-<div class="card"><div class="ch"><span class="cn">3</span><h2>Diagnosis &amp; Work Performed</h2></div><div class="cb">
+<div class="card"><div class="ch"><span class="cn">4</span><h2>Diagnosis &amp; Work Performed</h2></div><div class="cb">
   <div class="fg"><label>Diagnosis</label><textarea id="sc-diagnosis" placeholder="What you found"></textarea></div>
   <div class="fg"><label>Work Performed</label><textarea id="sc-work" placeholder="What you did"></textarea></div>
   <div class="r2">
@@ -231,17 +241,17 @@ textarea{resize:vertical;min-height:70px}
   </div>
 </div></div>
 
-<div class="card"><div class="ch"><span class="cn">4</span><h2>Parts Used</h2></div><div class="cb">
+<div class="card"><div class="ch"><span class="cn">5</span><h2>Parts Used</h2></div><div class="cb">
   <div id="sc-parts-wrap"></div>
   <button type="button" class="addb" onclick="scAddPart()">+ Add Part</button>
 </div></div>
 
-<div class="card"><div class="ch"><span class="cn">5</span><h2>Equipment Serviced</h2></div><div class="cb">
+<div class="card"><div class="ch"><span class="cn">6</span><h2>Equipment Serviced</h2></div><div class="cb">
   <div id="sc-equip-wrap"><div class="empty">Enter a Facility / Site Name above to see equipment on file.</div></div>
   <div class="fg" style="margin-top:10px"><label>Other Unit Tag (not on file)</label><input type="text" id="sc-other-unit" placeholder="e.g. RTU-7"></div>
 </div></div>
 
-<div class="card"><div class="ch"><span class="cn">6</span><h2>Resolution</h2></div><div class="cb">
+<div class="card"><div class="ch"><span class="cn">7</span><h2>Resolution</h2></div><div class="cb">
   <div class="fg"><label>Status</label>
     <select id="sc-resolution" onchange="scToggleFollowup()">
       <option value="resolved">Resolved</option>
@@ -253,7 +263,7 @@ textarea{resize:vertical;min-height:70px}
   <div class="fg" id="sc-followup-fg" style="display:none"><label>Follow-Up Note</label><textarea id="sc-followup-note" placeholder="What's needed next"></textarea></div>
 </div></div>
 
-<div class="card"><div class="ch"><span class="cn">7</span><h2>Customer Sign-Off</h2></div><div class="cb">
+<div class="card"><div class="ch"><span class="cn">8</span><h2>Customer Sign-Off</h2></div><div class="cb">
   <p style="font-size:12px;color:var(--mu);line-height:1.5;margin-bottom:10px">Customer acknowledges the work described above was performed.</p>
   <div class="r2">
     <div class="fg"><label>Signed By</label><input type="text" id="sc-signame" placeholder="Print name"></div>
@@ -317,6 +327,7 @@ function scLookupFacility() {
   pickedFacilityId = null;
   equipmentOnFile = [];
   selectedEquipmentIds = {};
+  document.getElementById('sc-history-card').style.display = 'none';
   if (!name) { hint.textContent = ''; hint.className = 'site-hint'; scRenderEquipment(); return; }
   if (typeof ntdStore === 'undefined') return;
   ntdStore.matchFacility.find(name).then(function(result) {
@@ -325,6 +336,7 @@ function scLookupFacility() {
       facilityMatchedName = result.exact.name;
       hint.textContent = '✓ Matched: ' + result.exact.name;
       hint.className = 'site-hint matched';
+      scLoadSiteHistory(pickedFacilityId);
       return ntdStore.equipment.list(function(e){ return e.facility_id === pickedFacilityId; });
     } else {
       hint.textContent = 'New site — will be added to NTD Hub on submit';
@@ -337,6 +349,61 @@ function scLookupFacility() {
   }).catch(function() {
     hint.textContent = '';
   });
+}
+
+// ── SITE HISTORY (read-only reference — notes, past visits, documents) ──
+function scLoadSiteHistory(facilityId) {
+  var card = document.getElementById('sc-history-card');
+  var rw = document.getElementById('sc-history-results');
+  card.style.display = 'block';
+  rw.innerHTML = '<div class="empty">Loading history…</div>';
+  if (typeof ntdStore === 'undefined') return;
+
+  Promise.all([
+    ntdStore.facilities.get(facilityId),
+    ntdStore.jobs.list(function(j){ return j.facility_id === facilityId; }),
+    ntdStore.pm_records.list(function(p){ return p.facility_id === facilityId; }),
+    ntdStore.startup_records.list(function(s){ return s.facility_id === facilityId; }),
+    ntdStore.service_records ? ntdStore.service_records.list(function(r){ return r.facility_id === facilityId; }) : Promise.resolve([]),
+    ntdStore.documents.list(function(d){ return d.facility_id === facilityId; })
+  ]).then(function(res) {
+    scRenderSiteHistory(res[0], res[1]||[], res[2]||[], res[3]||[], res[4]||[], res[5]||[]);
+  }).catch(function(err) {
+    rw.innerHTML = '<div class="empty">Could not load history — ' + esc(err.message||'connection error') + '</div>';
+  });
+}
+
+function scRenderSiteHistory(facility, jobs, pmRecs, startups, serviceRecs, docs) {
+  var rw = document.getElementById('sc-history-results');
+  var visits = [];
+  jobs.forEach(function(j){ if (j.type !== 'project') visits.push({ ts:j.ts||0, label: j.type==='survey'?'Equipment Survey':j.type==='startup_job'?'Startup Job':(j.type||'Visit'), tech:j.tech||'' }); });
+  pmRecs.forEach(function(p){ visits.push({ ts:p.ts||0, label:'PM Visit', tech:p.tech||'' }); });
+  startups.forEach(function(s){ visits.push({ ts:s.ts||0, label:'Startup', tech:s.tech||'' }); });
+  serviceRecs.forEach(function(r){ visits.push({ ts:r.ts||0, label:'Service Call' + (r.problem_reported ? ' — ' + r.problem_reported.slice(0,60) : ''), tech:r.tech||'' }); });
+  visits.sort(function(a,b){ return (b.ts||0) - (a.ts||0); });
+
+  var h = '';
+  if (facility && facility.notes) {
+    h += '<div class="sh-sub-lbl">Notes on File</div><div class="sh-note">' + esc(facility.notes) + '</div>';
+  }
+  if (visits.length) {
+    h += '<div class="sh-sub-lbl">Recent Visits</div>';
+    visits.slice(0, 6).forEach(function(v) {
+      h += '<div class="sh-doc-row"><span class="sh-doc-name">' + esc(v.label) + (v.tech ? ' — ' + esc(v.tech) : '') + '</span>' +
+        '<span class="sh-doc-date">' + (v.ts ? new Date(v.ts).toLocaleDateString() : '') + '</span></div>';
+    });
+  }
+  var pdfDocs = (docs||[]).filter(function(d){ return d.file_url; }).sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
+  if (pdfDocs.length) {
+    h += '<div class="sh-sub-lbl">Documents &amp; Photos</div>';
+    pdfDocs.slice(0, 8).forEach(function(d) {
+      h += '<a class="sh-doc-row" href="' + esc(d.file_url) + '" target="_blank" rel="noopener">' +
+        '<span class="sh-doc-name">' + esc(d.description || d.form_type || 'Document') + '</span>' +
+        '<span class="sh-doc-date">' + esc(d.date || '') + '</span></a>';
+    });
+  }
+  if (!h) h = '<div class="empty">Site found in NTD Hub, but no prior visits, notes, or documents on file yet.</div>';
+  rw.innerHTML = h;
 }
 
 function scRenderEquipment() {
