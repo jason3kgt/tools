@@ -1732,7 +1732,7 @@ function ntdLoadTicketPrefill() {
   if (!_ntdTicketId || typeof ntdStore === 'undefined') return;
   ntdStore.service_tickets.get(_ntdTicketId).then(function(t) {
     if (!t) return;
-    if (t.status === 'scheduled' || t.status === 'dispatched' || t.status === 'en_route') {
+    if (t.status === 'new' || t.status === 'scheduled' || t.status === 'dispatched' || t.status === 'en_route') {
       ntdStore.service_tickets.upsert({ id: t.id, status: 'on_site' }).catch(function(){});
     }
     if (t.facility_id) {

@@ -601,7 +601,7 @@ function scLoadTicket() {
     if (t.problem_description) sv('sc-problem', t.problem_description);
     if (t.assigned_techs && t.assigned_techs[0]) sv('sc-tech', t.assigned_techs[0]);
     // Ticket moves to "on_site" once the tech opens the work order
-    if (t.status === 'scheduled' || t.status === 'dispatched' || t.status === 'en_route') {
+    if (t.status === 'new' || t.status === 'scheduled' || t.status === 'dispatched' || t.status === 'en_route') {
       ntdStore.service_tickets.upsert({ id: t.id, status: 'on_site' }).catch(function(){});
     }
   }).catch(function() {});
