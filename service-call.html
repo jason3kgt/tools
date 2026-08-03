@@ -177,6 +177,13 @@ textarea{resize:vertical;min-height:70px}
 .unit-photo-preview{display:flex;align-items:center;gap:10px;margin-top:2px}
 .unit-photo-preview img{width:56px;height:56px;object-fit:cover;border-radius:8px;border:1.5px solid var(--bd)}
 .unit-photo-status{font-size:10px;color:var(--mu)}
+.job-photo-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.job-photo-item{border:1.5px solid var(--bd);border-radius:10px;overflow:hidden}
+.job-photo-item img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:var(--of)}
+.job-photo-tagrow{display:flex;align-items:center;gap:6px;padding:6px 8px}
+.job-photo-tagrow select{flex:1;font-size:11px;padding:5px 6px;border:1.5px solid var(--bd);border-radius:6px;background:var(--of)}
+.job-photo-rmv{background:none;border:none;color:var(--rd);font-size:16px;font-weight:700;cursor:pointer;padding:0 2px;font-family:inherit}
+.job-photo-status{font-size:9px;color:var(--mu);padding:0 8px 6px}
 </style>
 </head>
 <body>
@@ -268,7 +275,14 @@ textarea{resize:vertical;min-height:70px}
 
 <input type="file" id="sc-dataplate-input" accept="image/*" capture="environment" style="display:none">
 
-<div class="card"><div class="ch"><span class="cn">7</span><h2>Resolution</h2></div><div class="cb">
+<div class="card"><div class="ch"><span class="cn">7</span><h2>Job Photos</h2></div><div class="cb">
+  <div id="sc-photos-wrap"><div class="empty">No photos added yet.</div></div>
+  <button type="button" class="addb" onclick="scAddJobPhoto()">&#128247; Add Photo</button>
+</div></div>
+
+<input type="file" id="sc-job-photo-input" accept="image/*" capture="environment" style="display:none">
+
+<div class="card"><div class="ch"><span class="cn">8</span><h2>Resolution</h2></div><div class="cb">
   <div class="fg"><label>Status</label>
     <select id="sc-resolution" onchange="scToggleFollowup()">
       <option value="resolved">Resolved</option>
@@ -280,7 +294,7 @@ textarea{resize:vertical;min-height:70px}
   <div class="fg" id="sc-followup-fg" style="display:none"><label>Follow-Up Note</label><textarea id="sc-followup-note" placeholder="What's needed next"></textarea></div>
 </div></div>
 
-<div class="card"><div class="ch"><span class="cn">8</span><h2>Customer Sign-Off</h2></div><div class="cb">
+<div class="card"><div class="ch"><span class="cn">9</span><h2>Customer Sign-Off</h2></div><div class="cb">
   <p style="font-size:12px;color:var(--mu);line-height:1.5;margin-bottom:10px">Customer acknowledges the work described above was performed.</p>
   <div class="r2">
     <div class="fg"><label>Signed By</label><input type="text" id="sc-signame" placeholder="Print name"></div>
@@ -312,6 +326,8 @@ var pickedFacilityId = null;
 var facilityMatchedName = null;
 var equipmentOnFile = [];
 var serviceUnits = [];
+var jobPhotos = [];
+var jobPhotoUid = 1;
 var unitRowUid = 1;
 var _scPhotoTargetId = null;
 var _ntdTicketId = null;
@@ -573,6 +589,68 @@ function scBackupUnitPhoto(u) {
   });
 }
 
+// ── JOB PHOTOS (general before/after documentation) ─────────────────────
+function scAddJobPhoto() {
+  document.getElementById('sc-job-photo-input').click();
+}
+document.getElementById('sc-job-photo-input').addEventListener('change', function() {
+  var file = this.files[0];
+  this.value = '';
+  if (!file) return;
+  scCompressImage(file, 1600, 0.75).then(function(result) {
+    jobPhotos.push({ id: jobPhotoUid++, dataUrl: result.dataUrl, blob: result.blob, tag: 'before', backedUp: false });
+    scRenderJobPhotos();
+    scBackupJobPhoto(jobPhotos[jobPhotos.length-1]);
+  }).catch(function() {});
+});
+function scRenderJobPhotos() {
+  var wrap = document.getElementById('sc-photos-wrap');
+  if (!jobPhotos.length) { wrap.innerHTML = '<div class="empty">No photos added yet.</div>'; return; }
+  wrap.innerHTML = '<div class="job-photo-grid">' + jobPhotos.map(function(p) {
+    return '<div class="job-photo-item">' +
+      '<img src="'+p.dataUrl+'" alt="Job photo">' +
+      '<div class="job-photo-tagrow">' +
+        '<select onchange="scUpdateJobPhotoTag('+p.id+',this.value)">' +
+          '<option value="before"'+(p.tag==='before'?' selected':'')+'>Before</option>' +
+          '<option value="after"'+(p.tag==='after'?' selected':'')+'>After</option>' +
+          '<option value="general"'+(p.tag==='general'?' selected':'')+'>General</option>' +
+        '</select>' +
+        '<button type="button" class="job-photo-rmv" onclick="scRemoveJobPhoto('+p.id+')">&times;</button>' +
+      '</div>' +
+      '<div class="job-photo-status">'+(p.backedUp ? '✓ Saved' : 'Saving…')+'</div>' +
+    '</div>';
+  }).join('') + '</div>';
+}
+function scUpdateJobPhotoTag(id, tag) {
+  var p = jobPhotos.filter(function(x){ return x.id === id; })[0];
+  if (p) p.tag = tag;
+}
+function scRemoveJobPhoto(id) {
+  jobPhotos = jobPhotos.filter(function(x){ return x.id !== id; });
+  scRenderJobPhotos();
+}
+function scBackupJobPhoto(p) {
+  if (typeof ntdStore === 'undefined' || !ntdStore.files || !p.blob) return;
+  var siteSlug = (gv('sc-site') || 'unassigned').replace(/[^a-z0-9]+/gi,'-').toLowerCase().replace(/^-+|-+$/g,'').slice(0,40) || 'unassigned';
+  var path = 'photo-backups/' + siteSlug + '/job_' + Date.now() + '_' + Math.random().toString(36).slice(2,6) + '.jpg';
+  ntdStore.files.upload(path, p.blob, 'image/jpeg').then(function() {
+    p.backedUp = true;
+    p.remotePath = path;
+    scRenderJobPhotos();
+    if (ntdStore.photos && ntdStore.photos.log) {
+      ntdStore.photos.log({
+        path: path,
+        facilityName: gv('sc-site') || '',
+        formType: 'site_photo',
+        description: 'Service Call — ' + (p.tag==='before'?'Before':p.tag==='after'?'After':'Job Photo'),
+        tech: gv('sc-tech') || ''
+      }).then(function(doc) { if (doc && doc.file_url) p.url = doc.file_url; });
+    }
+  }).catch(function(err) {
+    console.warn('[NTD] Job photo backup failed:', err.message || err);
+  });
+}
+
 // ── TICKET PREFILL (opened from my-jobs.html dispatch board) ────────────
 function scLoadTicket() {
   _ntdTicketId = (typeof ntdGetTicketIdFromUrl === 'function') ? ntdGetTicketIdFromUrl() : null;
@@ -698,6 +776,16 @@ function scDownloadPDF() {
       y += 6; checkPage();
     }
 
+    if (jobPhotos.length) {
+      var beforeCt = jobPhotos.filter(function(p){return p.tag==='before';}).length;
+      var afterCt = jobPhotos.filter(function(p){return p.tag==='after';}).length;
+      var genCt = jobPhotos.length - beforeCt - afterCt;
+      section('Job Photos');
+      line('Captured', jobPhotos.length + ' photo' + (jobPhotos.length===1?'':'s') +
+        ' (' + beforeCt + ' before, ' + afterCt + ' after, ' + genCt + ' general) — saved to NTD Hub Photo Hub');
+      y += 6; checkPage();
+    }
+
     section('Resolution');
     var resLabels = {resolved:'Resolved', needs_follow_up:'Needs Follow-Up', needs_parts:'Needs Parts', needs_quote:'Needs Quote'};
     line('Status', resLabels[gv('sc-resolution')] || 'Resolved');
@@ -772,6 +860,10 @@ function scSubmitToStore(pdfBlob) {
         description: 'Service Call — ' + site + ' — ' + (gv('sc-date') || ''),
         date: gv('sc-date'),
         tech: gv('sc-tech')
+      }).then(function(doc) {
+        if (doc && doc.file_url && saved && saved.id) {
+          ntdStore.service_records.upsert({ id: saved.id, pdf_url: doc.file_url }).catch(function(){});
+        }
       }).catch(function(e){ console.warn('[NTD] PDF upload failed:', e.message); });
 
       if (_ntdTicketId) {
