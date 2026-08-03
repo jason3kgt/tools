@@ -281,16 +281,29 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .status-confirmed{background:#E6F4EA;color:var(--gn)}
 
 /* ── SERVICE TICKETS (DISPATCH) ── */
-.ticket-filter-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
-.ticket-filter-chip{border:1.5px solid var(--bd);background:#fff;color:var(--mu);font-size:11px;font-weight:700;padding:6px 11px;border-radius:20px;cursor:pointer;font-family:inherit;touch-action:manipulation;white-space:nowrap}
-.ticket-filter-chip.on{background:var(--nv);border-color:var(--nv);color:#fff}
-.ticket-card{background:#fff;border-radius:14px;border:1px solid var(--bd);border-left:4px solid var(--mu);margin-bottom:10px;box-shadow:var(--card-shadow);padding:14px 16px;cursor:pointer}
-.ticket-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px}
-.ticket-fac{font-size:14px;font-weight:700;color:var(--nv)}
-.ticket-num{font-size:10px;color:var(--mu);font-weight:700;letter-spacing:.02em}
-.ticket-meta-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
-.ticket-desc{font-size:12.5px;color:var(--tx);line-height:1.5;margin-top:8px}
-.ticket-footer{font-size:11px;color:var(--mu);margin-top:8px;padding-top:8px;border-top:1px solid var(--of);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tk-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
+.tk-search-wrap{position:relative;flex:1;min-width:180px}
+.tk-search-icon{position:absolute;left:11px;top:9px;color:var(--mu);font-size:13px;pointer-events:none}
+.tk-search-wrap input{width:100%;padding:9px 12px 9px 32px;border-radius:8px;border:1.5px solid var(--bd);background:#fff;font-size:13px;color:var(--tx);box-sizing:border-box}
+.tk-toolbar select{padding:9px 10px;border-radius:8px;border:1.5px solid var(--bd);background:#fff;font-size:12px;color:var(--tx)}
+.tk-view-toggle{display:flex;border:1.5px solid var(--bd);border-radius:8px;overflow:hidden;flex-shrink:0}
+.tk-view-btn{background:#fff;color:var(--mu);border:none;padding:9px 14px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation}
+.tk-view-btn.on{background:var(--nv);color:#fff}
+
+.tk-board{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px}
+.tk-col{min-width:240px;max-width:240px;flex-shrink:0}
+.tk-col-hdr{display:flex;justify-content:space-between;align-items:center;padding:0 4px 8px}
+.tk-col-label{font-size:11px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.04em}
+.tk-col-count{font-size:10px;font-weight:700;padding:2px 8px;border-radius:9px;background:var(--of);color:var(--tx)}
+.tk-col-empty{font-size:11.5px;color:var(--mu);padding:14px 4px;text-align:center}
+
+.ticket-card{background:#fff;border-radius:10px;border-left:3px solid var(--mu);box-shadow:0 1px 3px rgba(36,32,25,.08);padding:11px 12px;margin-bottom:8px;cursor:pointer}
+.ticket-fac{font-size:13px;font-weight:700;color:var(--nv);margin-bottom:2px}
+.ticket-num{font-size:10px;color:var(--mu);margin-bottom:7px}
+.ticket-desc{font-size:11.5px;color:var(--tx);line-height:1.4;margin-bottom:9px}
+.ticket-card-footer{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.tk-avatar{width:22px;height:22px;border-radius:50%;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tk-avatar-multi{font-size:8px}
 .tpriority-emergency{background:#FDEDEC;color:var(--rd)}
 .tpriority-same_day{background:#FFF3E0;color:var(--am)}
 .tpriority-routine{background:#EEF3FB;color:var(--st)}
@@ -303,7 +316,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .tstatus-needs_follow_up{background:#FDEDEC;color:var(--rd)}
 .tstatus-invoiced{background:#F1ECE2;color:var(--mu)}
 .tstatus-canceled{background:#F1ECE2;color:var(--mu);text-decoration:line-through}
-.ticket-empty-fab{position:fixed;right:16px;bottom:86px;z-index:40}
+.tk-badge{font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:8px;display:inline-block;white-space:nowrap}
+.tk-declined-badge{background:#FDEDEC;color:var(--rd)}
+
+.tk-table{background:#fff;border-radius:10px;border:1px solid var(--bd);overflow:hidden;overflow-x:auto}
+.tk-row{display:grid;grid-template-columns:22px 1.5fr 90px 1.8fr 90px 110px 90px 34px;gap:8px;padding:11px 14px;align-items:center;border-top:1px solid var(--of);cursor:pointer;min-width:820px}
+.tk-row:first-child{border-top:none}
+.tk-row:hover{background:var(--of)}
+.tk-row-hdr{background:var(--of);font-size:10px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.03em;cursor:pointer;border-top:none}
+.tk-row-hdr:hover{background:var(--of)}
+.tk-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.tk-row-site{font-size:13px;font-weight:700;color:var(--nv)}
+.tk-row-num{font-size:10px;color:var(--mu)}
+.tk-row-desc{font-size:12px;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tk-row-date{font-size:11px;color:var(--mu)}
+.tk-empty-state{padding:30px 14px;text-align:center;color:var(--mu);font-size:13px}
 
 /* ── TEAM CALENDAR ── */
 .cal-week-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:8px}
@@ -471,8 +498,35 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
     <button class="sched-subnav-btn" id="sched-tab-pmdue" onclick="switchScheduleView('pmdue')">PM Due<span class="sched-req-count" id="sched-pmdue-count" style="display:none">0</span></button>
   </div>
   <div id="sched-tickets-view">
-    <div class="ticket-filter-row" id="ticket-filter-row"></div>
-    <div id="sched-tickets-wrap"></div>
+    <div class="tk-toolbar">
+      <div class="tk-search-wrap">
+        <span class="tk-search-icon">&#128269;</span>
+        <input type="text" id="tk-search" placeholder="Search site, contact, ticket #..." oninput="renderTicketsList()">
+      </div>
+      <select id="tk-filter-tech" onchange="renderTicketsList()"><option value="">All techs</option></select>
+      <select id="tk-filter-priority" onchange="renderTicketsList()">
+        <option value="">All priorities</option>
+        <option value="emergency">Emergency</option>
+        <option value="same_day">Same Day</option>
+        <option value="routine">Routine</option>
+      </select>
+      <select id="tk-filter-status" style="display:none" onchange="renderTicketsList()">
+        <option value="open">Open</option>
+        <option value="all">All statuses</option>
+        <option value="new">New</option>
+        <option value="scheduled">Scheduled</option>
+        <option value="dispatched">Dispatched</option>
+        <option value="needs_follow_up">Follow-Up</option>
+        <option value="complete">Complete</option>
+        <option value="canceled">Canceled</option>
+      </select>
+      <div class="tk-view-toggle">
+        <button type="button" class="tk-view-btn on" id="tk-view-board-btn" onclick="setTicketViewMode('board')">Board</button>
+        <button type="button" class="tk-view-btn" id="tk-view-list-btn" onclick="setTicketViewMode('list')">List</button>
+      </div>
+    </div>
+    <div id="sched-tickets-board"></div>
+    <div id="sched-tickets-table" style="display:none"></div>
   </div>
   <div id="sched-requests-view" style="display:none">
     <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
@@ -1187,7 +1241,6 @@ var requestingFacilityId = null;
 var editingTicketId = null;
 var ticketFacilitiesCache = null;
 var ticketPickedFacilityId = null;
-var ticketStatusFilter = 'open';   // 'open' | 'all' | a specific status
 var editingCalRequester = null;
 var editingCalContact = null;
 var editingCalOriginalStatus = null;
@@ -4662,6 +4715,7 @@ function renderScheduleView() {
     document.getElementById('sched-tab-tickets').classList.add('on');
     document.getElementById('sched-tickets-view').style.display = 'block';
     if (hdrBtn) hdrBtn.textContent = '+ Ticket';
+    _tkLastData = null;
     renderTicketsList();
   }
   refreshSchedReqBadge();
@@ -5468,17 +5522,19 @@ var TICKET_STATUS_LABELS = {
   on_site:'On Site', complete:'Complete', needs_follow_up:'Needs Follow-Up',
   invoiced:'Invoiced', canceled:'Canceled'
 };
-var TICKET_FILTER_CHIPS = [
-  {key:'open', label:'Open'},
-  {key:'new', label:'New'},
-  {key:'scheduled', label:'Scheduled'},
-  {key:'dispatched', label:'Dispatched'},
-  {key:'needs_follow_up', label:'Follow-Up'},
-  {key:'complete', label:'Complete'},
-  {key:'all', label:'All'}
-];
 var TICKET_OPEN_STATUSES = {new:1, scheduled:1, dispatched:1, en_route:1, on_site:1, needs_follow_up:1};
 var TICKET_DISPATCHED_GROUP = {dispatched:1, en_route:1, on_site:1};
+var TICKET_BOARD_COLUMNS = [
+  {key:'new', label:'New', match:function(t){ return t.status === 'new'; }},
+  {key:'scheduled', label:'Scheduled', match:function(t){ return t.status === 'scheduled'; }},
+  {key:'dispatched', label:'Dispatched', match:function(t){ return !!TICKET_DISPATCHED_GROUP[t.status]; }},
+  {key:'needs_follow_up', label:'Follow-Up', match:function(t){ return t.status === 'needs_follow_up'; }},
+  {key:'complete', label:'Complete', match:function(t){ return t.status === 'complete' || t.status === 'invoiced'; }}
+];
+var ticketViewMode = 'board';
+var _tkSortCol = 'priority';
+var _tkSortDir = 1;
+var _tkLastData = null; // cached fetch so switching views/sorting doesn't re-hit the network
 
 function newTicketNumber() {
   return 'SVC-' + Date.now().toString().slice(-6);
@@ -5520,33 +5576,70 @@ function tkRenderLeadSelect() {
   sel.onchange = function(){ _tkLeadTech = sel.value; };
 }
 
-function renderTicketFilterRow() {
-  var wrap = document.getElementById('ticket-filter-row');
-  if (!wrap) return;
-  wrap.innerHTML = TICKET_FILTER_CHIPS.map(function(c) {
-    return '<button class="ticket-filter-chip'+(ticketStatusFilter===c.key?' on':'')+'" onclick="setTicketFilter(\''+c.key+'\')">'+esc(c.label)+'</button>';
-  }).join('');
+// ── TECH AVATAR ──────────────────────────────────────────────────────────
+var TK_AVATAR_COLORS = ['#EEF3FB;color:#1B3A6B','#E6F4EA;color:#1E7A3E','#FEF0EA;color:#C04A0A','#F3EBFA;color:#6D3FA0','#FFF3E0;color:#C67F0A','#FDEDEC;color:#C0392B','#E8F0FA;color:#1B3A6B','#F1ECE2;color:#7A7263'];
+function tkInitials(name) {
+  if (!name) return '';
+  var parts = name.trim().split(/\s+/);
+  return ((parts[0]||'')[0]||'') + ((parts[1]||'')[0]||'');
+}
+function tkAvatarColor(name) {
+  var h = 0;
+  for (var i=0;i<(name||'').length;i++) h = (h + name.charCodeAt(i)) % TK_AVATAR_COLORS.length;
+  return TK_AVATAR_COLORS[h];
+}
+function tkAvatarHTML(techs) {
+  techs = techs || [];
+  if (!techs.length) return '<span class="tk-avatar" style="background:var(--of);color:var(--mu)">--</span>';
+  if (techs.length === 1) {
+    return '<span class="tk-avatar" style="background:'+tkAvatarColor(techs[0]).split(';color:')[0]+';color:'+tkAvatarColor(techs[0]).split(';color:')[1]+'" title="'+esc(techs[0])+'">'+esc(tkInitials(techs[0]))+'</span>';
+  }
+  return '<span class="tk-avatar tk-avatar-multi" style="background:var(--of);color:var(--tx)" title="'+esc(techs.join(', '))+'">+'+techs.length+'</span>';
 }
 
-function setTicketFilter(key) {
-  ticketStatusFilter = key;
-  renderTicketFilterRow();
+// ── FILTER PREDICATE (search + tech + priority, shared by board & list) ──
+function tkBuildFilterPredicate(facMap) {
+  var q = (document.getElementById('tk-search').value || '').trim().toLowerCase();
+  var techF = document.getElementById('tk-filter-tech').value;
+  var prF = document.getElementById('tk-filter-priority').value;
+  return function(t) {
+    if (techF && (t.assigned_techs||[]).indexOf(techF) === -1) return false;
+    if (prF && t.priority !== prF) return false;
+    if (q) {
+      var siteName = (t.facility_id && facMap[t.facility_id]) || t.site_name_raw || '';
+      var hay = [siteName, t.ticket_number, t.contact_name, t.problem_description].join(' ').toLowerCase();
+      if (hay.indexOf(q) === -1) return false;
+    }
+    return true;
+  };
+}
+
+function tkPopulateTechFilter() {
+  var sel = document.getElementById('tk-filter-tech');
+  if (!sel || sel.options.length > 1) return;
+  var techs = (typeof window.NTD_FIELD_TECHS !== 'undefined') ? window.NTD_FIELD_TECHS : [];
+  techs.forEach(function(t) {
+    var o = document.createElement('option'); o.value = t; o.textContent = t; sel.appendChild(o);
+  });
+}
+
+function setTicketViewMode(mode) {
+  ticketViewMode = mode;
+  document.getElementById('tk-view-board-btn').classList.toggle('on', mode === 'board');
+  document.getElementById('tk-view-list-btn').classList.toggle('on', mode === 'list');
+  document.getElementById('tk-filter-status').style.display = mode === 'list' ? 'inline-block' : 'none';
+  document.getElementById('sched-tickets-board').style.display = mode === 'board' ? 'block' : 'none';
+  document.getElementById('sched-tickets-table').style.display = mode === 'list' ? 'block' : 'none';
   renderTicketsList();
 }
 
-function ticketMatchesFilter(t) {
-  if (ticketStatusFilter === 'all') return true;
-  if (ticketStatusFilter === 'open') return !!TICKET_OPEN_STATUSES[t.status];
-  if (ticketStatusFilter === 'dispatched') return !!TICKET_DISPATCHED_GROUP[t.status];
-  return t.status === ticketStatusFilter;
-}
-
 function renderTicketsList() {
-  renderTicketFilterRow();
-  var wrap = document.getElementById('sched-tickets-wrap');
-  if (!wrap) return;
-  if (!ntdStore.service_tickets) { wrap.innerHTML = emptyState('⚠️','Dispatch not set up yet','Run the service_tickets schema in Supabase, then reload.'); return; }
-  wrap.innerHTML = ntdSkeleton(2);
+  tkPopulateTechFilter();
+  if (_tkLastData) { tkRenderCurrentView(_tkLastData); return; }
+  var boardEl = document.getElementById('sched-tickets-board');
+  if (!boardEl) return;
+  if (!ntdStore.service_tickets) { boardEl.innerHTML = emptyState('⚠️','Dispatch not set up yet','Run the service_tickets schema in Supabase, then reload.'); return; }
+  boardEl.innerHTML = ntdSkeleton(2);
 
   Promise.all([
     ntdStore.service_tickets.list(),
@@ -5556,75 +5649,151 @@ function renderTicketsList() {
     ntdStore.startup_records ? ntdStore.startup_records.list() : Promise.resolve([]),
     ntdStore.jobs ? ntdStore.jobs.list() : Promise.resolve([])
   ]).then(function(results) {
-    var tickets = results[0] || [];
-    var facs = results[1] || [];
     var facMap = {};
-    facs.forEach(function(f){ facMap[f.id] = f.name; });
-    // Map every ticket type's linked record to its pdf_url — service_records
-    // links via id (== linked_record_id), same as pm/startup; survey links
-    // via linked_job_id into the jobs table instead.
+    (results[1]||[]).forEach(function(f){ facMap[f.id] = f.name; });
     var recMap = {};
-    (results[2] || []).forEach(function(r){ recMap[r.id] = r; });
-    (results[3] || []).forEach(function(r){ recMap[r.id] = r; });
-    (results[4] || []).forEach(function(r){ recMap[r.id] = r; });
+    (results[2]||[]).forEach(function(r){ recMap[r.id] = r; });
+    (results[3]||[]).forEach(function(r){ recMap[r.id] = r; });
+    (results[4]||[]).forEach(function(r){ recMap[r.id] = r; });
     var jobMap = {};
-    (results[5] || []).forEach(function(j){ jobMap[j.id] = j; });
+    (results[5]||[]).forEach(function(j){ jobMap[j.id] = j; });
+    _tkLastData = { tickets: results[0]||[], facMap: facMap, recMap: recMap, jobMap: jobMap };
+    tkRenderCurrentView(_tkLastData);
+  }).catch(function(err) {
+    boardEl.innerHTML = emptyState('⚠️','Couldn\'t load tickets', esc(err.message||'Please try again.'));
+  });
+}
 
-    var count = tickets.filter(function(t){ return TICKET_OPEN_STATUSES[t.status]; }).length;
-    var badge = document.getElementById('sched-ticket-count');
-    if (badge) {
-      if (count) { badge.textContent = count; badge.style.display = 'inline-block'; }
-      else { badge.style.display = 'none'; }
-    }
+function tkResolvePdfUrl(t, data) {
+  var linkedRec = t.ticket_type === 'survey'
+    ? (t.linked_job_id ? data.jobMap[t.linked_job_id] : null)
+    : (t.linked_record_id ? data.recMap[t.linked_record_id] : null);
+  return linkedRec ? linkedRec.pdf_url : null;
+}
 
-    var filtered = tickets.filter(ticketMatchesFilter);
+function tkRenderCurrentView(data) {
+  var badge = document.getElementById('sched-ticket-count');
+  var openCount = data.tickets.filter(function(t){ return TICKET_OPEN_STATUSES[t.status]; }).length;
+  if (badge) {
+    if (openCount) { badge.textContent = openCount; badge.style.display = 'inline-block'; }
+    else { badge.style.display = 'none'; }
+  }
+  if (ticketViewMode === 'board') tkRenderBoard(data); else tkRenderTable(data);
+}
 
-    if (!filtered.length) {
-      wrap.innerHTML = emptyState('🎫','No tickets here','Tap "+ Ticket" above to log a service call, PM visit, or job.');
-      return;
-    }
+var PRIORITY_BORDER = {emergency:'var(--rd)', same_day:'var(--am)', routine:'var(--st)'};
+var PRIORITY_RANK = {emergency:0, same_day:1, routine:2};
 
-    var priorityRank = {emergency:0, same_day:1, routine:2};
-    filtered.sort(function(a,b) {
-      var pr = (priorityRank[a.priority]||3) - (priorityRank[b.priority]||3);
+function tkTicketCardHTML(t, data) {
+  var siteName = (t.facility_id && data.facMap[t.facility_id]) || t.site_name_raw || 'Unknown site';
+  var dateStr = t.scheduled_date || t.requested_date || '';
+  var pdfUrl = tkResolvePdfUrl(t, data);
+  return '<div class="ticket-card" style="border-left-color:'+(PRIORITY_BORDER[t.priority]||'var(--mu)')+'" onclick="openEditTicket(\''+esc(t.id)+'\')">' +
+    '<div class="ticket-fac">'+esc(siteName)+'</div>' +
+    '<div class="ticket-num">'+esc(t.ticket_number||'')+' · '+esc(TICKET_TYPE_LABELS[t.ticket_type]||'Service Call')+
+      (t.is_declined ? ' · <span class="tk-badge tk-declined-badge" title="'+esc((t.declined_by?t.declined_by+' — ':'')+(t.declined_reason||''))+'">Declined</span>' : '') +
+    '</div>' +
+    (t.problem_description ? '<div class="ticket-desc">'+esc(t.problem_description)+'</div>' : '') +
+    '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:9px">' +
+      '<span class="tk-badge tpriority-'+esc(t.priority||'routine')+'">'+esc(TICKET_PRIORITY_LABELS[t.priority]||'Routine')+'</span>' +
+      (dateStr ? '<span class="tk-badge" style="background:var(--of);color:var(--tx)">'+esc(dateStr)+(t.time_window?' · '+esc(t.time_window):'')+'</span>' : '') +
+    '</div>' +
+    '<div class="ticket-card-footer">' +
+      (pdfUrl
+        ? '<a href="'+esc(pdfUrl)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--nv);font-weight:700;font-size:11px;text-decoration:none">📄 PDF</a>'
+        : (t.contact_phone ? '<a href="'+telHref(t.contact_phone)+'" onclick="event.stopPropagation()" style="color:var(--nv);font-weight:700;font-size:11px;text-decoration:none">📞 '+esc(t.contact_phone)+'</a>' : '<span></span>')) +
+      tkAvatarHTML(t.assigned_techs) +
+    '</div>' +
+  '</div>';
+}
+
+function tkRenderBoard(data) {
+  var el = document.getElementById('sched-tickets-board');
+  var predicate = tkBuildFilterPredicate(data.facMap);
+  var visible = data.tickets.filter(function(t){ return t.status !== 'canceled' && predicate(t); });
+
+  if (!data.tickets.length) {
+    el.innerHTML = emptyState('🎫','No tickets here','Tap "+ Ticket" above to log a service call, PM visit, or job.');
+    return;
+  }
+
+  el.innerHTML = '<div class="tk-board">' + TICKET_BOARD_COLUMNS.map(function(col) {
+    var colTickets = visible.filter(col.match);
+    colTickets.sort(function(a,b) {
+      var pr = (PRIORITY_RANK[a.priority]||3) - (PRIORITY_RANK[b.priority]||3);
       if (pr !== 0) return pr;
       return (a.scheduled_date||a.requested_date||'').localeCompare(b.scheduled_date||b.requested_date||'');
     });
+    return '<div class="tk-col">' +
+      '<div class="tk-col-hdr"><span class="tk-col-label">'+esc(col.label)+'</span><span class="tk-col-count">'+colTickets.length+'</span></div>' +
+      (colTickets.length ? colTickets.map(function(t){ return tkTicketCardHTML(t, data); }).join('') : '<div class="tk-col-empty">Nothing here</div>') +
+    '</div>';
+  }).join('') + '</div>';
+}
 
-    var priorityBorder = {emergency:'var(--rd)', same_day:'var(--am)', routine:'var(--st)'};
-    var html = '';
-    filtered.forEach(function(t) {
-      var siteName = (t.facility_id && facMap[t.facility_id]) || t.site_name_raw || 'Unknown site';
-      var techs = (t.assigned_techs || []).join(', ');
-      var dateStr = t.scheduled_date || t.requested_date || '';
-      var linkedRec = t.ticket_type === 'survey'
-        ? (t.linked_job_id ? jobMap[t.linked_job_id] : null)
-        : (t.linked_record_id ? recMap[t.linked_record_id] : null);
-      var pdfUrl = linkedRec ? linkedRec.pdf_url : null;
-      html += '<div class="ticket-card" style="border-left-color:'+(priorityBorder[t.priority]||'var(--mu)')+'" onclick="openEditTicket(\''+esc(t.id)+'\')">' +
-        '<div class="ticket-hdr">' +
-          '<div><div class="ticket-fac">'+esc(siteName)+'</div>' +
-          '<div class="ticket-num">'+esc(t.ticket_number||'')+' · '+esc(TICKET_TYPE_LABELS[t.ticket_type]||'Service Call')+'</div></div>' +
-          '<span class="status-badge tstatus-'+esc(t.status||'new')+'">'+esc(TICKET_STATUS_LABELS[t.status]||'New')+'</span>' +
-          (t.is_declined ? ' <span class="status-badge" style="background:#FDEDEC;color:var(--rd)" title="'+esc((t.declined_by?t.declined_by+' — ':'')+(t.declined_reason||''))+'">🚫 Declined</span>' : '') +
-        '</div>' +
-        '<div class="ticket-meta-row">' +
-          '<span class="status-badge tpriority-'+esc(t.priority||'routine')+'">'+esc(TICKET_PRIORITY_LABELS[t.priority]||'Routine')+'</span>' +
-          (dateStr ? '<span class="status-badge" style="background:var(--of);color:var(--tx)">'+esc(dateStr)+(t.time_window?' · '+esc(t.time_window):'')+'</span>' : '') +
-        '</div>' +
-        (t.problem_description ? '<div class="ticket-desc">'+esc(t.problem_description)+'</div>' : '') +
-        '<div class="ticket-footer">' +
-          '<span>'+(techs ? '👷 '+esc(techs) : 'Unassigned')+'</span>' +
-          (pdfUrl
-            ? '<a href="'+esc(pdfUrl)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:var(--nv);font-weight:700;text-decoration:none">📄 View PDF</a>'
-            : (t.contact_phone ? '<a href="'+telHref(t.contact_phone)+'" onclick="event.stopPropagation()" style="color:var(--nv);font-weight:700;text-decoration:none">📞 '+esc(t.contact_phone)+'</a>' : '<span></span>')) +
-        '</div>' +
-      '</div>';
-    });
-    wrap.innerHTML = html;
-  }).catch(function(err) {
-    wrap.innerHTML = emptyState('⚠️','Couldn\'t load tickets', esc(err.message||'Please try again.'));
+function tkSortTable(col) {
+  if (_tkSortCol === col) _tkSortDir *= -1; else { _tkSortCol = col; _tkSortDir = 1; }
+  if (_tkLastData) tkRenderTable(_tkLastData);
+}
+
+function tkRenderTable(data) {
+  var el = document.getElementById('sched-tickets-table');
+  var predicate = tkBuildFilterPredicate(data.facMap);
+  var statusF = document.getElementById('tk-filter-status').value;
+  var visible = data.tickets.filter(function(t) {
+    if (!predicate(t)) return false;
+    if (statusF === 'open') return !!TICKET_OPEN_STATUSES[t.status];
+    if (statusF === 'all') return true;
+    if (statusF === 'dispatched') return !!TICKET_DISPATCHED_GROUP[t.status];
+    if (statusF === 'complete') return t.status === 'complete' || t.status === 'invoiced';
+    return t.status === statusF;
   });
+
+  if (!visible.length) {
+    el.innerHTML = '<div class="tk-table"><div class="tk-empty-state">No tickets match — try clearing filters.</div></div>';
+    return;
+  }
+
+  var sorters = {
+    priority: function(t){ return PRIORITY_RANK[t.priority]||3; },
+    site: function(t){ return ((t.facility_id && data.facMap[t.facility_id]) || t.site_name_raw || '').toLowerCase(); },
+    status: function(t){ return t.status||''; },
+    date: function(t){ return t.scheduled_date||t.requested_date||''; }
+  };
+  var sortFn = sorters[_tkSortCol] || sorters.priority;
+  visible.sort(function(a,b) {
+    var av = sortFn(a), bv = sortFn(b);
+    return (av<bv?-1:av>bv?1:0) * _tkSortDir;
+  });
+
+  var rows = visible.map(function(t) {
+    var siteName = (t.facility_id && data.facMap[t.facility_id]) || t.site_name_raw || 'Unknown site';
+    var dateStr = t.scheduled_date || t.requested_date || '';
+    var pdfUrl = tkResolvePdfUrl(t, data);
+    return '<div class="tk-row" onclick="openEditTicket(\''+esc(t.id)+'\')">' +
+      '<span class="tk-dot" style="background:'+(PRIORITY_BORDER[t.priority]||'var(--mu)')+'"></span>' +
+      '<div><div class="tk-row-site">'+esc(siteName)+'</div><div class="tk-row-num">'+esc(t.ticket_number||'')+'</div></div>' +
+      '<span class="tk-badge tpriority-'+esc(t.priority||'routine')+'">'+esc(TICKET_PRIORITY_LABELS[t.priority]||'Routine')+'</span>' +
+      '<span class="tk-row-desc">'+esc(t.problem_description||'')+'</span>' +
+      tkAvatarHTML(t.assigned_techs) +
+      '<span class="tk-badge tstatus-'+esc(t.status||'new')+'">'+esc(TICKET_STATUS_LABELS[t.status]||'New')+'</span>' +
+      '<span class="tk-row-date">'+esc(dateStr)+'</span>' +
+      (pdfUrl ? '<a href="'+esc(pdfUrl)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="View PDF" style="color:var(--nv);font-size:14px;text-decoration:none">📄</a>' : '<span></span>') +
+    '</div>';
+  }).join('');
+
+  var arrow = function(col){ return _tkSortCol===col ? (_tkSortDir>0?' ▲':' ▼') : ''; };
+  el.innerHTML = '<div class="tk-table">' +
+    '<div class="tk-row tk-row-hdr">' +
+      '<span></span>' +
+      '<span onclick="tkSortTable(\'site\')">Site'+arrow('site')+'</span>' +
+      '<span onclick="tkSortTable(\'priority\')">Priority'+arrow('priority')+'</span>' +
+      '<span>Problem</span><span>Tech</span>' +
+      '<span onclick="tkSortTable(\'status\')">Status'+arrow('status')+'</span>' +
+      '<span onclick="tkSortTable(\'date\')">Date'+arrow('date')+'</span>' +
+      '<span></span>' +
+    '</div>' + rows +
+  '</div>';
 }
 
 function openAddTicket() {
@@ -5746,6 +5915,7 @@ function saveTicket() {
         createNotification(t, 'New ticket assigned: ' + site + ' — ' + problem.slice(0, 80), record.id || '', 'ticket_assigned');
       });
     }
+    _tkLastData = null;
     renderTicketsList();
   }).catch(function(err) {
     showToast('Error: ' + (err.message || 'could not save ticket'));
@@ -5758,6 +5928,7 @@ function deleteTicket() {
   ntdStore.service_tickets.delete(editingTicketId).then(function() {
     closeModal('ticket-modal');
     showToast('Deleted');
+    _tkLastData = null;
     renderTicketsList();
   }).catch(function(err) {
     showToast(err.message || 'Delete failed');
