@@ -1046,6 +1046,10 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
       <label>Assigned Tech(s)</label>
       <div id="tk-tech-chips" style="display:flex;flex-wrap:wrap;gap:6px"></div>
     </div>
+    <div class="fg" id="tk-lead-fg" style="display:none">
+      <label>Lead Tech <span style="font-weight:400;color:var(--mu)">— fills out the paperwork; others just get status &amp; directions</span></label>
+      <select id="tk-lead"></select>
+    </div>
     <div class="fg">
       <label>Status</label>
       <select id="tk-status">
@@ -5482,6 +5486,7 @@ function newTicketNumber() {
 
 // ── ASSIGNED TECH(S) — multi-select chips ────────────────────────────────
 var _tkTechSelected = [];
+var _tkLeadTech = '';
 function tkRenderTechChips() {
   var wrap = document.getElementById('tk-tech-chips');
   if (!wrap) return;
@@ -5490,12 +5495,29 @@ function tkRenderTechChips() {
     var active = _tkTechSelected.indexOf(t) > -1;
     return '<span onclick="tkToggleTech(\''+t.replace(/'/g,"\\'")+'\')" style="cursor:pointer;padding:6px 12px;border-radius:16px;font-size:12px;font-weight:600;border:1.5px solid '+(active?'var(--nv)':'var(--bd)')+';background:'+(active?'var(--nv)':'#fff')+';color:'+(active?'#fff':'var(--tx)')+'">'+esc(t)+(active?' &times;':'')+'</span>';
   }).join('');
+  tkRenderLeadSelect();
 }
 function tkToggleTech(name) {
   var idx = _tkTechSelected.indexOf(name);
   if (idx > -1) _tkTechSelected.splice(idx, 1);
   else _tkTechSelected.push(name);
   tkRenderTechChips();
+}
+function tkRenderLeadSelect() {
+  var fg = document.getElementById('tk-lead-fg');
+  var sel = document.getElementById('tk-lead');
+  if (!fg || !sel) return;
+  if (_tkTechSelected.length < 2) {
+    fg.style.display = 'none';
+    _tkLeadTech = _tkTechSelected[0] || '';
+    return;
+  }
+  if (_tkTechSelected.indexOf(_tkLeadTech) === -1) _tkLeadTech = _tkTechSelected[0];
+  fg.style.display = 'block';
+  sel.innerHTML = _tkTechSelected.map(function(t) {
+    return '<option value="'+esc(t)+'"'+(t===_tkLeadTech?' selected':'')+'>'+esc(t)+'</option>';
+  }).join('');
+  sel.onchange = function(){ _tkLeadTech = sel.value; };
 }
 
 function renderTicketFilterRow() {
@@ -5612,6 +5634,7 @@ function openAddTicket() {
   document.getElementById('tk-date').value = fmtDateISO(new Date());
   document.getElementById('tk-window').value = '';
   _tkTechSelected = [];
+  _tkLeadTech = '';
   tkRenderTechChips();
   document.getElementById('tk-status').value = 'new';
   document.getElementById('tk-notes').value = '';
@@ -5646,6 +5669,7 @@ function openEditTicket(id) {
     document.getElementById('tk-date').value = t.scheduled_date || t.requested_date || '';
     document.getElementById('tk-window').value = t.time_window || '';
     _tkTechSelected = (t.assigned_techs || []).slice();
+    _tkLeadTech = t.lead_tech || (t.assigned_techs && t.assigned_techs[0]) || '';
     tkRenderTechChips();
     document.getElementById('tk-status').value = t.status || 'new';
     document.getElementById('tk-notes').value = t.dispatcher_notes || '';
@@ -5677,6 +5701,7 @@ function saveTicket() {
     scheduled_date: document.getElementById('tk-date').value,
     time_window: document.getElementById('tk-window').value.trim(),
     assigned_techs: techs,
+    lead_tech: techs.length ? (techs.indexOf(_tkLeadTech) > -1 ? _tkLeadTech : techs[0]) : '',
     status: document.getElementById('tk-status').value,
     dispatcher_notes: document.getElementById('tk-notes').value.trim(),
     entered_by: document.getElementById('tk-by').value.trim()

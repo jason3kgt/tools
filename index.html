@@ -48,6 +48,11 @@
 </div>
 <div class="wrap">
 
+  <div id="tech-view-banner" style="display:none;background:#EEF3FB;border:1.5px solid #1B3A6B;border-radius:12px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#1B3A6B;display:none;align-items:center;justify-content:space-between;gap:10px">
+    <span>&#128295; Showing simplified tech view</span>
+    <button type="button" onclick="exitTechView()" style="background:#1B3A6B;color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;flex-shrink:0">Show All Tools</button>
+  </div>
+
   <div id="update_banner">
     <span>&#128260; New version available</span>
     <button ontouchend="doUpdate()" onclick="doUpdate()">Update Now</button>
@@ -219,6 +224,10 @@ function showMoreFieldTools() {
   document.getElementById('field-tools-more').style.display = 'block';
   document.getElementById('more-field-tools-btn').style.display = 'none';
 }
+function exitTechView() {
+  try { localStorage.removeItem('ntdFieldTechName'); } catch(e) {}
+  window.location.reload();
+}
 (function(){
   var isTech = false;
   try { isTech = !!localStorage.getItem('ntdFieldTechName'); } catch(e) {}
@@ -229,6 +238,8 @@ function showMoreFieldTools() {
     var mgmt = document.getElementById('management-section');
     if (sales) sales.style.display = 'none';
     if (mgmt) mgmt.style.display = 'none';
+    var banner = document.getElementById('tech-view-banner');
+    if (banner) banner.style.display = 'flex';
   }
 })();
 </script>

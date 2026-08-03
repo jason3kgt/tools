@@ -335,6 +335,8 @@ function mjRenderJobs() {
           var tool = TICKET_TOOL_MAP[t.ticket_type] || 'service-call.html';
           var mapsQuery = (fac && fac.address) ? (fac.name + ', ' + fac.address + (fac.city ? ', ' + fac.city : '')) : siteName;
           var mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(mapsQuery);
+          var isMultiTech = (t.assigned_techs || []).length > 1;
+          var isLead = !isMultiTech || !t.lead_tech || t.lead_tech === name;
           html += '<div class="job-card" style="border-left-color:'+(priorityBorder[t.priority]||'var(--mu)')+'">' +
             '<div class="job-card-body">' +
               '<div class="job-hdr">' +
@@ -345,10 +347,12 @@ function mjRenderJobs() {
               '<div class="job-meta-row">' +
                 '<span class="status-badge tpriority-'+esc(t.priority||'routine')+'">'+esc(TICKET_PRIORITY_LABELS[t.priority]||'Routine')+'</span>' +
                 (dateStr ? '<span class="status-badge" style="background:var(--of);color:var(--tx)">'+esc(dateStr)+(t.time_window?' · '+esc(t.time_window):'')+'</span>' : '') +
+                (isMultiTech ? '<span class="status-badge" style="background:var(--of);color:var(--tx)">👥 '+esc((t.assigned_techs||[]).join(', '))+'</span>' : '') +
               '</div>' +
               (t.problem_description ? '<div class="job-desc">'+esc(t.problem_description)+'</div>' : '') +
+              (isMultiTech && !isLead ? '<div class="job-desc" style="color:var(--mu);font-style:italic">Lead: '+esc(t.lead_tech)+' — they\'ll fill out the paperwork on this one.</div>' : '') +
               '<div class="job-actions">' +
-                '<button type="button" class="btn btn-start" onclick="location.href=\''+tool+'?ticket='+esc(t.id)+'\'">Start Job</button>' +
+                (isLead ? '<button type="button" class="btn btn-start" onclick="location.href=\''+tool+'?ticket='+esc(t.id)+'\'">Start Job</button>' : '') +
                 (t.status !== 'dispatched' && t.status !== 'en_route' ? '<button type="button" class="btn btn-status" onclick="mjSetStatus(\''+esc(t.id)+'\',\'en_route\')">On My Way</button>' : '') +
                 '<a class="btn btn-status" href="'+esc(mapsUrl)+'" target="_blank" rel="noopener">Directions</a>' +
                 '<button type="button" class="btn btn-decline" onclick="mjDeclineJob(\''+esc(t.id)+'\')">Can\'t Make It</button>' +
@@ -401,6 +405,7 @@ function mjDeclineJob(ticketId) {
       id: ticketId,
       status: 'new',
       assigned_techs: [],
+      lead_tech: '',
       dispatcher_notes: notes,
       is_declined: true,
       declined_by: name || '',
