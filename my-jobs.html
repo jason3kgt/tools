@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="My Jobs">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="theme-color" content="#1B3A6B">
+<title>NTD Mechanical - My Jobs</title>
+<script src="ntdStore.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{--nv:#1B3A6B;--st:#3C6E93;--or:#E8531A;--gn:#1E7A3E;--am:#C67F0A;--rd:#C0392B;--bd:#E4DDD0;--of:#F1ECE2;--tx:#242019;--mu:#7A7263;--bg:#F6F2EA;--nv2:#2C4E85;--nv-deep:#0F2647;--pu:#6D3FA0;--nv-grad:linear-gradient(135deg,var(--nv-deep) 0%,var(--nv) 55%,var(--nv2) 100%);--grid-tex:repeating-linear-gradient(0deg,rgba(255,255,255,.05) 0,rgba(255,255,255,.05) 1px,transparent 1px,transparent 28px),repeating-linear-gradient(90deg,rgba(255,255,255,.05) 0,rgba(255,255,255,.05) 1px,transparent 1px,transparent 28px);}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--tx);font-size:14px;padding-bottom:80px}
+.hdr{background:var(--nv-grad),var(--grid-tex);background-blend-mode:normal,overlay;padding:10px 14px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.hl{width:42px;height:42px;object-fit:contain;border-radius:6px;background:#fff;padding:2px;flex-shrink:0}
+.ht h1{font-size:15px;font-weight:700;color:#fff}.ht p{font-size:10px;color:rgba(255,255,255,.55);margin-top:1px}
+.tabs{background:var(--nv);display:flex;border-top:1px solid rgba(255,255,255,.1);overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:1;min-width:55px;padding:8px 4px 10px;text-align:center;font-size:9px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:rgba(255,255,255,.45);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit;outline:none;-webkit-appearance:none;transition:color .18s,border-color .18s}
+.tab.on{color:#fff;border-bottom-color:var(--or)}
+.ti{font-size:16px;display:block;margin-bottom:2px}
+.pg{display:none;padding:12px;max-width:700px;margin:0 auto}.pg.on{display:block}
+.card{background:#fff;border-radius:16px;border:1px solid var(--bd);margin-bottom:12px;overflow:hidden;box-shadow:0 3px 14px rgba(36,32,25,.09)}
+.ch{background:var(--nv-grad);padding:10px 14px;display:flex;align-items:center;gap:8px}
+.ch h2{font-size:11px;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.05em}
+.cn{background:var(--or);color:#fff;font-size:10px;font-weight:700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cb{padding:12px 14px}
+.fg{display:flex;flex-direction:column;gap:3px;margin-bottom:10px}.fg:last-child{margin-bottom:0}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.r3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
+label{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--mu)}
+input[type=text],select,textarea{width:100%;padding:9px 11px;border:1.5px solid var(--bd);border-radius:9px;font-family:inherit;font-size:14px;color:var(--tx);background:var(--of);-webkit-appearance:none}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--st);background:#fff}
+textarea{resize:vertical;min-height:70px}
+/* Visit banner */
+.vbanner{border-radius:12px;padding:14px;margin-bottom:12px;border:2px solid var(--nv);background:#EEF1F7}
+.vb-title{font-size:14px;font-weight:700;color:var(--nv);margin-bottom:4px}
+.vb-sub{font-size:12px;color:var(--mu);line-height:1.5}
+.vb-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.vb-tag{font-size:10px;font-weight:700;padding:3px 9px;border-radius:8px;background:var(--nv);color:#fff}
+.vb-tag.tunnel{background:var(--or)}
+.vb-tag.ann{background:var(--gn)}
+.vb-tag.vav{background:var(--st)}
+/* Equipment accordion */
+.er{border:1.5px solid var(--bd);border-radius:13px;margin-bottom:10px;overflow:hidden}
+.er.ok{border-color:#86EFAC}.er.wn{border-color:#FCD34D}.er.hi{border-color:#FCA5A5}
+.eh{background:var(--of);padding:10px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--bd)}
+.en{background:var(--nv);color:#fff;font-size:11px;font-weight:700;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.et{font-size:14px;font-weight:600;color:var(--nv);flex:1}
+.esub{font-size:10px;color:var(--mu)}
+.bdg{font-size:10px;font-weight:700;padding:3px 9px;border-radius:10px;background:var(--of);color:var(--mu);border:1px solid var(--bd)}
+.bdg.ok{background:#E8F5EC;color:var(--gn);border-color:var(--gn)}
+.bdg.wn{background:#FFF3E0;color:var(--am);border-color:var(--am)}
+.bdg.hi{background:#FDEDEC;color:var(--rd);border-color:var(--rd)}
+.eb{padding:0}
+/* Accordion sections */
+.ab{width:100%;background:none;border:none;border-top:1px solid var(--bd);padding:10px 14px;font-family:inherit;font-size:12px;font-weight:600;color:var(--st);text-align:left;cursor:pointer;display:flex;justify-content:space-between;align-items:center;touch-action:manipulation}
+.ac{display:none;padding:0 14px 12px}.ac.on{display:block}
+.sh{font-size:10px;font-weight:700;color:var(--nv);text-transform:uppercase;letter-spacing:.06em;padding:7px 0 6px;border-bottom:1px solid var(--bd);margin-bottom:9px;margin-top:4px}
+/* G/F/P rows */
+.ir{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.il{font-size:13px;font-weight:500;color:var(--tx);min-width:150px;flex-shrink:0}
+.ib{padding:6px 12px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid var(--bd);background:var(--of);color:var(--mu);font-family:inherit;touch-action:manipulation;min-width:38px;text-align:center}
+.ib.g{background:#E8F5EC;border-color:var(--gn);color:var(--gn)}
+.ib.f{background:#FFF3E0;border-color:var(--am);color:var(--am)}
+.ib.p{background:#FDEDEC;border-color:var(--rd);color:var(--rd)}
+/* Readings */
+.rvr{display:flex;align-items:center;gap:8px;font-size:12px;flex-wrap:wrap;margin-bottom:7px}
+.rvr label{text-transform:none;letter-spacing:0;font-weight:500;color:var(--mu);font-size:12px;min-width:0}
+.rvr input{width:70px;padding:6px;font-size:13px;font-weight:600;text-align:center;border:1.5px solid var(--bd);border-radius:7px;background:var(--of);font-family:monospace;color:var(--tx)}
+.rvr input:focus{outline:none;border-color:var(--st);background:#fff}
+.qi{width:52px;padding:6px 8px;font-size:12px;border:1.5px solid var(--bd);border-radius:7px;background:var(--of);font-family:inherit;color:var(--tx);text-align:center}
+.si{width:90px;padding:6px 8px;font-size:12px;border:1.5px solid var(--bd);border-radius:7px;background:var(--of);font-family:inherit;color:var(--tx)}
+.qi:focus,.si:focus{outline:none;border-color:var(--st);background:#fff}
+/* Buttons */
+.dlb{display:block;width:100%;padding:13px;border-radius:10px;font-size:14px;font-weight:700;background:var(--or);color:#fff;box-shadow:0 2px 8px rgba(232,83,26,.3);border:none;margin-top:8px;font-family:inherit;cursor:pointer;touch-action:manipulation;transition:transform .1s}
+.dlb:active{opacity:.85;transform:scale(.98)}
+.addb{display:block;width:100%;padding:11px;border-radius:10px;font-size:13px;font-weight:600;border:1.5px solid var(--nv);background:#fff;color:var(--nv);margin-top:8px;font-family:inherit;cursor:pointer;touch-action:manipulation}
+.load-btn{width:100%;padding:13px;border-radius:10px;font-size:14px;font-weight:700;background:var(--nv);color:#fff;border:none;font-family:inherit;cursor:pointer;touch-action:manipulation;margin-bottom:10px}
+.load-btn:active{opacity:.85}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
+.empty{text-align:center;padding:24px 12px;color:var(--mu);font-size:13px}
+/* Site chip */
+.site-chip{display:flex;align-items:center;gap:8px;background:#E8F0FA;border:1.5px solid var(--nv);border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:12px;font-weight:600;color:var(--nv)}
+.site-chip .clr{background:none;border:none;color:var(--rd);font-size:15px;cursor:pointer;font-weight:700;margin-left:auto;padding:0;font-family:inherit}
+/* Condition key */
+.key-g{background:#E8F5EC;border:2px solid var(--gn);border-radius:10px;padding:10px;text-align:center}
+.key-f{background:#FFF3E0;border:2px solid var(--am);border-radius:10px;padding:10px;text-align:center}
+.key-p{background:#FDEDEC;border:2px solid var(--rd);border-radius:10px;padding:10px;text-align:center}
+/* Summary stats */
+.sum-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.sum-stat{background:var(--of);border:1.5px solid var(--bd);border-radius:10px;padding:10px;text-align:center}
+.sum-stat.ok{border-color:#86EFAC;background:#E8F5EC}
+.sum-stat.wn{border-color:#FCD34D;background:#FFF3E0}
+.sum-stat.hi{border-color:#FCA5A5;background:#FDEDEC}
+.snum{font-size:24px;font-weight:800;color:var(--nv);line-height:1}
+.sum-stat.ok .snum{color:var(--gn)}.sum-stat.wn .snum{color:var(--am)}.sum-stat.hi .snum{color:var(--rd)}
+.slbl{font-size:9px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--mu);margin-top:2px}
+/* Summary table */
+.at{width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed}
+.at th{background:var(--nv);color:#fff;padding:7px 8px;text-align:left;font-size:9px;letter-spacing:.04em;text-transform:uppercase;font-weight:600}
+.at td{padding:7px 8px;border-bottom:1px solid var(--bd)}.at tr:nth-child(even) td{background:var(--of)}.at tr:last-child td{border-bottom:none}
+.rp{display:inline-block;padding:2px 7px;border-radius:8px;font-size:9px;font-weight:700;text-transform:uppercase}
+.rok{background:#E8F5EC;color:var(--gn)}.rw{background:#FFF3E0;color:var(--am)}.rh{background:#FDEDEC;color:var(--rd)}
+/* Modal */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:flex-end;justify-content:center}
+.modal.on{display:flex}
+.modal-sheet{background:#fff;border-radius:20px 20px 0 0;padding:20px 16px 32px;width:100%;max-width:500px;max-height:80vh;overflow-y:auto}
+.modal-title{font-size:16px;font-weight:700;color:var(--nv);margin-bottom:14px}
+.site-row{padding:12px;border:1.5px solid var(--bd);border-radius:10px;margin-bottom:8px;cursor:pointer;touch-action:manipulation}
+.site-row:active{background:var(--of)}
+.site-row h3{font-size:14px;font-weight:600;color:var(--nv)}
+.site-row p{font-size:11px;color:var(--mu);margin-top:3px}
+.modal-cancel{width:100%;padding:12px;border-radius:10px;font-size:14px;font-weight:600;background:var(--of);color:var(--mu);border:1.5px solid var(--bd);font-family:inherit;cursor:pointer;margin-top:8px;touch-action:manipulation}
+/* Tunnel flag */
+.tunnel-flag{font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;background:var(--or);color:#fff;margin-left:4px}
+.annual-flag{font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;background:var(--gn);color:#fff;margin-left:4px}
+/* Piping */
+.pi{border:1.5px solid var(--bd);border-radius:12px;margin-bottom:10px;overflow:hidden}
+.ph{background:var(--of);padding:9px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--bd)}
+.pn{background:var(--st);color:#fff;font-size:10px;font-weight:700;width:19px;height:19px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pb{padding:10px 12px}
+.tab{background:none;border:none;font-family:inherit;outline:none;-webkit-appearance:none}
+
+/* Photos */
+.photo-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.photo-item{display:flex;flex-direction:column;border-radius:10px;overflow:hidden;border:1.5px solid var(--bd)}
+.photo-thumb{position:relative;aspect-ratio:4/3;background:var(--of)}
+.photo-thumb.backed:after{content:'✓';position:absolute;bottom:5px;left:5px;background:rgba(30,122,62,.9);color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;line-height:1}
+.photo-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-del{position:absolute;top:5px;right:5px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;touch-action:manipulation}
+.photo-caption{width:100%;padding:6px 8px;font-size:11px;border:none;border-top:1.5px solid var(--bd);font-family:inherit;color:var(--tx);background:#fff}
+.photo-caption:focus{outline:none;background:var(--of)}
+.photo-add-btn{display:block;width:100%;padding:11px;border-radius:10px;font-size:13px;font-weight:600;border:1.5px dashed var(--nv);background:#fff;color:var(--nv);text-align:center;cursor:pointer;touch-action:manipulation}
+/* ── OFFLINE SYNC PILL ── */
+.ntd-sync-pill{position:fixed;top:calc(env(safe-area-inset-top) + 8px);right:8px;z-index:500;display:none;align-items:center;gap:6px;background:var(--am,#D4820A);color:#fff;font-size:11px;font-weight:700;padding:7px 12px;border-radius:20px;box-shadow:0 3px 10px rgba(0,0,0,.22);cursor:pointer;touch-action:manipulation;font-family:inherit;border:none}
+.ntd-sync-pill.on{display:flex}
+.ntd-sync-pill .ntd-sync-dot{width:7px;height:7px;border-radius:50%;background:#fff;animation:ntdSyncPulse 1.4s ease-in-out infinite;flex-shrink:0}
+@keyframes ntdSyncPulse{0%,100%{opacity:1}50%{opacity:.35}}
+</style>
+<style>
+/* ── MY JOBS specific additions ── */
+.mj-hero{padding:16px 14px 4px}
+.mj-greet{font-size:18px;font-weight:700;color:#fff}
+.mj-sub{font-size:12px;color:rgba(255,255,255,.65);margin-top:2px}
+.mj-switch{background:none;border:1.5px solid rgba(255,255,255,.35);color:#fff;font-size:11px;font-weight:700;padding:5px 11px;border-radius:20px;font-family:inherit;cursor:pointer;touch-action:manipulation;margin-top:10px}
+.mj-wrap{padding:14px;max-width:700px;margin:0 auto}
+.mj-section-lbl{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mu);margin:18px 4px 8px}
+.mj-section-lbl:first-child{margin-top:0}
+.job-card{background:#fff;border-radius:14px;border:1px solid var(--bd);border-left:4px solid var(--mu);margin-bottom:12px;box-shadow:0 3px 14px rgba(36,32,25,.09);overflow:hidden}
+.job-card-body{padding:14px 16px}
+.job-hdr{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px}
+.job-site{font-size:15px;font-weight:700;color:var(--nv)}
+.job-num{font-size:10px;color:var(--mu);font-weight:700;margin-top:2px}
+.job-meta-row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.job-desc{font-size:13px;color:var(--tx);line-height:1.5;margin-bottom:10px}
+.job-actions{display:flex;gap:8px;flex-wrap:wrap}
+.job-actions .btn{flex:1;min-width:110px;padding:11px;border-radius:9px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;text-align:center;border:none}
+.btn-start{background:var(--or);color:#fff}
+.btn-status{background:var(--of);color:var(--nv);border:1.5px solid var(--bd) !important}
+.status-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:8px;display:inline-block}
+.tpriority-emergency{background:#FDEDEC;color:var(--rd)}
+.tpriority-same_day{background:#FFF3E0;color:var(--am)}
+.tpriority-routine{background:#EEF3FB;color:var(--st)}
+.tstatus-new{background:#FFF3E0;color:var(--am)}
+.tstatus-scheduled{background:#EEF3FB;color:var(--st)}
+.tstatus-dispatched{background:#F3EBFA;color:var(--pu)}
+.tstatus-en_route{background:#FEF0EA;color:var(--or)}
+.tstatus-on_site{background:#E8F0FA;color:var(--nv)}
+.tstatus-complete{background:#E6F4EA;color:var(--gn)}
+.tstatus-needs_follow_up{background:#FDEDEC;color:var(--rd)}
+.picker-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.picker-tile{padding:20px 10px;border-radius:14px;border:1.5px solid var(--bd);background:#fff;text-align:center;font-size:14px;font-weight:700;color:var(--nv);cursor:pointer;touch-action:manipulation}
+.picker-tile:active{background:var(--of)}
+.fallback-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fallback-tile{background:#fff;border-radius:14px;border:1px solid var(--bd);padding:16px 12px;text-align:center;text-decoration:none;color:inherit;box-shadow:0 3px 14px rgba(36,32,25,.09)}
+.fallback-tile .ti{font-size:26px;display:block;margin-bottom:6px}
+.fallback-tile .tn{font-size:12px;font-weight:700;color:var(--nv)}
+</style>
+</head>
+<body style="padding-bottom:32px">
+
+<header class="hdr" style="flex-direction:column;align-items:stretch;gap:0" id="mj-header">
+  <div style="display:flex;align-items:center;gap:10px">
+    <a href="index.html" title="Home" style="display:block;flex-shrink:0"><img src="icon-192.png" class="hl" alt="NTD"></a>
+    <div class="ht" style="flex:1"><h1>NTD Mechanical</h1><p>My Jobs</p></div>
+  </div>
+  <div class="mj-hero" id="mj-greet-area" style="display:none">
+    <div class="mj-greet" id="mj-greet-text"></div>
+    <div class="mj-sub">Tap a job to get started, or switch who's logged in below.</div>
+    <button type="button" class="mj-switch" onclick="mjShowPicker()">Switch Tech</button>
+  </div>
+</header>
+
+<div class="mj-wrap">
+
+<div id="mj-picker-area">
+  <p style="font-size:13px;color:var(--mu);margin:18px 4px;line-height:1.5">Who's using this device?</p>
+  <div class="picker-grid" id="mj-picker-grid"></div>
+</div>
+
+<div id="mj-jobs-area" style="display:none">
+  <div class="mj-section-lbl">Today's Jobs</div>
+  <div id="mj-jobs-wrap"></div>
+
+  <div class="mj-section-lbl">New / Unscheduled Call</div>
+  <div class="fallback-grid">
+    <a class="fallback-tile" href="service-call.html"><span class="ti">&#128295;</span><span class="tn">Service Call</span></a>
+    <a class="fallback-tile" href="pm-checklist.html"><span class="ti">&#128203;</span><span class="tn">PM Visit</span></a>
+    <a class="fallback-tile" href="startup-checklist.html"><span class="ti">&#9989;</span><span class="tn">Startup</span></a>
+    <a class="fallback-tile" href="equipment-survey.html"><span class="ti">&#128221;</span><span class="tn">Equipment Survey</span></a>
+  </div>
+</div>
+
+</div>
+<script>
+function esc(s){ return (s||'').toString().replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+var TICKET_TYPE_LABELS = {service_call:'Service Call', pm_visit:'PM Visit', startup:'Startup', survey:'Equipment Survey'};
+var TICKET_PRIORITY_LABELS = {emergency:'Emergency', same_day:'Same Day', routine:'Routine'};
+var TICKET_STATUS_LABELS = {
+  new:'New', scheduled:'Scheduled', dispatched:'Dispatched', en_route:'En Route',
+  on_site:'On Site', complete:'Complete', needs_follow_up:'Needs Follow-Up',
+  invoiced:'Invoiced', canceled:'Canceled'
+};
+var TICKET_TOOL_MAP = {
+  service_call:'service-call.html',
+  pm_visit:'pm-checklist.html',
+  startup:'startup-checklist.html',
+  survey:'equipment-survey.html'
+};
+var TICKET_OPEN_STATUSES = {new:1, scheduled:1, dispatched:1, en_route:1, on_site:1, needs_follow_up:1};
+
+function mjGetTech() {
+  try { return localStorage.getItem('ntdFieldTechName') || null; } catch(e) { return null; }
+}
+function mjSetTech(name) {
+  try { localStorage.setItem('ntdFieldTechName', name); } catch(e) {}
+}
+
+function mjShowPicker() {
+  document.getElementById('mj-jobs-area').style.display = 'none';
+  document.getElementById('mj-greet-area').style.display = 'none';
+  document.getElementById('mj-picker-area').style.display = 'block';
+  mjRenderPicker();
+}
+
+function mjRenderPicker() {
+  var grid = document.getElementById('mj-picker-grid');
+  var techs = (typeof window.NTD_FIELD_TECHS !== 'undefined') ? window.NTD_FIELD_TECHS : [];
+  grid.innerHTML = techs.map(function(n) {
+    return '<button type="button" class="picker-tile" onclick="mjPickTech(\'' + esc(n).replace(/'/g,"\\'") + '\')">' + esc(n) + '</button>';
+  }).join('');
+}
+
+function mjPickTech(name) {
+  mjSetTech(name);
+  mjShowJobs();
+}
+
+function mjShowJobs() {
+  var name = mjGetTech();
+  if (!name) { mjShowPicker(); return; }
+  document.getElementById('mj-picker-area').style.display = 'none';
+  document.getElementById('mj-jobs-area').style.display = 'block';
+  document.getElementById('mj-greet-area').style.display = 'block';
+  document.getElementById('mj-greet-text').textContent = 'Hi, ' + name.split(' ')[0] + '!';
+  mjRenderJobs();
+}
+
+function mjRenderJobs() {
+  var wrap = document.getElementById('mj-jobs-wrap');
+  var name = mjGetTech();
+  if (typeof ntdStore === 'undefined' || !ntdStore.service_tickets) {
+    wrap.innerHTML = '<div class="empty">Dispatch board not available right now.</div>';
+    return;
+  }
+  wrap.innerHTML = '<div class="empty">Loading…</div>';
+
+  ntdStore.service_tickets.list().then(function(tickets) {
+    var mine = (tickets || []).filter(function(t) {
+      return TICKET_OPEN_STATUSES[t.status] && (t.assigned_techs || []).indexOf(name) > -1;
+    });
+
+    if (!mine.length) {
+      wrap.innerHTML = '<div class="empty">Nothing assigned to you right now. Check "New / Unscheduled Call" below if you\'re on-site for something not yet on the board.</div>';
+      return;
+    }
+
+    var priorityRank = {emergency:0, same_day:1, routine:2};
+    mine.sort(function(a,b) {
+      var pr = (priorityRank[a.priority]||3) - (priorityRank[b.priority]||3);
+      if (pr !== 0) return pr;
+      return (a.scheduled_date||a.requested_date||'').localeCompare(b.scheduled_date||b.requested_date||'');
+    });
+
+    var facIds = mine.map(function(t){ return t.facility_id; }).filter(Boolean);
+    ntdStore.facilities.list().then(function(facs) {
+      var facMap = {};
+      (facs||[]).forEach(function(f){ facMap[f.id] = f.name; });
+
+      var priorityBorder = {emergency:'var(--rd)', same_day:'var(--am)', routine:'var(--st)'};
+      var html = '';
+      mine.forEach(function(t) {
+        var siteName = (t.facility_id && facMap[t.facility_id]) || t.site_name_raw || 'Unknown site';
+        var dateStr = t.scheduled_date || t.requested_date || '';
+        var tool = TICKET_TOOL_MAP[t.ticket_type] || 'service-call.html';
+        html += '<div class="job-card" style="border-left-color:'+(priorityBorder[t.priority]||'var(--mu)')+'">' +
+          '<div class="job-card-body">' +
+            '<div class="job-hdr">' +
+              '<div><div class="job-site">'+esc(siteName)+'</div>' +
+              '<div class="job-num">'+esc(t.ticket_number||'')+' · '+esc(TICKET_TYPE_LABELS[t.ticket_type]||'Service Call')+'</div></div>' +
+              '<span class="status-badge tstatus-'+esc(t.status||'new')+'">'+esc(TICKET_STATUS_LABELS[t.status]||'New')+'</span>' +
+            '</div>' +
+            '<div class="job-meta-row">' +
+              '<span class="status-badge tpriority-'+esc(t.priority||'routine')+'">'+esc(TICKET_PRIORITY_LABELS[t.priority]||'Routine')+'</span>' +
+              (dateStr ? '<span class="status-badge" style="background:var(--of);color:var(--tx)">'+esc(dateStr)+(t.time_window?' · '+esc(t.time_window):'')+'</span>' : '') +
+            '</div>' +
+            (t.problem_description ? '<div class="job-desc">'+esc(t.problem_description)+'</div>' : '') +
+            '<div class="job-actions">' +
+              '<button type="button" class="btn btn-start" onclick="location.href=\''+tool+'?ticket='+esc(t.id)+'\'">Start Job</button>' +
+              (t.status !== 'dispatched' && t.status !== 'en_route' ? '<button type="button" class="btn btn-status" onclick="mjSetStatus(\''+esc(t.id)+'\',\'en_route\')">On My Way</button>' : '') +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      });
+      wrap.innerHTML = html;
+    });
+  }).catch(function(err) {
+    wrap.innerHTML = '<div class="empty">Couldn\'t load your jobs — ' + esc(err.message||'please try again') + '</div>';
+  });
+}
+
+function mjSetStatus(ticketId, status) {
+  if (typeof ntdStore === 'undefined') return;
+  ntdStore.service_tickets.upsert({ id: ticketId, status: status }).then(function() {
+    mjRenderJobs();
+  }).catch(function(err) {
+    alert('Could not update status: ' + (err.message || ''));
+  });
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+(function mjInit() {
+  var name = mjGetTech();
+  if (name) mjShowJobs(); else mjShowPicker();
+})();
+</script>
+</body>
+</html>

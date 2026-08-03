@@ -266,6 +266,17 @@ window.NTD_FILTER_SIZES = [
   'Washable','HEPA','Bag Filter'
 ];
 
+// ── FIELD TECH ROSTER ────────────────────────────────────────────────────────
+// Single source of truth for the assignable field-tech list. Mirrors the
+// roster hardcoded in ntd-hub.html's Assigned Tech dropdowns (Calendar entry
+// + Service Ticket modals) — keep both in sync by hand if someone joins/
+// leaves, same maintenance pattern as NTD_FILTER_SIZES and the PM/APM/
+// Superintendent rosters. Used by my-jobs.html for the tech identity picker.
+window.NTD_FIELD_TECHS = [
+  'Carlos Mendoza','Conner Rouse','Diego Preciado','Geoff Grider',
+  'Nicholas Hosack','Raul Lopez','Scott Adkins','Tristan Black'
+];
+
 // ── FACILITY MATCHING ──────────────────────────────────────────────────────
 // Single source of truth for "which facility is this?" — used by every tool
 // instead of each one rolling its own match logic. Normalizes common naming
@@ -469,7 +480,7 @@ var _migrate = {
 var _exportImport = {
   exportAll: function() {
     var tables = ['facilities','equipment','jobs','job_units','startup_records',
-                  'pm_records','pm_unit_results','pm_quotes','service_quotes','documents','team_calendar','service_tickets'];
+                  'pm_records','pm_unit_results','pm_quotes','service_quotes','documents','team_calendar','service_tickets','service_records'];
     var promises = tables.map(function(t) { return _sb.list(t); });
     return Promise.all(promises).then(function(results) {
       var blob = { _schema_version: 2, _exported_at: new Date().toISOString() };
@@ -481,7 +492,7 @@ var _exportImport = {
   importAll: function(blob) {
     if (!blob || typeof blob !== 'object') throw new Error('Invalid export file.');
     var tables = ['facilities','equipment','jobs','job_units','startup_records',
-                  'pm_records','pm_unit_results','pm_quotes','service_quotes','documents','team_calendar','service_tickets'];
+                  'pm_records','pm_unit_results','pm_quotes','service_quotes','documents','team_calendar','service_tickets','service_records'];
     var promises = [];
     tables.forEach(function(t) {
       if (!Array.isArray(blob[t])) return;
@@ -663,6 +674,7 @@ var ntdStore = {
   documents:      _makeStore('documents'),
   team_calendar:  _makeStore('team_calendar'),
   service_tickets:_makeStore('service_tickets'),
+  service_records:_makeStore('service_records'),
   notifications:  _makeStore('notifications'),
   migrate:        _migrate,
   matchFacility:  ntdFacilityMatch,
@@ -724,15 +736,42 @@ var ntdStore = {
   },
   uploadPDF: function(params) {
     return this.uploadFile(Object.assign({}, params, { mimeType: 'application/pdf', ext: 'pdf' }));
+  },
+
+  // ── TICKET COMPLETION HELPER ────────────────────────────────────────────
+  // Called by a field tool once it's finished submitting its own record, when
+  // the tool was opened from the Hub's dispatch board via ?ticket=<id>. Single
+  // shared spot for "close the loop back to the ticket" so service-call.html,
+  // pm-checklist.html, startup-checklist.html, and equipment-survey.html don't
+  // each carry their own copy of this logic. patch can include any
+  // service_tickets column — status, facility_id, linked_job_id,
+  // linked_record_id, resolution_summary, follow_up_needed, follow_up_note.
+  completeTicket: function(ticketId, patch) {
+    if (!ticketId || !this.service_tickets) return Promise.resolve(null);
+    var record = Object.assign({ id: ticketId, status: 'complete' }, patch || {});
+    return this.service_tickets.upsert(record).catch(function(err) {
+      console.warn('[NTD] completeTicket failed (field record was still saved):', err.message || err);
+      return null;
+    });
   }
 };
+
+// ── TICKET QUERY-PARAM HELPER ─────────────────────────────────────────────
+// Reads ?ticket=<id> from the current page URL. Every field tool that can be
+// opened from the Hub's dispatch board (via my-jobs.html) calls this once on
+// load to find out if it should pre-fill from and report back to a ticket.
+function ntdGetTicketIdFromUrl() {
+  try {
+    return new URLSearchParams(window.location.search).get('ticket') || null;
+  } catch (e) { return null; }
+}
 
 // ── BACKWARDS COMPATIBILITY ───────────────────────────────────────────────────
 // The old localStorage store used collection-based filtering
 // This patch ensures filterFn still works on list() calls
 (function() {
   var stores = ['facilities','equipment','jobs','job_units','startup_records',
-                'pm_records','pm_unit_results','pm_quotes','service_quotes','documents','team_calendar','notifications','service_tickets'];
+                'pm_records','pm_unit_results','pm_quotes','service_quotes','documents','team_calendar','notifications','service_tickets','service_records'];
   stores.forEach(function(name) {
     var original = ntdStore[name].list;
     ntdStore[name].list = function(filterFn) {

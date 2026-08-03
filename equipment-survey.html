@@ -1404,11 +1404,43 @@ function ntdAutoSubmitSurvey() {
         wo: gv('j-wo') || ''
       },
       ntdBuildUnitObjects()
-    ).then(function(){ console.log('[NTD] Survey auto-saved'); })
+    ).then(function(result){
+        console.log('[NTD] Survey auto-saved');
+        if (_ntdTicketId && typeof ntdStore.completeTicket === 'function') {
+          ntdStore.completeTicket(_ntdTicketId, {
+            facility_id: result && result.facility && result.facility.id,
+            linked_job_id: result && result.job && result.job.id,
+            resolution_summary: 'Equipment survey completed for ' + facName
+          });
+        }
+      })
      .catch(function(e){ _ntdAutoSubmitted = false; console.warn('[NTD] Survey auto-save failed:', e.message); });
   });
 }
 // ── END AUTO-SUBMIT ───────────────────────────────────────────────────────
+
+// ── TICKET PREFILL (opened from my-jobs.html dispatch board) ────────────
+var _ntdTicketId = null;
+function ntdLoadTicketPrefill() {
+  _ntdTicketId = (typeof ntdGetTicketIdFromUrl === 'function') ? ntdGetTicketIdFromUrl() : null;
+  if (!_ntdTicketId || typeof ntdStore === 'undefined') return;
+  ntdStore.service_tickets.get(_ntdTicketId).then(function(t) {
+    if (!t) return;
+    if (t.status === 'scheduled' || t.status === 'dispatched' || t.status === 'en_route') {
+      ntdStore.service_tickets.upsert({ id: t.id, status: 'on_site' }).catch(function(){});
+    }
+    if (t.facility_id) {
+      ntdStore.facilities.get(t.facility_id).then(function(f) { if (f) { var el=document.getElementById('j-cust'); if(el) el.value=f.name; } });
+    } else if (t.site_name_raw) {
+      var el = document.getElementById('j-cust'); if (el) el.value = t.site_name_raw;
+    }
+    if (t.assigned_techs && t.assigned_techs[0]) {
+      var te = document.getElementById('j-tech'); if (te) te.value = t.assigned_techs[0];
+    }
+  }).catch(function(){});
+}
+ntdLoadTicketPrefill();
+
 if('serviceWorker' in navigator){
   window.addEventListener('load', function(){
     navigator.serviceWorker.register('sw.js').then(function(reg){

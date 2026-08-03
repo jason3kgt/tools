@@ -1707,7 +1707,16 @@ function ntdAutoSubmitPMVisit() {
       unit_count: eqs.length,
       good_count: good, fair_count: fair, poor_count: poor,
       units: eqs.map(function(e){ return {tag:e.tag,type:e.type,condition:e.ov,notes:e.notes,followup:e.followup||'',followup_resolved:false}; })
-    }).then(function(){ console.log('[NTD] PM visit auto-saved'); })
+    }).then(function(saved){
+        console.log('[NTD] PM visit auto-saved');
+        if (_ntdTicketId && typeof ntdStore.completeTicket === 'function') {
+          ntdStore.completeTicket(_ntdTicketId, {
+            facility_id: facilityId,
+            linked_record_id: saved && saved.id,
+            resolution_summary: 'PM visit completed — ' + good + ' good, ' + fair + ' fair, ' + poor + ' poor.'
+          });
+        }
+      })
       .catch(function(e){ console.warn('[NTD] PM visit auto-save failed:', e.message); });
   });
 }
@@ -1715,6 +1724,27 @@ function ntdAutoSubmitPMVisit() {
 
 // ─── INIT ─────────────────────────────────────────────────────────
 initPiping();
+
+// ── TICKET PREFILL (opened from my-jobs.html dispatch board) ────────────
+var _ntdTicketId = null;
+function ntdLoadTicketPrefill() {
+  _ntdTicketId = (typeof ntdGetTicketIdFromUrl === 'function') ? ntdGetTicketIdFromUrl() : null;
+  if (!_ntdTicketId || typeof ntdStore === 'undefined') return;
+  ntdStore.service_tickets.get(_ntdTicketId).then(function(t) {
+    if (!t) return;
+    if (t.status === 'scheduled' || t.status === 'dispatched' || t.status === 'en_route') {
+      ntdStore.service_tickets.upsert({ id: t.id, status: 'on_site' }).catch(function(){});
+    }
+    if (t.facility_id) {
+      ntdStore.facilities.get(t.facility_id).then(function(f) { if (f) sv('sf', f.name); });
+    } else if (t.site_name_raw) {
+      sv('sf', t.site_name_raw);
+    }
+    if (t.assigned_techs && t.assigned_techs[0]) sv('stch', t.assigned_techs[0]);
+  }).catch(function(){});
+}
+ntdLoadTicketPrefill();
+
 // Set today's date
 var _now = new Date();
 var _mm = String(_now.getMonth()+1).padStart(2,'0');
