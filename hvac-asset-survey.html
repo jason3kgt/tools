@@ -301,6 +301,21 @@ textarea{resize:vertical;min-height:70px}
     <div class="ch"><div class="cn">N</div><h2>Assessment Notes</h2></div>
     <div class="cb"><div class="fg"><label>Overall Narrative</label><textarea id="esnotes" placeholder="Overall site condition, priority findings, recommendations..." style="min-height:100px"></textarea></div></div>
   </div>
+  <div class="card">
+    <div class="ch"><div class="cn">&#10003;</div><h2>Customer Acknowledgment</h2></div>
+    <div class="cb">
+      <div style="font-size:12px;color:var(--mu);margin-bottom:8px">Review the findings above with the customer, then have them sign to acknowledge this assessment before you leave.</div>
+      <div class="r2">
+        <div class="fg"><label>Printed Name</label><input type="text" id="ack-name" placeholder="Customer name" oninput="ua()"></div>
+        <div class="fg"><label>Title</label><input type="text" id="ack-title" placeholder="e.g. Facility Manager" oninput="ua()"></div>
+      </div>
+      <label style="font-size:11px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.04em;display:block;margin:8px 0 4px">Signature</label>
+      <div style="border:1.5px solid var(--bd);border-radius:8px;background:#fff">
+        <canvas id="ack-canvas" style="width:100%;height:140px;display:block;touch-action:none"></canvas>
+      </div>
+      <button class="addb" onclick="ackClearSig()" type="button" style="margin-top:6px">Clear Signature</button>
+    </div>
+  </div>
   <button class="dlb" onclick="dlSummary()">Download Executive Summary PDF</button>
   <button class="dlb sec" onclick="ntdSubmitAssessment()">&#10003; Submit Assessment to Store</button>
 </div>
@@ -700,6 +715,61 @@ function getForecastSummary(){
 // Portfolio Asset Health Score (0-100, A-F). Blends condition rating (65%) with
 // remaining-life fraction (35%), so a "Good" unit that's 14 of its 15-year life
 // still drags the score down a bit \u2014 not just the walk-around finding alone.
+// ── CUSTOMER ACKNOWLEDGMENT SIGNATURE PAD ───────────────────────────────
+var ackCtx=null, ackDrawing=false, ackHasSig=false;
+function ackInitCanvas(){
+  var canvas=document.getElementById('ack-canvas');
+  if(!canvas||ackCtx)return; // init once
+  var ratio=window.devicePixelRatio||1;
+  var rect=canvas.getBoundingClientRect();
+  if(!rect.width)return; // not visible yet (tab not shown) — try again next time tab opens
+  canvas.width=rect.width*ratio;
+  canvas.height=rect.height*ratio;
+  ackCtx=canvas.getContext('2d');
+  ackCtx.scale(ratio,ratio);
+  ackCtx.strokeStyle='#1B3A6B';
+  ackCtx.lineWidth=2.25;
+  ackCtx.lineCap='round';
+  ackCtx.lineJoin='round';
+  function pos(e){
+    var r=canvas.getBoundingClientRect();
+    return {x:e.clientX-r.left, y:e.clientY-r.top};
+  }
+  canvas.addEventListener('pointerdown',function(e){
+    ackDrawing=true;
+    var p=pos(e); ackCtx.beginPath(); ackCtx.moveTo(p.x,p.y);
+    try{canvas.setPointerCapture(e.pointerId);}catch(er){}
+    e.preventDefault();
+  });
+  canvas.addEventListener('pointermove',function(e){
+    if(!ackDrawing)return;
+    var p=pos(e); ackCtx.lineTo(p.x,p.y); ackCtx.stroke();
+    ackHasSig=true;
+    onFieldChange();
+    e.preventDefault();
+  });
+  canvas.addEventListener('pointerup',function(){ ackDrawing=false; });
+  canvas.addEventListener('pointerleave',function(){ ackDrawing=false; });
+}
+function ackClearSig(){
+  var canvas=document.getElementById('ack-canvas');
+  if(!canvas||!ackCtx)return;
+  var rect=canvas.getBoundingClientRect();
+  ackCtx.clearRect(0,0,rect.width,rect.height);
+  ackHasSig=false;
+  onFieldChange();
+}
+function ackGetSignatureDataUrl(){
+  var canvas=document.getElementById('ack-canvas');
+  if(!canvas||!ackHasSig)return null;
+  return canvas.toDataURL('image/png');
+}
+function ackGetSignatureBlob(callback){
+  var canvas=document.getElementById('ack-canvas');
+  if(!canvas||!ackHasSig){callback(null);return;}
+  canvas.toBlob(function(blob){callback(blob);},'image/png');
+}
+
 function getHealthScore(){
   var scored=eqs.filter(function(e){return e.ov!=='';});
   if(!scored.length)return null;
@@ -723,7 +793,7 @@ function go(n){
   var tbs=document.querySelectorAll('.tab');
   for(var i=0;i<tbs.length;i++){tbs[i].classList.remove('on');if(i===n)tbs[i].classList.add('on');}
   window.scrollTo(0,0);
-  if(n===2)updS();
+  if(n===2){updS();setTimeout(ackInitCanvas,50);}
   if(n===3)updF();
   if(n===4)pmRenderTable();
   if(n===5)sqSyncJobInfo();
@@ -1157,7 +1227,7 @@ function setSaveDot(state) {
 }
 
 function captureFormState() {
-  var siteFlds = ['sf','sa','sct','sd','scn','sph','sem','stch','sn','qtot','qrtu','qspl','qahu','qef','qoth'];
+  var siteFlds = ['sf','sa','sct','sd','scn','sph','sem','stch','sn','qtot','qrtu','qspl','qahu','qef','qoth','ack-name','ack-title','esnotes'];
   var site = {};
   siteFlds.forEach(function(f) { site[f] = gv(f); });
   var eqData = eqs.map(function(e) {
@@ -1715,6 +1785,23 @@ function dlSummary(){
   if(notes){y+=4;doc.setFillColor(46,95,138);doc.rect(14,y,W-28,13,'F');doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.text('ASSESSMENT NARRATIVE',18,y+9);y+=16;
   doc.setFillColor(248,250,252);doc.rect(14,y,W-28,70,'F');doc.setDrawColor(200,210,220);doc.rect(14,y,W-28,70,'S');
   doc.setFont('helvetica','normal');doc.setTextColor(30,30,30);doc.setFontSize(9);doc.text(doc.splitTextToSize(notes,W-36),18,y+11);}
+  // Customer Acknowledgment
+  var sigData=ackGetSignatureDataUrl();
+  var ackName=gv('ack-name'), ackTitle=gv('ack-title');
+  if(sigData||ackName){
+    y+=14;
+    if(y>H-140){doc.addPage();y=20;}
+    doc.setFillColor(27,58,107);doc.rect(14,y,W-28,13,'F');doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.text('CUSTOMER ACKNOWLEDGMENT',18,y+9);y+=20;
+    doc.setDrawColor(200,210,220);doc.rect(18,y,160,55,'S');
+    if(sigData){ try{doc.addImage(sigData,'PNG',19,y+1,158,53);}catch(er){} }
+    else { doc.setFont('helvetica','italic');doc.setFontSize(8);doc.setTextColor(150,150,150);doc.text('No signature captured',22,y+30); }
+    doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(90,90,90);doc.text('Signature',18,y+64);
+    doc.setFontSize(8.5);doc.setTextColor(30,30,30);
+    doc.text('Printed Name: '+(ackName||'____________________________'),190,y+16);
+    doc.text('Title: '+(ackTitle||'____________________________'),190,y+30);
+    doc.text('Date: '+(gv('sd')||new Date().toLocaleDateString()),190,y+44);
+    y+=65;
+  }
   pdfFooter(doc);
   // Add unit photos before generating blob
   for (var _p=0; _p<eqs.length; _p++) {
@@ -3363,16 +3450,25 @@ function ntdSubmitAssessment() {
     var eqSaves = eqs.map(function(eq) {
       return ntdStore.upsertEquipment(ntdEqRecord(eq, facilityId));
     });
-    var assessSave = ntdStore.jobs.upsert({
-      facility_id: facilityId, type: 'asset_survey',
-      name: 'Site Assessment Data — ' + (gv('sf')||''),
-      date: gv('sd'), tech: gv('stch'), status: 'complete',
-      notes: gv('esnotes'),
-      units: eqs.map(function(eq){ return {tag:eq.tag,type:eq.type,condition:eq.ov}; })
+    ackGetSignatureBlob(function(sigBlob){
+      var sigUpload = sigBlob
+        ? ntdStore.uploadFile({blob:sigBlob, facilityId:facilityId, formType:'signature', mimeType:'image/png', ext:'png', description:'Assessment Acknowledgment \u2014 '+(gv('ack-name')||'Signed')})
+        : Promise.resolve(null);
+      sigUpload.then(function(sigDoc){
+        var assessSave = ntdStore.jobs.upsert({
+          facility_id: facilityId, type: 'asset_survey',
+          name: 'Site Assessment Data — ' + (gv('sf')||''),
+          date: gv('sd'), tech: gv('stch'), status: 'complete',
+          notes: gv('esnotes'),
+          signed_by: gv('ack-name')||'', signed_title: gv('ack-title')||'',
+          signature_url: sigDoc ? sigDoc.file_url : '',
+          units: eqs.map(function(eq){ return {tag:eq.tag,type:eq.type,condition:eq.ov}; })
+        });
+        Promise.all(eqSaves.concat([assessSave])).then(function() {
+          alert('\u2713 Assessment submitted for ' + gv('sf') + '.\n' + eqs.length + ' units: ' + good + ' Good, ' + fair + ' Fair, ' + poor + ' Poor.');
+        }).catch(function(e){ alert('Submit failed. PDFs still available.'); });
+      });
     });
-    Promise.all(eqSaves.concat([assessSave])).then(function() {
-      alert('\u2713 Assessment submitted for ' + gv('sf') + '.\n' + eqs.length + ' units: ' + good + ' Good, ' + fair + ' Fair, ' + poor + ' Poor.');
-    }).catch(function(e){ alert('Submit failed. PDFs still available.'); });
   });
 }
 
@@ -3528,16 +3624,25 @@ function ntdAutoSubmitAssessment() {
     var eqSaves = eqs.map(function(eq) {
       return ntdStore.upsertEquipment(ntdEqRecord(eq, facilityId));
     });
-    var assessSave = ntdStore.jobs.upsert({
-      facility_id: facilityId, type: 'asset_survey',
-      name: 'Site Assessment Data — ' + (gv('sf')||''),
-      date: gv('sd'), tech: gv('stch'), status: 'complete',
-      notes: gv('esnotes'),
-      units: eqs.map(function(eq){ return {tag:eq.tag,type:eq.type,condition:eq.ov}; })
+    ackGetSignatureBlob(function(sigBlob){
+      var sigUpload = sigBlob
+        ? ntdStore.uploadFile({blob:sigBlob, facilityId:facilityId, formType:'signature', mimeType:'image/png', ext:'png', description:'Assessment Acknowledgment \u2014 '+(gv('ack-name')||'Signed')})
+        : Promise.resolve(null);
+      sigUpload.then(function(sigDoc){
+        var assessSave = ntdStore.jobs.upsert({
+          facility_id: facilityId, type: 'asset_survey',
+          name: 'Site Assessment Data — ' + (gv('sf')||''),
+          date: gv('sd'), tech: gv('stch'), status: 'complete',
+          notes: gv('esnotes'),
+          signed_by: gv('ack-name')||'', signed_title: gv('ack-title')||'',
+          signature_url: sigDoc ? sigDoc.file_url : '',
+          units: eqs.map(function(eq){ return {tag:eq.tag,type:eq.type,condition:eq.ov}; })
+        });
+        Promise.all(eqSaves.concat([assessSave]))
+          .then(function(){ console.log('[NTD] Assessment auto-saved to store'); })
+          .catch(function(e){ console.warn('[NTD] Auto-save failed:', e.message); });
+      });
     });
-    Promise.all(eqSaves.concat([assessSave]))
-      .then(function(){ console.log('[NTD] Assessment auto-saved to store'); })
-      .catch(function(e){ console.warn('[NTD] Auto-save failed:', e.message); });
   });
 }
 
