@@ -483,6 +483,10 @@ textarea{resize:vertical;min-height:70px}
     <div class="cb">
       <div id="sq-jt-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px"></div>
       <div style="font-size:11px;color:var(--mu)" id="sq-jt-desc"></div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 0 0;margin-top:6px;border-top:1px solid var(--bd)">
+        <input type="checkbox" id="sq-tax-pc" onchange="sqCalcTotals()" style="width:18px;height:18px;flex-shrink:0">
+        <span style="font-size:12px">Tax Project Costs? <span style="color:var(--mu)">(crane, permits, rentals — default No)</span></span>
+      </label>
     </div>
   </div>
   <!-- Pricing settings -->
@@ -490,21 +494,16 @@ textarea{resize:vertical;min-height:70px}
     <div class="pmch"><h2>💹 Pricing Settings</h2></div>
     <div class="cb">
       <div class="r3">
-        <div class="fg"><label>Parts Margin</label>
-          <select id="sq-parts-margin" onchange="sqCalcTotals()">
+        <div class="fg"><label>Margin %</label>
+          <select id="sq-margin" onchange="sqCalcTotals()">
+            <option value="0.45">45%</option>
             <option value="0.50">50%</option>
             <option value="0.55" selected>55%</option>
             <option value="0.60">60%</option>
             <option value="0.65">65%</option>
           </select>
         </div>
-        <div class="fg"><label>Equip Margin</label>
-          <select id="sq-equip-margin" onchange="sqCalcTotals()">
-            <option value="0.40">40%</option>
-            <option value="0.45" selected>45%</option>
-            <option value="0.50">50%</option>
-          </select>
-        </div>
+        <div class="fg"><label>Burdened Labor Rate</label><input type="text" id="sq-burdened-rate" value="62.10" onchange="sqCalcTotals()"></div>
         <div class="fg"><label>Tax Rate</label>
           <select id="sq-tax-rate" onchange="sqCalcTotals()">
             <option value="0.0825" selected>8.25%</option>
@@ -513,15 +512,15 @@ textarea{resize:vertical;min-height:70px}
           </select>
         </div>
       </div>
-      <button onclick="sqRecalcSell()" style="width:100%;padding:9px;border-radius:8px;background:var(--nv);color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer;touch-action:manipulation;font-family:inherit">&#8635; Recalculate Sell Prices</button>
+      <div style="font-size:10px;color:var(--mu);margin-top:2px">Materials and labor use one unified margin (Sell = Cost ÷ (1 − Margin)). Project Costs pass through at cost, no margin.</div>
     </div>
   </div>
   <!-- Presets -->
   <div class="pmcard">
-    <div class="pmch"><h2>⚡ Add from Preset List</h2></div>
+    <div class="pmch"><h2>⚡ Add from Catalog</h2></div>
     <div class="cb">
       <div id="sq-cat-scroll" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch;scrollbar-width:none"></div>
-      <div id="sq-preset-items" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;max-height:220px;overflow-y:auto"></div>
+      <div id="sq-preset-items" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;max-height:260px;overflow-y:auto"></div>
       <button class="addb" id="sq-add-custom-btn" style="margin-top:8px">+ Add Custom Line Item</button>
     </div>
   </div>
@@ -530,7 +529,7 @@ textarea{resize:vertical;min-height:70px}
     <div class="pmch"><h2>📝 Quote Line Items</h2></div>
     <div class="cb">
       <div style="display:grid;grid-template-columns:1fr 55px 55px 75px 75px 28px;gap:5px;padding:4px 0 6px;font-size:10px;font-weight:700;color:var(--mu);text-transform:uppercase">
-        <span>Description</span><span>Type</span><span>Qty</span><span>Cost</span><span>Sell</span><span></span>
+        <span>Description</span><span>Cat.</span><span>Qty</span><span>Cost</span><span>Sell</span><span></span>
       </div>
       <div id="sq-items-body"></div>
     </div>
@@ -539,12 +538,26 @@ textarea{resize:vertical;min-height:70px}
   <div class="pmcard">
     <div class="pmch"><h2>💰 Quote Summary</h2></div>
     <div class="cb">
-      <div class="tot-row"><span class="tlbl">Parts / Materials</span><span class="tval" id="sq-tot-parts">$0.00</span></div>
-      <div class="tot-row"><span class="tlbl">Equipment</span><span class="tval" id="sq-tot-equip">$0.00</span></div>
+      <div class="tot-row"><span class="tlbl">Materials <span style="font-weight:400;color:var(--mu)">(incl. 2.5% misc.)</span></span><span class="tval" id="sq-tot-materials">$0.00</span></div>
       <div class="tot-row"><span class="tlbl">Labor</span><span class="tval" id="sq-tot-labor">$0.00</span></div>
+      <div class="tot-row"><span class="tlbl">Project Costs <span style="font-weight:400;color:var(--mu)">(pass-through)</span></span><span class="tval" id="sq-tot-pc">$0.00</span></div>
       <div class="tot-row"><span class="tlbl">Base Bid</span><span class="tval" id="sq-tot-base">$0.00</span></div>
       <div class="tot-row"><span class="tlbl" id="sq-tax-label">Sales Tax (8.25%)</span><span class="tval" id="sq-tot-tax">$0.00</span></div>
-      <div class="tot-row grand"><span class="tlbl">Total</span><span class="tval" id="sq-tot-grand">$0.00</span></div>
+      <div class="tot-row grand"><span class="tlbl">Grand Total</span><span class="tval" id="sq-tot-grand">$0.00</span></div>
+    </div>
+  </div>
+  <!-- Internal job costing — never shown to the customer -->
+  <div class="pmcard" style="border:1.5px dashed var(--bd)">
+    <div class="pmch" style="background:#F7F8FA"><h2 style="color:var(--mu)">🔒 Internal Job Costing (not on customer proposal)</h2></div>
+    <div class="cb">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px">
+        <input type="checkbox" id="sq-mat-purchase-taxed" onchange="sqCalcTotals()" style="width:18px;height:18px;flex-shrink:0">
+        <span style="font-size:12px">Materials Purchase Taxed? <span style="color:var(--mu)">(most supplier accounts are tax-exempt — default No)</span></span>
+      </label>
+      <div class="tot-row"><span class="tlbl">Est. Purchase Tax (internal)</span><span class="tval" id="sq-tot-internal-tax">$0.00</span></div>
+      <div class="tot-row"><span class="tlbl">True Total Cost</span><span class="tval" id="sq-tot-true-cost">$0.00</span></div>
+      <div class="tot-row"><span class="tlbl">Gross Profit</span><span class="tval" id="sq-tot-gross-profit">$0.00</span></div>
+      <div class="tot-row grand"><span class="tlbl">Gross Margin %</span><span class="tval" id="sq-tot-gross-margin">0.0%</span></div>
     </div>
   </div>
   <button class="dlb" onclick="sqGeneratePDF()">&#128196; Generate Service Proposal PDF</button>
@@ -2907,100 +2920,393 @@ function dlSiteRecord(){
 
 
 // ── SERVICE QUOTE (Tab 5) ─────────────────────────────────────
-var SQ_PRESETS={
-  'RTU Parts':[
-    {name:'RTU - Belts',cost:28,type:'P',hrs:1},
-    {name:'RTU - Sheaves / Pulleys',cost:145,type:'P',hrs:1.5},
-    {name:'RTU - Filters Standard',cost:18,type:'P',hrs:0.5},
-    {name:'RTU - Filters HEPA',cost:65,type:'P',hrs:1},
-    {name:'RTU - Hail Guards',cost:85,type:'P',hrs:1},
-    {name:'RTU - Economizer Actuator',cost:185,type:'P',hrs:2},
-    {name:'RTU - Condenser Fan Motor',cost:275,type:'P',hrs:2},
-    {name:'RTU - Condenser Fan Blade',cost:145,type:'P',hrs:1.5},
-    {name:'RTU - Evaporator / Blower Motor',cost:320,type:'P',hrs:3},
-    {name:'RTU - Inducer Motor',cost:285,type:'P',hrs:2},
-    {name:'RTU - Capacitor (run / start)',cost:45,type:'P',hrs:0.75},
-    {name:'RTU - Contactor',cost:65,type:'P',hrs:0.75},
-    {name:'RTU - Control Board / PCB',cost:385,type:'P',hrs:2},
-    {name:'RTU - Gas Valve',cost:195,type:'P',hrs:2.5},
-    {name:'RTU - Ignitor / Ignition Module',cost:85,type:'P',hrs:1.5},
-    {name:'RTU - TXV / EXV',cost:285,type:'P',hrs:3},
-    {name:'RTU - Filter Drier',cost:45,type:'P',hrs:1.5},
-    {name:'RTU - Refrigerant Charge (per lb)',cost:28,type:'P',hrs:0.25},
-    {name:'RTU - Refrigerant Recovery',cost:55,type:'P',hrs:1.5},
-  ],
-  'Split / VRF':[
-    {name:'Split - Line Set Copper (per ft)',cost:12,type:'P',hrs:0.1},
-    {name:'Split - Line Set Insulation (per ft)',cost:3,type:'P',hrs:0.05},
-    {name:'Split - Refrigerant Charge (per lb)',cost:28,type:'P',hrs:0.25},
-    {name:'Split - Refrigerant Recovery',cost:55,type:'P',hrs:1.5},
-    {name:'Split - TXV / EXV',cost:235,type:'P',hrs:2.5},
-    {name:'Split - Filter Drier',cost:38,type:'P',hrs:1.5},
-    {name:'Split - Capacitor (run / start)',cost:45,type:'P',hrs:0.75},
-    {name:'Split - Contactor',cost:65,type:'P',hrs:0.75},
-    {name:'Split - Condenser Fan Motor',cost:245,type:'P',hrs:2},
-    {name:'Split - Evaporator Motor',cost:285,type:'P',hrs:3},
-    {name:'Split - Control Board',cost:325,type:'P',hrs:2},
-    {name:'VRF - Communication Cable (per ft)',cost:2,type:'P',hrs:0.1},
-  ],
-  'AHU':[
-    {name:'AHU - Belts',cost:28,type:'P',hrs:1},
-    {name:'AHU - Sheaves / Pulleys',cost:145,type:'P',hrs:2.5},
-    {name:'AHU - Filters Standard',cost:18,type:'P',hrs:0.5},
-    {name:'AHU - Filters HEPA',cost:65,type:'P',hrs:1},
-    {name:'AHU - CHW Valve 2-way',cost:485,type:'P',hrs:3},
-    {name:'AHU - CHW Valve 3-way',cost:685,type:'P',hrs:3},
-    {name:'AHU - HW Valve 2-way',cost:485,type:'P',hrs:3},
-    {name:'AHU - Valve Actuator',cost:285,type:'P',hrs:1.5},
-    {name:'AHU - Blower Motor',cost:385,type:'P',hrs:4},
-    {name:'AHU - Blower Wheel',cost:245,type:'P',hrs:3},
-    {name:'AHU - Drain Pan',cost:285,type:'P',hrs:2},
-    {name:'AHU - Condensate Pump',cost:185,type:'P',hrs:1.5},
-  ],
-  'Chiller / Boiler':[
-    {name:'Chiller - Refrigerant (per lb)',cost:45,type:'P',hrs:0.25},
-    {name:'Chiller - Refrigerant Recovery',cost:125,type:'P',hrs:2},
-    {name:'Chiller - Compressor Oil',cost:85,type:'P',hrs:1},
-    {name:'Chiller - Strainer / Basket',cost:285,type:'P',hrs:2},
-    {name:'Chiller - Water Flow Switch',cost:185,type:'P',hrs:2},
-    {name:'Chiller - Expansion Tank',cost:485,type:'P',hrs:3},
-    {name:'Boiler - Ignitor',cost:95,type:'P',hrs:1.5},
-    {name:'Boiler - Gas Valve',cost:285,type:'P',hrs:3},
-    {name:'Boiler - Circulator Pump',cost:485,type:'P',hrs:3},
-    {name:'Boiler - Expansion Tank',cost:385,type:'P',hrs:3},
-    {name:'Boiler - Pressure Relief Valve',cost:85,type:'P',hrs:2},
-    {name:'Boiler - Aquastat / Control',cost:285,type:'P',hrs:1.5},
-  ],
-  'Controls':[
-    {name:'Thermostat / Controller',cost:285,type:'P',hrs:1.5},
-    {name:'BAS / DDC Sensor',cost:185,type:'P',hrs:2},
-    {name:'Disconnect Switch',cost:145,type:'P',hrs:1.5},
-    {name:'Electrical Wire (per ft)',cost:4,type:'P',hrs:0.05},
-    {name:'Breaker / Fuse',cost:45,type:'P',hrs:0.75},
-    {name:'Control Transformer',cost:85,type:'P',hrs:1},
-    {name:'Low Voltage Wiring (per ft)',cost:2,type:'P',hrs:0.05},
-    {name:'Duct Smoke Detector',cost:145,type:'P',hrs:1.5},
-  ],
-  'Labor':[
-    {name:'Labor - Standard (per hr)',cost:125,type:'L',hrs:0},
-    {name:'Labor - 2 hrs',cost:250,type:'L',hrs:0},
-    {name:'Labor - 4 hrs',cost:500,type:'L',hrs:0},
-    {name:'Labor - 6 hrs',cost:750,type:'L',hrs:0},
-    {name:'Labor - Full Day (8 hrs)',cost:1000,type:'L',hrs:0},
-    {name:'Labor - Crane / Lift (per hr)',cost:185,type:'L',hrs:0},
-    {name:'Labor - After Hours Premium',cost:185,type:'L',hrs:0},
-  ]
-};
-var SQ_JOB_TYPES=[
-  {id:1,label:'Commercial Repair',short:'Commercial<br>Repair',desc:'8.25% on full invoice (labor + materials)',taxFn:function(p,e,l){return p+e+l;}},
-  {id:2,label:'New Install Lump Sum',short:'New Install<br>Lump Sum',desc:'No tax collected - you paid tax at purchase',taxFn:function(){return 0;}},
-  {id:3,label:'New Install Itemized',short:'New Install<br>Itemized',desc:'8.25% on materials only - no tax on labor',taxFn:function(p,e,l){return p+e;}},
-  {id:4,label:'Mixed Lump Sum',short:'Mixed<br>Lump Sum',desc:'8.25% on repair labor + all materials',taxFn:function(p,e,l){return p+l;}},
-  {id:5,label:'Mixed Itemized',short:'Mixed<br>Itemized',desc:'8.25% on full invoice',taxFn:function(p,e,l){return p+e+l;}},
+var SQB_MATERIALS=[
+  ["RTU — ROOFTOP UNIT",null,"H"],
+  ["RTU — Belts",28,"P"],
+  ["RTU — Sheaves / Pulleys",145,"P"],
+  ["RTU — Filters — Standard",18,"P"],
+  ["RTU — Filters — HEPA / Special",65,"P"],
+  ["RTU — Hail Guards",85,"P"],
+  ["RTU — Economizer Actuator",185,"P"],
+  ["RTU — Economizer Control Module",285,"P"],
+  ["RTU — Economizer Supply Air Sensor",85,"P"],
+  ["RTU — Economizer Return Air Sensor",85,"P"],
+  ["RTU — Economizer Outdoor Air Sensor",85,"P"],
+  ["RTU — Economizer Position Sensor",95,"P"],
+  ["RTU — Condenser Fan Motor",275,"P"],
+  ["RTU — Condenser Fan Blade",145,"P"],
+  ["RTU — Evaporator / Blower Motor",320,"P"],
+  ["RTU — Inducer Motor",285,"P"],
+  ["RTU — Capacitor (run / start)",45,"P"],
+  ["RTU — Contactor",65,"P"],
+  ["RTU — Control Board / PCB",385,"P"],
+  ["RTU — Gas Valve",195,"P"],
+  ["RTU — Ignitor / Ignition Module",85,"P"],
+  ["RTU — TXV / EXV",285,"P"],
+  ["RTU — Filter Drier",45,"P"],
+  ["RTU — Refrigerant Charge (per lb)",28,"P"],
+  ["RTU — Refrigerant Recovery / Reclaim",55,"P"],
+  ["RTU — Crankcase Heater",85,"P"],
+  ["RTU — High / Low Pressure Switch",85,"P"],
+  ["RTU — Reversing Valve",285,"P"],
+  ["RTU — Roof Curb",485,"E"],
+  ["RTU — Curb Adapter",1200,"E"],
+  ["RTU — Economizer (complete assembly)",1250,"E"],
+  ["RTU — Heat Exchanger",875,"E"],
+  ["RTU — Compressor (single)",1850,"E"],
+  ["RTU — Compressor (tandem / dual)",2950,"E"],
+  ["RTU — Equipment (full replacement)",14500,"E"],
+  ["SPLIT SYSTEM / VRF / VRV",null,"H"],
+  ["Split — Line Set Copper (per ft)",12,"P"],
+  ["Split — Line Set Insulation (per ft)",3,"P"],
+  ["Split — Refrigerant Charge (per lb)",15,"P"],
+  ["Split — Refrigerant Recovery / Reclaim",55,"P"],
+  ["Split — TXV / EXV",235,"P"],
+  ["Split — Filter Drier",38,"P"],
+  ["Split — Capacitor (run / start)",45,"P"],
+  ["Split — Contactor",65,"P"],
+  ["Split — Condenser Fan Motor",245,"P"],
+  ["Split — Evaporator / Air Handler Motor",320,"P"],
+  ["Split — Control Board",285,"P"],
+  ["VRF — Communication Cable (per ft)",8,"P"],
+  ["Split — Indoor Unit",1850,"E"],
+  ["Split — Outdoor Unit",2650,"E"],
+  ["Residential (Complete Replacement)",0,"E"],
+  ["VRF — Indoor Unit",2850,"E"],
+  ["VRF — Outdoor Unit (full)",6500,"E"],
+  ["AHU / AIR HANDLER",null,"H"],
+  ["AHU — Belts",28,"P"],
+  ["AHU — Sheaves / Pulleys",145,"P"],
+  ["AHU — Filters — Standard",18,"P"],
+  ["AHU — Filters — HEPA / Special",65,"P"],
+  ["AHU — CHW Control Valve (2-way)",485,"P"],
+  ["AHU — CHW Control Valve (3-way)",685,"P"],
+  ["AHU — HW Control Valve (2-way)",485,"P"],
+  ["AHU — Valve Actuator",285,"P"],
+  ["AHU — Blower Motor",385,"P"],
+  ["AHU — Blower Wheel",245,"P"],
+  ["AHU — Drain Pan",285,"P"],
+  ["AHU — Condensate Pump",185,"P"],
+  ["AHU — HW Coil (Hot Water)",485,"E"],
+  ["AHU — CHW Coil (Chilled Water)",585,"E"],
+  ["AHU — VFD (Variable Frequency Drive)",1250,"E"],
+  ["AHU — VFD Motor",685,"E"],
+  ["CONTROLS / ELECTRICAL",null,"H"],
+  ["Thermostat / Controller",285,"P"],
+  ["BAS / DDC Sensor",185,"P"],
+  ["Disconnect Switch",145,"P"],
+  ["Disconnect Box — 3 Phase",285,"P"],
+  ["Electrical — Disconnect / Reconnect Supplies",125,"P"],
+  ["Electrical — Wire / Conduit (per ft)",4,"P"],
+  ["Seal-Tite / Liquid-Tight Conduit (per ft)",9,"P"],
+  ["EMT Conduit (per ft)",7,"P"],
+  ["Conduit Fittings / Connectors",18,"P"],
+  ["Wire Loom / Split Loom (per ft)",4,"P"],
+  ["Electrical — Breaker / Fuse",45,"P"],
+  ["Control Transformer",85,"P"],
+  ["Low Voltage Wiring (per ft)",2,"P"],
+  ["Duct Smoke Detector",145,"P"],
+  ["CO Detector",85,"P"],
+  ["Relay",45,"P"],
+  ["Time Delay Relay",65,"P"],
+  ["Float Switch — Condensate Safety",85,"P"],
+  ["RESIDENTIAL",null,"H"],
+  ["Residential Install Package (pad / whip / disconnect / drain pan / float switch)",500,"P"],
+  ["MISCELLANEOUS / CUSTOM",null,"H"],
+  ["Cleaning Supplies",35,"P"],
+  ["Misc. Hardware / Fasteners",10,"P"],
+  ["Safety / PPE Supplies",35,"P"],
+  ["Small Pumps (< 5 HP)",285,"E"],
+  ["Large Pumps (>= 5 HP)",650,"E"],
+  ["Drain Pan Treatment Tablets",25,"P"],
+  ["Coil Cleaning Supplies — Evaporator",45,"P"],
+  ["Coil Cleaning Supplies — Condenser",55,"P"],
+  ["Coil Cleaning — Condenser (service)",45,"P"],
+  ["Coil Cleaning — Evaporator (service)",45,"P"],
+  ["Nitrogen (per lb)",8,"P"],
+  ["Brazing Materials / Supplies",45,"P"],
+  ["Evacuation / Pull Down",55,"P"],
+  ["Refrigerant Leak Detection (per visit)",85,"P"],
+  ["Load Calculation (per system)",250,"P"],
+  ["Filter Replacement — Other / Non-Standard",18,"P"],
+  ["Filter Replacement — Other / Non-Standard (HEPA)",65,"P"],
 ];
-var sqSelectedJT=1,sqSelectedCat='RTU Parts',sqItems=[],sqLastPreset=0;
+
+var SQB_LABOR=[
+  ["RTU — ROOFTOP UNIT",null,"H"],
+  ["RTU — Belts — Replace",1.0,"L"],
+  ["RTU — Sheaves / Pulleys — Replace",1.5,"L"],
+  ["RTU — Filters — Replace (standard)",0.5,"L"],
+  ["RTU — Filters — Replace (HEPA)",1.0,"L"],
+  ["RTU — Hail Guards — Install",1.0,"L"],
+  ["RTU — Economizer Actuator — Replace",2.0,"L"],
+  ["RTU — Economizer Control Module — Replace",2.0,"L"],
+  ["RTU — Economizer Supply Air Sensor — Replace",1.0,"L"],
+  ["RTU — Economizer Return Air Sensor — Replace",1.0,"L"],
+  ["RTU — Economizer Outdoor Air Sensor — Replace",1.0,"L"],
+  ["RTU — Economizer Position Sensor — Replace",1.0,"L"],
+  ["RTU — Condenser Fan Motor — Replace",2.0,"L"],
+  ["RTU — Condenser Fan Blade — Replace",1.5,"L"],
+  ["RTU — Evaporator / Blower Motor — Replace",3.0,"L"],
+  ["RTU — Inducer Motor — Replace",2.0,"L"],
+  ["RTU — Capacitor — Replace",0.75,"L"],
+  ["RTU — Contactor — Replace",0.75,"L"],
+  ["RTU — Control Board / PCB — Replace",2.0,"L"],
+  ["RTU — Gas Valve — Replace",2.5,"L"],
+  ["RTU — Ignitor / Module — Replace",1.5,"L"],
+  ["RTU — TXV / EXV — Replace",3.0,"L"],
+  ["RTU — Filter Drier — Replace",1.5,"L"],
+  ["RTU — Refrigerant Charge (per lb)",0.25,"L"],
+  ["RTU — Refrigerant Recovery",1.5,"L"],
+  ["RTU — Crankcase Heater — Replace",1.0,"L"],
+  ["RTU — High / Low Pressure Switch — Replace",0.75,"L"],
+  ["RTU — Reversing Valve — Replace",3.0,"L"],
+  ["RTU — Heat Exchanger — Replace",6.0,"L"],
+  ["RTU — Roof Curb — Install",4.0,"L"],
+  ["RTU — Curb Adapter — Install",3.0,"L"],
+  ["RTU — Economizer — Full Replace",4.0,"L"],
+  ["RTU — Compressor — Replace (single)",8.0,"L"],
+  ["RTU — Compressor — Replace (tandem)",12.0,"L"],
+  ["RTU — Full Replacement + Startup",16.0,"L"],
+  ["SPLIT SYSTEM / VRF / VRV",null,"H"],
+  ["Split — Refrigerant Charge (per lb)",0.25,"L"],
+  ["Split — Refrigerant Recovery",1.5,"L"],
+  ["Split — TXV / EXV — Replace",2.5,"L"],
+  ["Split — Filter Drier — Replace",1.5,"L"],
+  ["Split — Capacitor — Replace",0.75,"L"],
+  ["Split — Contactor — Replace",0.75,"L"],
+  ["Split — Condenser Fan Motor — Replace",2.0,"L"],
+  ["Split — Evaporator Motor — Replace",3.0,"L"],
+  ["Split — Control Board — Replace",2.0,"L"],
+  ["Split — Indoor Unit — Replace",4.0,"L"],
+  ["Split — Outdoor Unit — Replace",6.0,"L"],
+  ["VRF — Communication Cable — Run",2.0,"L"],
+  ["VRF — Indoor Unit — Replace",4.0,"L"],
+  ["VRF — Outdoor Unit — Replace",8.0,"L"],
+  ["AHU / AIR HANDLER",null,"H"],
+  ["AHU — Belts — Replace",1.0,"L"],
+  ["AHU — Sheaves / Pulleys — Replace",2.5,"L"],
+  ["AHU — Filters — Replace (standard)",0.5,"L"],
+  ["AHU — Filters — Replace (HEPA)",1.0,"L"],
+  ["AHU — CHW / HW Valve — Replace (2-way)",3.0,"L"],
+  ["AHU — CHW / HW Valve — Replace (3-way)",3.0,"L"],
+  ["AHU — HW Valve — Replace (2-way)",3.0,"L"],
+  ["AHU — Valve Actuator — Replace",1.5,"L"],
+  ["AHU — Blower Motor — Replace",4.0,"L"],
+  ["AHU — Blower Wheel — Replace",3.0,"L"],
+  ["AHU — Drain Pan — Replace",3.0,"L"],
+  ["AHU — Condensate Pump — Replace",1.5,"L"],
+  ["AHU — HW Coil — Replace",6.0,"L"],
+  ["AHU — CHW Coil — Replace",6.0,"L"],
+  ["AHU — VFD — Replace",3.0,"L"],
+  ["AHU — VFD Motor — Replace",4.0,"L"],
+  ["CONTROLS / ELECTRICAL",null,"H"],
+  ["Thermostat / Controller — Install",1.5,"L"],
+  ["BAS / DDC Sensor — Install",1.5,"L"],
+  ["Disconnect Switch — Install",1.5,"L"],
+  ["Disconnect Box — 3 Phase — Install",2.0,"L"],
+  ["Electrical — Disconnect / Reconnect",2.0,"L"],
+  ["Electrical — Breaker / Fuse — Replace",1.0,"L"],
+  ["Control Transformer — Replace",1.0,"L"],
+  ["Duct Smoke Detector — Install",1.5,"L"],
+  ["CO Detector — Install",1.0,"L"],
+  ["Relay — Replace",0.75,"L"],
+  ["Time Delay Relay — Replace",0.75,"L"],
+  ["Float Switch — Install",0.75,"L"],
+  ["COIL CLEANING",null,"H"],
+  ["Coil Cleaning — Condenser (1 hr)",1.0,"L"],
+  ["Coil Cleaning — Evaporator (1.5 hrs)",1.5,"L"],
+  ["RESIDENTIAL",null,"H"],
+  ["Residential (Complete Replacement) — Install",10.0,"L"],
+  ["Warranty Labor",null,"L"],
+  ["GENERAL / MISCELLANEOUS",null,"H"],
+  ["Brazing / Refrigerant Work",1.0,"L"],
+  ["Evacuation / Pull Down",1.5,"L"],
+  ["Refrigerant Leak Detection",1.5,"L"],
+  ["Load Calculation",2.0,"L"],
+  ["Small Pump — Install",4.0,"L"],
+  ["Large Pump — Install",8.0,"L"],
+  ["Filter Replacement — Other / Non-Standard",0.5,"L"],
+  ["Filter Replacement — Other / Non-Standard (HEPA)",1.0,"L"],
+];
+
+var SQB_PROJECT_COSTS=[
+  ["CRANE / RIGGING",null,"H"],
+  ["Crane — Half Day (4 hrs)",1450,"PC"],
+  ["Crane — Full Day (8 hrs)",2250,"PC"],
+  ["Helicopter Lift — Fee / 1 Lift",4500,"PC"],
+  ["PERMITS & FEES",null,"H"],
+  ["Building / Mechanical Permit",450,"PC"],
+  ["Electrical Permit",285,"PC"],
+  ["Inspection Fee",185,"PC"],
+  ["EQUIPMENT RENTAL",null,"H"],
+  ["Scissor Lift — Per Day",325,"PC"],
+  ["Scissor Lift — Per Week",1100,"PC"],
+  ["Boom / Man Lift — Per Day",485,"PC"],
+  ["Boom / Man Lift — Per Week",1650,"PC"],
+  ["Forklift — Per Day",285,"PC"],
+  ["OTHER PROJECT COSTS",null,"H"],
+  ["Traffic Control (per day)",650,"PC"],
+  ["Temporary Power / Generator",385,"PC"],
+  ["Dumpster / Disposal",285,"PC"],
+  ["Engineering / Drafting (per hr)",125,"PC"],
+  ["Combustion Analyzer — Per Day",65,"PC"],
+  ["Pressure / Leak Test",185,"PC"],
+];
+
+var SQB_LABOR_LINK={
+  "RTU — Belts — Replace":"RTU — Belts",
+  "RTU — Sheaves / Pulleys — Replace":"RTU — Sheaves / Pulleys",
+  "RTU — Filters — Replace (standard)":"RTU — Filters — Standard",
+  "RTU — Filters — Replace (HEPA)":"RTU — Filters — HEPA / Special",
+  "RTU — Hail Guards — Install":"RTU — Hail Guards",
+  "RTU — Economizer Actuator — Replace":"RTU — Economizer Actuator",
+  "RTU — Economizer Control Module — Replace":"RTU — Economizer Control Module",
+  "RTU — Economizer Supply Air Sensor — Replace":"RTU — Economizer Supply Air Sensor",
+  "RTU — Economizer Return Air Sensor — Replace":"RTU — Economizer Return Air Sensor",
+  "RTU — Economizer Outdoor Air Sensor — Replace":"RTU — Economizer Outdoor Air Sensor",
+  "RTU — Economizer Position Sensor — Replace":"RTU — Economizer Position Sensor",
+  "RTU — Condenser Fan Motor — Replace":"RTU — Condenser Fan Motor",
+  "RTU — Condenser Fan Blade — Replace":"RTU — Condenser Fan Blade",
+  "RTU — Evaporator / Blower Motor — Replace":"RTU — Evaporator / Blower Motor",
+  "RTU — Inducer Motor — Replace":"RTU — Inducer Motor",
+  "RTU — Capacitor — Replace":"RTU — Capacitor (run / start)",
+  "RTU — Contactor — Replace":"RTU — Contactor",
+  "RTU — Control Board / PCB — Replace":"RTU — Control Board / PCB",
+  "RTU — Gas Valve — Replace":"RTU — Gas Valve",
+  "RTU — Ignitor / Module — Replace":"RTU — Ignitor / Ignition Module",
+  "RTU — TXV / EXV — Replace":"RTU — TXV / EXV",
+  "RTU — Filter Drier — Replace":"RTU — Filter Drier",
+  "RTU — Refrigerant Charge (per lb)":"RTU — Refrigerant Charge (per lb)",
+  "RTU — Refrigerant Recovery":"RTU — Refrigerant Recovery / Reclaim",
+  "RTU — Crankcase Heater — Replace":"RTU — Crankcase Heater",
+  "RTU — High / Low Pressure Switch — Replace":"RTU — High / Low Pressure Switch",
+  "RTU — Reversing Valve — Replace":"RTU — Reversing Valve",
+  "RTU — Heat Exchanger — Replace":"RTU — Heat Exchanger",
+  "RTU — Roof Curb — Install":"RTU — Roof Curb",
+  "RTU — Curb Adapter — Install":"RTU — Curb Adapter",
+  "RTU — Economizer — Full Replace":"RTU — Economizer (complete assembly)",
+  "RTU — Compressor — Replace (single)":"RTU — Compressor (single)",
+  "RTU — Compressor — Replace (tandem)":"RTU — Compressor (tandem / dual)",
+  "RTU — Full Replacement + Startup":"RTU — Equipment (full replacement)",
+  "Split — Refrigerant Charge (per lb)":"Split — Refrigerant Charge (per lb)",
+  "Split — Refrigerant Recovery":"Split — Refrigerant Recovery / Reclaim",
+  "Split — TXV / EXV — Replace":"Split — TXV / EXV",
+  "Split — Filter Drier — Replace":"Split — Filter Drier",
+  "Split — Capacitor — Replace":"Split — Capacitor (run / start)",
+  "Split — Contactor — Replace":"Split — Contactor",
+  "Split — Condenser Fan Motor — Replace":"Split — Condenser Fan Motor",
+  "Split — Evaporator Motor — Replace":"Split — Evaporator / Air Handler Motor",
+  "Split — Control Board — Replace":"Split — Control Board",
+  "Split — Indoor Unit — Replace":"Split — Indoor Unit",
+  "Split — Outdoor Unit — Replace":"Split — Outdoor Unit",
+  "VRF — Communication Cable — Run":"VRF — Communication Cable (per ft)",
+  "VRF — Indoor Unit — Replace":"VRF — Indoor Unit",
+  "VRF — Outdoor Unit — Replace":"VRF — Outdoor Unit (full)",
+  "AHU — Belts — Replace":"AHU — Belts",
+  "AHU — Sheaves / Pulleys — Replace":"AHU — Sheaves / Pulleys",
+  "AHU — Filters — Replace (standard)":"AHU — Filters — Standard",
+  "AHU — Filters — Replace (HEPA)":"AHU — Filters — HEPA / Special",
+  "AHU — CHW / HW Valve — Replace (2-way)":"AHU — CHW Control Valve (2-way)",
+  "AHU — CHW / HW Valve — Replace (3-way)":"AHU — CHW Control Valve (3-way)",
+  "AHU — HW Valve — Replace (2-way)":"AHU — HW Control Valve (2-way)",
+  "AHU — Valve Actuator — Replace":"AHU — Valve Actuator",
+  "AHU — Blower Motor — Replace":"AHU — Blower Motor",
+  "AHU — Blower Wheel — Replace":"AHU — Blower Wheel",
+  "AHU — Drain Pan — Replace":"AHU — Drain Pan",
+  "AHU — Condensate Pump — Replace":"AHU — Condensate Pump",
+  "AHU — HW Coil — Replace":"AHU — HW Coil (Hot Water)",
+  "AHU — CHW Coil — Replace":"AHU — CHW Coil (Chilled Water)",
+  "AHU — VFD — Replace":"AHU — VFD (Variable Frequency Drive)",
+  "AHU — VFD Motor — Replace":"AHU — VFD Motor",
+  "Thermostat / Controller — Install":"Thermostat / Controller",
+  "BAS / DDC Sensor — Install":"BAS / DDC Sensor",
+  "Disconnect Switch — Install":"Disconnect Switch",
+  "Disconnect Box — 3 Phase — Install":"Disconnect Box — 3 Phase",
+  "Electrical — Disconnect / Reconnect":"Electrical — Disconnect / Reconnect Supplies",
+  "Electrical — Breaker / Fuse — Replace":"Electrical — Breaker / Fuse",
+  "Control Transformer — Replace":"Control Transformer",
+  "Duct Smoke Detector — Install":"Duct Smoke Detector",
+  "CO Detector — Install":"CO Detector",
+  "Relay — Replace":"Relay",
+  "Time Delay Relay — Replace":"Time Delay Relay",
+  "Float Switch — Install":"Float Switch — Condensate Safety",
+  "Coil Cleaning — Condenser (1 hr)":"Coil Cleaning — Condenser (service)",
+  "Coil Cleaning — Evaporator (1.5 hrs)":"Coil Cleaning — Evaporator (service)",
+  "Residential (Complete Replacement) — Install":"Residential (Complete Replacement)",
+  "Brazing / Refrigerant Work":"Brazing Materials / Supplies",
+  "Evacuation / Pull Down":"Evacuation / Pull Down",
+  "Refrigerant Leak Detection":"Refrigerant Leak Detection (per visit)",
+  "Load Calculation":"Load Calculation (per system)",
+  "Small Pump — Install":"Small Pumps (< 5 HP)",
+  "Large Pump — Install":"Large Pumps (>= 5 HP)",
+  "Filter Replacement — Other / Non-Standard":"Filter Replacement — Other / Non-Standard",
+  "Filter Replacement — Other / Non-Standard (HEPA)":"Filter Replacement — Other / Non-Standard (HEPA)",
+};
+
+// ── DERIVED INDEXES (built once) ────────────────────────────────────────
+// Sections come from the 'H' (header) rows in the source data, exactly
+// matching how the real Excel worksheet is organized.
+var SQB_SECTIONS = null;      // sectionName -> {materials:[], labor:[]}
+var SQB_MAT_TO_LABOR = null;  // material name -> {name, hrs} of its linked labor row
+var SQB_LABOR_ONLY = null;    // labor items with no material link (Warranty Labor, Coil Cleaning, etc.)
+var SQB_PC_LIST = null;       // flat project cost items (name, cost)
+
+function sqbBuildIndex(){
+  if (SQB_SECTIONS) return; // build once
+  SQB_SECTIONS = {};
+  SQB_MAT_TO_LABOR = {};
+  SQB_LABOR_ONLY = [];
+  SQB_PC_LIST = [];
+
+  var cur = 'General';
+  SQB_MATERIALS.forEach(function(row){
+    var name=row[0], cost=row[1], typ=row[2];
+    if (typ==='H') { cur = name; SQB_SECTIONS[cur] = SQB_SECTIONS[cur]||{materials:[],labor:[]}; return; }
+    SQB_SECTIONS[cur] = SQB_SECTIONS[cur]||{materials:[],labor:[]};
+    SQB_SECTIONS[cur].materials.push({name:name, cost:cost, type:typ});
+  });
+
+  var linkedLaborNames = {}; // labor name -> true, for building SQB_LABOR_ONLY below
+  Object.keys(SQB_LABOR_LINK).forEach(function(laborName){ linkedLaborNames[laborName]=true; });
+
+  cur = 'General';
+  var laborByName = {};
+  SQB_LABOR.forEach(function(row){
+    var name=row[0], hrs=row[1], typ=row[2];
+    if (typ==='H') { cur = name; return; }
+    laborByName[name] = {name:name, hrs:hrs};
+    if (!linkedLaborNames[name]) SQB_LABOR_ONLY.push({name:name, hrs:hrs});
+  });
+
+  // Reverse-link: material name -> its linked labor entry
+  Object.keys(SQB_LABOR_LINK).forEach(function(laborName){
+    var matName = SQB_LABOR_LINK[laborName];
+    if (laborByName[laborName]) SQB_MAT_TO_LABOR[matName] = laborByName[laborName];
+  });
+
+  SQB_PROJECT_COSTS.forEach(function(row){
+    var name=row[0], cost=row[1], typ=row[2];
+    if (typ==='H') return;
+    SQB_PC_LIST.push({name:name, cost:cost});
+  });
+}
+
+// ── JOB TYPES (verified against the actual Excel formulas — the source of
+// truth's own docstring comment was stale and listed 6 types with different
+// tax rules; the real dropdown + tax formula both confirm these 4.) ────────
+var SQ_JOB_TYPES=[
+  {id:1,label:'1 - Commercial Repair / Replacement',short:'Commercial<br>Repair/Replace',desc:'8.25% tax on Labor + Materials sell price'},
+  {id:2,label:'2 - New Construction',short:'New<br>Construction',desc:'No tax collected'},
+  {id:3,label:'3 - New Installation (Itemized)',short:'New Install<br>(Itemized)',desc:'8.25% tax on Materials sell price only'},
+  {id:4,label:'4 - Residential Repair / Replacement',short:'Residential<br>Repair/Replace',desc:'Tax hidden — built into lump sum, shown as $0'},
+];
+var sqSelectedJT=1, sqSelectedCat=null, sqItems=[], sqLastPreset=0, sqItemId=1;
+
 
 function sqInit(){
+  sqbBuildIndex();
+  sqSelectedCat = Object.keys(SQB_SECTIONS)[0];
   sqBuildJTGrid();sqBuildCatTabs();sqBuildPresets();
   sqSyncJobInfo();
 }
@@ -3034,7 +3340,8 @@ function sqBuildJTGrid(){
 function sqBuildCatTabs(){
   var s=document.getElementById('sq-cat-scroll');if(!s)return;
   s.innerHTML='';
-  Object.keys(SQ_PRESETS).forEach(function(cat){
+  var cats = Object.keys(SQB_SECTIONS).concat(['Labor Only','Project Costs']);
+  cats.forEach(function(cat){
     var b=document.createElement('button');
     b.className='freq-btn'+(cat===sqSelectedCat?' on':'');
     b.style.cssText='padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap;font-family:inherit;touch-action:manipulation;flex-shrink:0';
@@ -3050,115 +3357,174 @@ function sqBuildCatTabs(){
 }
 function sqBuildPresets(){
   var c=document.getElementById('sq-preset-items');if(!c)return;c.innerHTML='';
-  (SQ_PRESETS[sqSelectedCat]||[]).forEach(function(p){
-    var m=p.type==='L'?0:p.type==='E'?0.45:0.55;
-    var sell=p.type==='L'?p.cost:Math.ceil(p.cost/(1-m));
+  var list = [];
+  if (sqSelectedCat==='Labor Only') {
+    list = SQB_LABOR_ONLY.map(function(l){ return {kind:'labor', name:l.name, hrs:l.hrs}; });
+  } else if (sqSelectedCat==='Project Costs') {
+    list = SQB_PC_LIST.map(function(p){ return {kind:'project', name:p.name, cost:p.cost}; });
+  } else {
+    var sec = SQB_SECTIONS[sqSelectedCat];
+    if (sec) list = sec.materials.map(function(m){ return {kind:'material', name:m.name, cost:m.cost, matType:m.type}; });
+  }
+  list.forEach(function(p,idx){
     var d=document.createElement('div');
     d.style.cssText='padding:8px 10px;border:1px solid #e0e8f0;border-radius:8px;background:#f8fbff;cursor:pointer;touch-action:manipulation';
+    var sub='';
+    if (p.kind==='material') {
+      var linked = SQB_MAT_TO_LABOR[p.name];
+      sub = '$'+p.cost + (linked ? ' + '+linked.hrs+'hr labor' : '') + (p.matType==='E' ? ' (equipment)' : '');
+    } else if (p.kind==='labor') {
+      sub = p.hrs!=null ? p.hrs+' hr (labor only)' : 'enter hrs manually';
+    } else {
+      sub = '$'+p.cost+' (pass-through, no margin)';
+    }
     d.innerHTML='<div style="font-size:12px;font-weight:600;color:var(--nv);line-height:1.3">'+p.name+'</div>'
-      +'<div style="font-size:11px;color:var(--or);margin-top:2px">Cost $'+p.cost+' &rarr; Sell $'+sell+(p.hrs?' | '+p.hrs+'hr labor':'')+'</div>';
-    d.setAttribute('data-sqpreset',JSON.stringify(p));
+      +'<div style="font-size:11px;color:var(--or);margin-top:2px">'+sub+'</div>';
+    d.setAttribute('data-sqpreset-idx', idx);
     c.appendChild(d);
   });
-  c.addEventListener('click',function(e){
-    var d=e.target.closest('[data-sqpreset]');if(!d)return;
-    var now=Date.now();if(now-sqLastPreset<800)return;sqLastPreset=now;
-    sqAddPreset(JSON.parse(d.getAttribute('data-sqpreset')));
-  });
+  c.onclick=function(e){
+    var el=e.target.closest('[data-sqpreset-idx]');if(!el)return;
+    var now=Date.now();if(now-sqLastPreset<500)return;sqLastPreset=now;
+    var p=list[parseInt(el.getAttribute('data-sqpreset-idx'))];
+    sqAddPreset(p);
+  };
 }
 function sqAddPreset(p){
-  var pm=parseFloat(document.getElementById('sq-parts-margin').value)||0.55;
-  var em=parseFloat(document.getElementById('sq-equip-margin').value)||0.45;
-  var m=p.type==='L'?0:p.type==='E'?em:pm;
-  var sell=p.type==='L'?p.cost:Math.ceil(p.cost/(1-m));
-  sqItems.push({name:p.name,type:p.type,cost:p.cost,sell:sell,qty:1});
-  if(p.hrs&&p.hrs>0&&p.type!=='L'){
-    sqItems.push({name:'Labor - '+p.name+' ('+p.hrs+' hr'+(p.hrs!==1?'s':'')+')',type:'L',cost:Math.round(125*p.hrs*100)/100,sell:Math.round(125*p.hrs*100)/100,qty:1});
+  if (p.kind==='material') {
+    var matItem={id:sqItemId++, name:p.name, category:(p.matType==='E'?'equipment':'material'), unitCost:p.cost, qty:1};
+    sqItems.push(matItem);
+    var linked = SQB_MAT_TO_LABOR[p.name];
+    if (linked) {
+      sqItems.push({id:sqItemId++, name:linked.name, category:'labor', hrsPerUnit:linked.hrs, qty:1, linkedMatId:matItem.id});
+    }
+  } else if (p.kind==='labor') {
+    sqItems.push({id:sqItemId++, name:p.name, category:'labor', hrsPerUnit:(p.hrs==null?0:p.hrs), qty:1});
+  } else if (p.kind==='project') {
+    sqItems.push({id:sqItemId++, name:p.name, category:'project', unitCost:p.cost, qty:1});
   }
   sqRenderItems();sqCalcTotals();
 }
 function sqAddCustom(){
-  sqItems.push({name:'',type:'P',cost:0,sell:0,qty:1});
+  sqItems.push({id:sqItemId++, name:'', category:'material', unitCost:0, qty:1});
   sqRenderItems();sqCalcTotals();
   var inputs=document.querySelectorAll('.sq-item-name');
   if(inputs.length)inputs[inputs.length-1].focus();
 }
-function sqDelItem(i){sqItems.splice(i,1);sqRenderItems();sqCalcTotals();}
+function sqDelItem(id){
+  sqItems=sqItems.filter(function(it){return it.id!==id;});
+  sqRenderItems();sqCalcTotals();
+}
 function sqEsc(s){return(s||'').replace(/"/g,'&quot;');}
 function sqFmt(n){return'$'+(parseFloat(n)||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');}
+function sqCatLabel(cat){
+  return cat==='material'?'Material':cat==='equipment'?'Equipment':cat==='labor'?'Labor':'Project';
+}
 function sqRenderItems(){
   var b=document.getElementById('sq-items-body');if(!b)return;
   b.innerHTML='';
-  var vis=sqItems.filter(function(it){return it.type!=='L';});
-  if(!vis.length){
-    b.innerHTML='<div style="color:var(--mu);font-size:13px;padding:12px 0;text-align:center">No items yet \u2014 use presets or add custom</div>';
+  if(!sqItems.length){
+    b.innerHTML='<div style="color:var(--mu);font-size:13px;padding:12px 0;text-align:center">No items yet \u2014 use the catalog above or add custom</div>';
     return;
   }
-  sqItems.forEach(function(item,i){
-    if(item.type==='L')return;
+  sqItems.forEach(function(item){
+    var costUnit = item.category==='labor' ? (item.hrsPerUnit||0) : (item.unitCost||0);
     var row=document.createElement('div');
     row.style.cssText='display:grid;grid-template-columns:1fr 55px 55px 75px 75px 28px;gap:5px;align-items:center;padding:7px 0;border-bottom:1px solid var(--bd)';
-    var sel='<select data-sqidx="'+i+'" data-sqfld="type" style="padding:5px 4px;border:1px solid var(--bd);border-radius:6px;font-size:11px;background:#fff;font-family:inherit"><option value="P"'+(item.type==='P'?' selected':'')+'>Parts</option><option value="E"'+(item.type==='E'?' selected':'')+'>Equip</option><option value="L"'+(item.type==='L'?' selected':'')+'>Labor</option></select>';
-    row.innerHTML='<input class="sq-item-name" type="text" value="'+sqEsc(item.name)+'" placeholder="Description" data-sqidx="'+i+'" data-sqfld="name" style="padding:6px 7px;border:1px solid var(--bd);border-radius:6px;font-size:12px;background:#fff;font-family:inherit;width:100%">'
-      +sel
-      +'<input type="number" value="'+(item.qty||1)+'" min="1" data-sqidx="'+i+'" data-sqfld="qty" style="padding:5px 4px;border:1px solid var(--bd);border-radius:6px;font-size:12px;text-align:center;background:#fff;font-family:inherit;width:100%">'
-      +'<input type="number" value="'+item.cost+'" data-sqidx="'+i+'" data-sqfld="cost" style="padding:5px 4px;border:1px solid var(--bd);border-radius:6px;font-size:12px;text-align:right;background:#fff;font-family:inherit;width:100%">'
-      +'<input type="number" value="'+item.sell+'" data-sqidx="'+i+'" data-sqfld="sell" style="padding:5px 4px;border:1px solid var(--bd);border-radius:6px;font-size:12px;text-align:right;background:#fff;font-family:inherit;width:100%">'
-      +'<button data-sqdelidx="'+i+'" style="background:none;border:none;color:var(--rd);font-size:17px;cursor:pointer;touch-action:manipulation;padding:0 3px">&#10005;</button>';
+    row.innerHTML='<input class="sq-item-name" type="text" value="'+sqEsc(item.name)+'" placeholder="Description" data-sqid="'+item.id+'" data-sqfld="name" style="padding:6px 7px;border:1px solid var(--bd);border-radius:6px;font-size:12px;background:#fff;font-family:inherit;width:100%">'
+      +'<span style="font-size:10px;color:var(--mu);text-align:center">'+sqCatLabel(item.category)+'</span>'
+      +'<input type="number" value="'+(item.qty||1)+'" min="0" step="any" data-sqid="'+item.id+'" data-sqfld="qty" style="padding:5px 4px;border:1px solid var(--bd);border-radius:6px;font-size:12px;text-align:center;background:#fff;font-family:inherit;width:100%">'
+      +'<input type="number" value="'+costUnit+'" data-sqid="'+item.id+'" data-sqfld="'+(item.category==='labor'?'hrsPerUnit':'unitCost')+'" style="padding:5px 4px;border:1px solid var(--bd);border-radius:6px;font-size:12px;text-align:right;background:#fff;font-family:inherit;width:100%">'
+      +'<span class="sq-item-sell" data-sqid="'+item.id+'" style="font-size:12px;text-align:right;padding:5px 2px;font-weight:600">$0.00</span>'
+      +'<button data-sqdelid="'+item.id+'" style="background:none;border:none;color:var(--rd);font-size:17px;cursor:pointer;touch-action:manipulation;padding:0 3px">&#10005;</button>';
     b.appendChild(row);
   });
-  b.addEventListener('change',function(e){
-    var el=e.target;var idx=parseInt(el.getAttribute('data-sqidx'));var fld=el.getAttribute('data-sqfld');
-    if(isNaN(idx)||!fld)return;
-    if(fld==='qty')sqItems[idx].qty=parseFloat(el.value)||1;
-    else if(fld==='cost'){sqItems[idx].cost=parseFloat(el.value)||0;sqAutoSell(idx);}
-    else if(fld==='sell')sqItems[idx].sell=parseFloat(el.value)||0;
-    else if(fld==='type'){sqItems[idx].type=el.value;sqAutoSell(idx);sqRenderItems();}
-    else if(fld==='name')sqItems[idx].name=el.value;
-    sqCalcTotals();
-  });
-  b.addEventListener('click',function(e){
-    var btn=e.target.closest('[data-sqdelidx]');
-    if(btn)sqDelItem(parseInt(btn.getAttribute('data-sqdelidx')));
-  });
-}
-function sqAutoSell(i){
-  var item=sqItems[i];
-  var pm=parseFloat(document.getElementById('sq-parts-margin').value)||0.55;
-  var em=parseFloat(document.getElementById('sq-equip-margin').value)||0.45;
-  var m=item.type==='L'?0:item.type==='E'?em:pm;
-  item.sell=item.type==='L'?item.cost:Math.ceil(item.cost/(1-m));
-}
-function sqRecalcSell(){
-  var pm=parseFloat(document.getElementById('sq-parts-margin').value)||0.55;
-  var em=parseFloat(document.getElementById('sq-equip-margin').value)||0.45;
-  sqItems.forEach(function(item){
-    if(item.type==='L')return;
-    var m=item.type==='E'?em:pm;
-    item.sell=Math.ceil(item.cost/(1-m));
-  });
-  sqRenderItems();sqCalcTotals();
+  b.onchange=function(e){
+    var el=e.target;var id=parseInt(el.getAttribute('data-sqid'));var fld=el.getAttribute('data-sqfld');
+    if(isNaN(id)||!fld)return;
+    var item=sqItems.find(function(it){return it.id===id;});
+    if(!item)return;
+    if(fld==='qty'){
+      item.qty=parseFloat(el.value)||0;
+      var linkedLabor=sqItems.find(function(it){return it.linkedMatId===id;});
+      if(linkedLabor){ linkedLabor.qty=item.qty; }
+    } else if(fld==='unitCost') item.unitCost=parseFloat(el.value)||0;
+    else if(fld==='hrsPerUnit') item.hrsPerUnit=parseFloat(el.value)||0;
+    else if(fld==='name') item.name=el.value;
+    sqRenderItems();sqCalcTotals();
+  };
+  b.onclick=function(e){
+    var btn=e.target.closest('[data-sqdelid]');
+    if(btn)sqDelItem(parseInt(btn.getAttribute('data-sqdelid')));
+  };
 }
 function sqCalcTotals(){
-  var parts=0,equip=0,labor=0;
+  var margin=parseFloat(gv('sq-margin'))||0.55;
+  var taxRate=parseFloat(gv('sq-tax-rate'))||0.0825;
+  var burdenedRate=parseFloat(gv('sq-burdened-rate'))||62.10;
+
+  var matCost=0, matSell=0, laborCost=0, laborSell=0, pcCost=0;
   sqItems.forEach(function(item){
-    var sell=(parseFloat(item.sell)||0)*(parseFloat(item.qty)||1);
-    if(item.type==='E')equip+=sell;
-    else if(item.type==='L')labor+=sell;
-    else parts+=sell;
+    if(item.category==='material'||item.category==='equipment'){
+      var ext=(item.qty||0)*(item.unitCost||0);
+      var sell=ext?ext/(1-margin):0;
+      matCost+=ext; matSell+=sell;
+    } else if(item.category==='labor'){
+      var ext=(item.qty||0)*(item.hrsPerUnit||0)*burdenedRate;
+      var sell=ext?ext/(1-margin):0;
+      laborCost+=ext; laborSell+=sell;
+    } else if(item.category==='project'){
+      var ext=(item.qty||0)*(item.unitCost||0);
+      pcCost+=ext;
+    }
   });
-  var base=parts+equip+labor;
-  var taxRate=parseFloat(document.getElementById('sq-tax-rate').value)||0.0825;
-  var jt=SQ_JOB_TYPES.find(function(j){return j.id===sqSelectedJT;});
-  var taxBase=jt?jt.taxFn(parts,equip,labor):base;
-  var tax=taxBase*taxRate;
-  var grand=base+tax;
-  var se2=function(id,v){var el=document.getElementById(id);if(el)el.textContent=v;};
-  se2('sq-tot-parts',sqFmt(parts));se2('sq-tot-equip',sqFmt(equip));
-  se2('sq-tot-labor',sqFmt(labor));se2('sq-tot-base',sqFmt(base));
-  se2('sq-tot-tax',sqFmt(tax));se2('sq-tot-grand',sqFmt(grand));
+  sqItems.forEach(function(item){
+    var el=document.querySelector('.sq-item-sell[data-sqid="'+item.id+'"]');
+    if(!el)return;
+    var ext, sell;
+    if(item.category==='material'||item.category==='equipment'){ ext=(item.qty||0)*(item.unitCost||0); sell=ext?ext/(1-margin):0; }
+    else if(item.category==='labor'){ ext=(item.qty||0)*(item.hrsPerUnit||0)*burdenedRate; sell=ext?ext/(1-margin):0; }
+    else { ext=(item.qty||0)*(item.unitCost||0); sell=ext; }
+    el.textContent=sqFmt(sell);
+  });
+
+  var miscMatCost = matCost*0.025;
+  var miscMatSell = miscMatCost ? miscMatCost/(1-margin) : 0;
+  matCost += miscMatCost; matSell += miscMatSell;
+
+  var baseBidCost = matCost+laborCost+pcCost;
+  var baseBidSell = matSell+laborSell+pcCost;
+
+  var taxPCEl=document.getElementById('sq-tax-pc');
+  var taxPC = taxPCEl ? taxPCEl.checked : false;
+  var custTax=0;
+  if(sqSelectedJT===1) custTax=(matSell+laborSell+(taxPC?pcCost:0))*taxRate;
+  else if(sqSelectedJT===2) custTax=0;
+  else if(sqSelectedJT===3) custTax=(matSell+(taxPC?pcCost:0))*taxRate;
+  else if(sqSelectedJT===4) custTax=0;
+
+  var grandSell = baseBidSell+custTax;
+
+  var matTaxedEl=document.getElementById('sq-mat-purchase-taxed');
+  var matTaxed = matTaxedEl ? matTaxedEl.checked : false;
+  var internalTax = matTaxed ? matCost*taxRate : 0;
+  var trueCost = baseBidCost+internalTax;
+  var grossProfit = grandSell-trueCost;
+  var grossMarginPct = grandSell ? (grossProfit/grandSell)*100 : 0;
+
+  se('sq-tot-materials',sqFmt(matSell));
+  se('sq-tot-labor',sqFmt(laborSell));
+  se('sq-tot-pc',sqFmt(pcCost));
+  se('sq-tot-base',sqFmt(baseBidSell));
+  se('sq-tot-tax',sqFmt(custTax));
+  se('sq-tot-grand',sqFmt(grandSell));
+  se('sq-tot-internal-tax',sqFmt(internalTax));
+  se('sq-tot-true-cost',sqFmt(trueCost));
+  se('sq-tot-gross-profit',sqFmt(grossProfit));
+  se('sq-tot-gross-margin',grossMarginPct.toFixed(1)+'%');
+
   var tl=document.getElementById('sq-tax-label');
-  if(tl)tl.textContent=tax>0?'Sales Tax ('+(taxRate*100).toFixed(2)+'%)':'No Tax Collected';
+  if(tl)tl.textContent=custTax>0?'Sales Tax ('+(taxRate*100).toFixed(2)+'%)':(sqSelectedJT===4?'Tax Hidden / Built-In':'No Tax Collected');
   onFieldChange();
 }
 function sqClearItems(){
@@ -3297,13 +3663,29 @@ function sqGeneratePDF(){
   doc.setFontSize(9);doc.setFont('helvetica','normal');doc.setTextColor(0,0,0);
   var intro='NTD Mechanical is pleased to provide our PRICING PROPOSAL for HVAC Services'+(jobref?' for the '+jobref+' project':'')+'. Please review the associated quotation values:';
   var introL=doc.splitTextToSize(intro,IW);doc.text(introL,M,y);y+=introL.length*12+8;
-  var parts=0,equip=0,labor=0;
-  sqItems.forEach(function(item){var sell=(parseFloat(item.sell)||0)*(parseFloat(item.qty)||1);if(item.type==='E')equip+=sell;else if(item.type==='L')labor+=sell;else parts+=sell;});
-  var base=parts+equip+labor;
+  var margin=parseFloat(gv('sq-margin'))||0.55;
+  var burdenedRate=parseFloat(gv('sq-burdened-rate'))||62.10;
+  var matCost=0, matSell=0, laborCost=0, laborSell=0, pcCost=0;
+  sqItems.forEach(function(item){
+    if(item.category==='material'||item.category==='equipment'){
+      var ext=(item.qty||0)*(item.unitCost||0);
+      matCost+=ext; matSell+=(ext?ext/(1-margin):0);
+    } else if(item.category==='labor'){
+      var ext=(item.qty||0)*(item.hrsPerUnit||0)*burdenedRate;
+      laborCost+=ext; laborSell+=(ext?ext/(1-margin):0);
+    } else if(item.category==='project'){
+      pcCost+=(item.qty||0)*(item.unitCost||0);
+    }
+  });
+  var miscMatCost=matCost*0.025, miscMatSell=miscMatCost?miscMatCost/(1-margin):0;
+  matCost+=miscMatCost; matSell+=miscMatSell;
+  var base=matSell+laborSell+pcCost;
   var taxRate=parseFloat(document.getElementById('sq-tax-rate').value)||0.0825;
-  var jt=SQ_JOB_TYPES.find(function(j){return j.id===sqSelectedJT;});
-  var taxBase=jt?jt.taxFn(parts,equip,labor):base;
-  var tax=taxBase*taxRate;var grand=base+tax;
+  var taxPC=(document.getElementById('sq-tax-pc')||{}).checked||false;
+  var tax=0;
+  if(sqSelectedJT===1) tax=(matSell+laborSell+(taxPC?pcCost:0))*taxRate;
+  else if(sqSelectedJT===3) tax=(matSell+(taxPC?pcCost:0))*taxRate;
+  var grand=base+tax;
   var tblW=IW*0.55,tblX=M+(IW-tblW)/2;
   if(tax>0){
     doc.setFillColor(245,245,245);doc.rect(tblX,y,tblW,18,'F');doc.setDrawColor(180,180,180);doc.rect(tblX,y,tblW,18,'S');
@@ -3335,15 +3717,18 @@ function sqGeneratePDF(){
   if(sqSelectedJT!==2){
     var lnum=1;
     sqItems.forEach(function(item){
-      if(item.type==='L')return;
+      if(item.category==='labor')return; // labor stays folded into Base Bid, not itemized to the customer
       if(y>680){doc.addPage();y=40;}
       if(lnum%2===0){doc.setFillColor(242,246,252);doc.rect(M,y,IW,13,'F');}
       doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(0,0,0);
       doc.text(String(lnum),M+4,y+9);
       var nm=(item.name||'Custom item').substring(0,60);
       var qty=parseFloat(item.qty)||1;
+      var ext, itemSell;
+      if(item.category==='project'){ ext=qty*(item.unitCost||0); itemSell=ext; }
+      else { ext=qty*(item.unitCost||0); itemSell=ext?ext/(1-margin):0; }
       doc.text(nm+(qty>1?' (x'+qty+')':''),M+20,y+9);
-      doc.setFont('helvetica','bold');doc.text(sqFmt((parseFloat(item.sell)||0)*qty),W-M-6,y+9,{align:'right'});
+      doc.setFont('helvetica','bold');doc.text(sqFmt(itemSell),W-M-6,y+9,{align:'right'});
       y+=13;lnum++;
     });
     y+=8;
@@ -3593,7 +3978,13 @@ function ntdSubmitServiceQuote() {
       notes: gv('sn'),
       is_replacement: document.getElementById('sq-is-replacement').checked,
       existing_breaker: gv('sq-breaker'), area_served: gv('sq-area-served'),
-      heat_type: gv('sq-heat-type'), site_photo_count: sqSitePhotos.length
+      heat_type: gv('sq-heat-type'), site_photo_count: sqSitePhotos.length,
+      tax_project_costs: (document.getElementById('sq-tax-pc')||{}).checked||false,
+      materials_purchase_taxed: (document.getElementById('sq-mat-purchase-taxed')||{}).checked||false,
+      internal_tax: (document.getElementById('sq-tot-internal-tax')||{}).textContent||'',
+      true_cost: (document.getElementById('sq-tot-true-cost')||{}).textContent||'',
+      gross_profit: (document.getElementById('sq-tot-gross-profit')||{}).textContent||'',
+      gross_margin_pct: (document.getElementById('sq-tot-gross-margin')||{}).textContent||''
     }).then(function() {
       alert('\u2713 Service Quote submitted for ' + gv('sf') + '.');
     }).catch(function(){ alert('Submit failed.'); });
@@ -3759,7 +4150,13 @@ function ntdAutoSubmitServiceQuote() {
       notes: gv('sn'),
       is_replacement: document.getElementById('sq-is-replacement').checked,
       existing_breaker: gv('sq-breaker'), area_served: gv('sq-area-served'),
-      heat_type: gv('sq-heat-type'), site_photo_count: sqSitePhotos.length
+      heat_type: gv('sq-heat-type'), site_photo_count: sqSitePhotos.length,
+      tax_project_costs: (document.getElementById('sq-tax-pc')||{}).checked||false,
+      materials_purchase_taxed: (document.getElementById('sq-mat-purchase-taxed')||{}).checked||false,
+      internal_tax: (document.getElementById('sq-tot-internal-tax')||{}).textContent||'',
+      true_cost: (document.getElementById('sq-tot-true-cost')||{}).textContent||'',
+      gross_profit: (document.getElementById('sq-tot-gross-profit')||{}).textContent||'',
+      gross_margin_pct: (document.getElementById('sq-tot-gross-margin')||{}).textContent||''
     }).then(function(){ console.log('[NTD] Service Quote auto-saved to store'); })
       .catch(function(e){ console.warn('[NTD] Service Quote auto-save failed:', e.message); });
   });
