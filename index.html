@@ -84,12 +84,12 @@
   <!-- FIELD / TECH TOOLS -->
   <div class="section-label">Field &amp; Tech Tools</div>
 
-  <a class="card" href="my-jobs.html">
+  <a class="card" href="my-jobs.html" id="my-jobs-tile">
     <div class="card-top">
       <div class="card-icon">&#128188;</div>
       <div class="card-text">
-        <h2>My Jobs</h2>
-        <p>See what's dispatched to you today and jump straight into the right form — service call, PM visit, startup, or survey.</p>
+        <h2>My Jobs &amp; Forms</h2>
+        <p>See what's dispatched to you today, or start a service call, PM visit, startup, or equipment survey manually.</p>
         <span class="badge badge-new">New</span>
         <span class="badge badge-orange">Start Here</span>
       </div>
@@ -97,9 +97,9 @@
     </div>
   </a>
 
-  <button type="button" id="more-field-tools-btn" onclick="showMoreFieldTools()" style="display:none;width:100%;padding:12px;border-radius:12px;border:1.5px dashed #CBD5E1;background:none;color:#64748B;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;margin-bottom:12px">More tools (manual entry, no ticket) &#8964;</button>
+  <button type="button" id="more-field-tools-btn" onclick="showMoreFieldTools()" style="width:100%;padding:12px;border-radius:12px;border:1.5px dashed #CBD5E1;background:none;color:#64748B;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;margin-bottom:12px">More tools (manual entry, no ticket) &#8964;</button>
 
-  <div id="field-tools-more">
+  <div id="field-tools-more" style="display:none">
 
   <a class="card" href="service-call.html">
     <div class="card-top">
@@ -213,17 +213,23 @@ function doUpdate(){
   setTimeout(function(){ window.location.reload(); }, 500);
 }
 
-// ── SIMPLIFY FOR FIELD TECHS ────────────────────────────────────────────
-// If this device has already identified itself as a tech (picked a name in
-// My Jobs), collapse the individual manual-entry tools by default so the
-// launcher isn't a wall of options — My Jobs is the front door for anything
-// dispatched. Nothing is removed, just tucked behind "More tools" for the
-// rare walk-up/manual case. Devices that have never opened My Jobs (office
-// staff, a brand-new install) see the full list, unchanged.
+// ── MANUAL-ENTRY TOOLS TOGGLE ────────────────────────────────────────────
+// Service Call / Startup / PM / Survey stay collapsed by default for
+// everyone, tech-identified or not — they're already reachable from inside
+// My Jobs & Forms' own "New / Unscheduled Call" section, so a first-time
+// visitor shouldn't have to scroll past four redundant tiles to find it.
+// This toggle is a manual escape hatch for the rare case someone wants a
+// blank form directly without going through My Jobs at all.
 function showMoreFieldTools() {
   document.getElementById('field-tools-more').style.display = 'block';
   document.getElementById('more-field-tools-btn').style.display = 'none';
 }
+
+// ── SIMPLIFY FOR FIELD TECHS ─────────────────────────────────────────────
+// Sales Tools and Management are genuinely role-specific (a tech has no use
+// for either), so those stay gated behind having picked a tech identity in
+// My Jobs at least once on this device — unlike the manual-entry toggle
+// above, which is collapsed for everyone regardless of identity.
 function exitTechView() {
   try { localStorage.removeItem('ntdFieldTechName'); } catch(e) {}
   window.location.reload();
@@ -232,8 +238,6 @@ function exitTechView() {
   var isTech = false;
   try { isTech = !!localStorage.getItem('ntdFieldTechName'); } catch(e) {}
   if (isTech) {
-    document.getElementById('field-tools-more').style.display = 'none';
-    document.getElementById('more-field-tools-btn').style.display = 'block';
     var sales = document.getElementById('sales-tools-section');
     var mgmt = document.getElementById('management-section');
     if (sales) sales.style.display = 'none';
