@@ -956,7 +956,7 @@ function eqH(eq,idx){
     +'<div class="fg"><label>Equipment Type</label><select data-uid="'+eq.id+'" data-fld="type" onchange="udf(this)">'
     +'<option value="">Select...</option>'+EQ_TYPES.map(function(t){return'<option'+(eq.type===t?' selected':'')+'>'+t+'</option>';}).join('')+'</select></div></div>'
     +'<div class="r2"><div class="fg"><label>Make / Manufacturer</label><input type="text" value="'+(eq.manuf||'')+'" placeholder="e.g. Carrier" data-uid="'+eq.id+'" data-fld="manuf" oninput="udf(this)"></div>'
-    +'<div class="fg"><label>Model #</label><input type="text" value="'+(eq.model||'')+'" placeholder="Model number" data-uid="'+eq.id+'" data-fld="model" oninput="udf(this)"></div></div>'
+    +'<div class="fg"><label>Model #</label><input type="text" value="'+(eq.model||'')+'" placeholder="Model number" data-uid="'+eq.id+'" data-fld="model" oninput="udf(this)" onblur="mlCheckModel(this)"></div></div>'
     +'<div class="r2"><div class="fg"><label>Tonnage / Size</label><input type="text" value="'+(eq.tonnage||'')+'" placeholder="e.g. 7.5 ton" data-uid="'+eq.id+'" data-fld="tonnage" oninput="udf(this)"></div>'
     +'<div class="fg"><label>Serial #</label><input type="text" value="'+(eq.serial||'')+'" placeholder="Serial number" data-uid="'+eq.id+'" data-fld="serial" oninput="udf(this)"></div></div>'
     +'<div class="r2"><div class="fg"><label>Install Year <span style="font-weight:400;font-size:9px;text-transform:none">(or age in yrs)</span></label><input type="text" value="'+(eq.age||'')+'" placeholder="e.g. 2014 or 11" data-uid="'+eq.id+'" data-fld="age" oninput="udf(this)"></div>'
@@ -3391,6 +3391,58 @@ var _ntdAssetFacilityId = null;
 var _ntdAssetFacilityPromise = null; // in-flight resolution, shared by concurrent callers
 var _ntdAutoSubmitted = false; // Prevent duplicate auto-submits
 
+// ── MODEL LIBRARY (auto-fill specs from previously-seen model numbers) ─────
+// Loaded once per session (not per keystroke) and cached in memory. Only
+// ever fills in BLANK fields — never overwrites something already typed or
+// read off a nameplate, so a wrong/rare-variant library entry can't clobber
+// real field data.
+var _modelLibraryCache = null;
+function ntdLoadModelLibrary() {
+  if (typeof ntdStore === 'undefined' || !ntdStore.model_library) return;
+  ntdStore.model_library.list().then(function(rows) {
+    var cache = {};
+    (rows||[]).forEach(function(r){ if (r.model_key) cache[r.model_key] = r; });
+    _modelLibraryCache = cache;
+  }).catch(function(e){ console.warn('[NTD] Model library load failed:', e.message); });
+}
+function mlCheckModel(inputEl) {
+  if (!_modelLibraryCache) return;
+  var uid = parseInt(inputEl.dataset.uid);
+  var modelVal = inputEl.value.trim();
+  if (!modelVal) return;
+  var key = modelVal.toUpperCase().replace(/[\s\-]+/g,'');
+  var match = _modelLibraryCache[key];
+  if (!match) return;
+  var eq = eqs.find(function(e){ return e.id === uid; });
+  if (!eq) return;
+  var filled = [];
+  [['manuf','manufacturer'],['tonnage','tonnage'],['refrigerant','refrigerant']].forEach(function(pair){
+    var eqField = pair[0], libField = pair[1];
+    if (!eq[eqField] && match[libField]) {
+      eq[eqField] = match[libField];
+      var el = document.querySelector('[data-uid="'+uid+'"][data-fld="'+eqField+'"]');
+      if (el) el.value = match[libField];
+      filled.push(eqField);
+    }
+  });
+  if (filled.length) {
+    ua();
+    ntdShowMlHint(uid, filled.length);
+  }
+}
+function ntdShowMlHint(uid, count) {
+  var modelEl = document.querySelector('[data-uid="'+uid+'"][data-fld="model"]');
+  if (!modelEl || !modelEl.parentNode) return;
+  var old = modelEl.parentNode.querySelector('.ml-hint');
+  if (old) old.remove();
+  var hint = document.createElement('div');
+  hint.className = 'ml-hint';
+  hint.style.cssText = 'font-size:10px;color:var(--gn);font-weight:600;margin-top:3px';
+  hint.textContent = '\u{1F4DA} ' + count + ' field' + (count===1?'':'s') + ' filled from model library';
+  modelEl.parentNode.appendChild(hint);
+  setTimeout(function(){ hint.remove(); }, 4000);
+}
+
 function ntdEqRecord(eq, facilityId) {
   var filterParts = [];
   if (eq.f1s) filterParts.push((eq.f1q ? eq.f1q + 'x ' : '') + eq.f1s);
@@ -3450,6 +3502,18 @@ function ntdSubmitAssessment() {
     var eqSaves = eqs.map(function(eq) {
       return ntdStore.upsertEquipment(ntdEqRecord(eq, facilityId));
     });
+    // Model library learning — best-effort, fire-and-forget. Never blocks or
+    // fails the actual submission, even if model_library doesn't exist yet.
+    if (ntdStore.learnModel) {
+      eqs.forEach(function(eq) {
+        if (eq.model && (eq.manuf || eq.tonnage || eq.refrigerant)) {
+          ntdStore.learnModel({
+            model_raw: eq.model, manufacturer: eq.manuf||'', tonnage: eq.tonnage||'',
+            refrigerant: eq.refrigerant||'', type: eq.type||''
+          }).catch(function(e){ console.warn('[NTD] Model library learn failed:', e.message); });
+        }
+      });
+    }
     ackGetSignatureBlob(function(sigBlob){
       var sigUpload = sigBlob
         ? ntdStore.uploadFile({blob:sigBlob, facilityId:facilityId, formType:'signature', mimeType:'image/png', ext:'png', description:'Assessment Acknowledgment \u2014 '+(gv('ack-name')||'Signed')})
@@ -3624,6 +3688,18 @@ function ntdAutoSubmitAssessment() {
     var eqSaves = eqs.map(function(eq) {
       return ntdStore.upsertEquipment(ntdEqRecord(eq, facilityId));
     });
+    // Model library learning — best-effort, fire-and-forget. Never blocks or
+    // fails the actual submission, even if model_library doesn't exist yet.
+    if (ntdStore.learnModel) {
+      eqs.forEach(function(eq) {
+        if (eq.model && (eq.manuf || eq.tonnage || eq.refrigerant)) {
+          ntdStore.learnModel({
+            model_raw: eq.model, manufacturer: eq.manuf||'', tonnage: eq.tonnage||'',
+            refrigerant: eq.refrigerant||'', type: eq.type||''
+          }).catch(function(e){ console.warn('[NTD] Model library learn failed:', e.message); });
+        }
+      });
+    }
     ackGetSignatureBlob(function(sigBlob){
       var sigUpload = sigBlob
         ? ntdStore.uploadFile({blob:sigBlob, facilityId:facilityId, formType:'signature', mimeType:'image/png', ext:'png', description:'Assessment Acknowledgment \u2014 '+(gv('ack-name')||'Signed')})
@@ -3743,6 +3819,7 @@ window.onload=function(){
   buildPlans();
   renderEqs();
   sqInit();
+  ntdLoadModelLibrary();
   document.getElementById('pmImportBtn').addEventListener('click',function(){
     if(confirm('Import all units from the Units tab? This will replace the current PM list.'))pmImport();
   });

@@ -658,6 +658,39 @@ function ntdUpsertEquipment(record) {
   });
 }
 
+// ── MODEL LIBRARY (grows automatically from real surveys over time) ────────
+// The first time a unit with a given model number gets submitted with real
+// specs, those specs get remembered. Every future unit sharing that model
+// number can auto-fill from this instead of the tech typing it again.
+// Never overwrites a spec the library already has with a blank — only ever
+// fills in gaps, same "richer data wins" philosophy as equipment dedup above.
+function _normalizeModelKey(s) {
+  return (s || '').toString().trim().toUpperCase().replace(/[\s\-]+/g, '');
+}
+
+function ntdLearnModel(record) {
+  var key = _normalizeModelKey(record.model_raw);
+  if (!key) return Promise.resolve(null);
+  return _sb.list('model_library').then(function(all) {
+    var existing = (all || []).find(function(m) { return m.model_key === key; });
+    if (existing) {
+      var merged = { id: existing.id };
+      var changed = false;
+      ['manufacturer','tonnage','refrigerant','type'].forEach(function(f) {
+        if (!existing[f] && record[f]) { merged[f] = record[f]; changed = true; }
+      });
+      if (!changed) return existing; // nothing new to learn
+      return _sb.upsert('model_library', merged);
+    }
+    return _sb.upsert('model_library', {
+      model_key: key, model_raw: record.model_raw,
+      manufacturer: record.manufacturer || '', tonnage: record.tonnage || '',
+      refrigerant: record.refrigerant || '', type: record.type || '',
+      ts: Date.now()
+    });
+  });
+}
+
 // ── NTDSTORE PUBLIC API ───────────────────────────────────────────────────────
 // Same interface as the localStorage version — no tool code changes needed
 var ntdStore = {
@@ -672,6 +705,7 @@ var ntdStore = {
   service_quotes: _makeStore('service_quotes'),
   settings:       _makeStore('facilities'), // settings not needed with Supabase
   documents:      _makeStore('documents'),
+  model_library:  _makeStore('model_library'),
   team_calendar:  _makeStore('team_calendar'),
   service_tickets:_makeStore('service_tickets'),
   service_records:_makeStore('service_records'),
@@ -679,6 +713,7 @@ var ntdStore = {
   migrate:        _migrate,
   matchFacility:  ntdFacilityMatch,
   upsertEquipment:ntdUpsertEquipment,
+  learnModel:     ntdLearnModel,
   exportAll:      _exportImport.exportAll,
   importAll:      _exportImport.importAll,
   clearAll:       _exportImport.clearAll,
