@@ -170,6 +170,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .btn-or{background:var(--or);color:#fff;box-shadow:0 2px 8px rgba(232,83,26,.3)}
 .btn-nv{background:var(--nv-grad);color:#fff;box-shadow:0 2px 8px rgba(15,38,71,.25)}
 .btn-outline{background:#fff;color:var(--nv);border:1.5px solid var(--nv)}
+.ntd-resolve-followup,.ntd-send-followup,.ntd-notify-followup{cursor:pointer;touch-action:manipulation;font-family:inherit;border-radius:6px}
+.ntd-send-followup{background:var(--nv);color:#fff;border:1.5px solid var(--nv)}
+.ntd-notify-followup{background:#fff;color:var(--st);border:1.5px solid var(--st)}
 .btn-red{background:#fff;color:var(--rd);border:1.5px solid var(--rd)}
 .btn-sm{padding:8px 14px;font-size:12px;border-radius:9px;width:auto;display:inline-block;margin-top:0}
 
@@ -1021,6 +1024,23 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
     <button class="btn btn-nv" onclick="saveCalEntry()">Save Entry</button>
     <button class="btn btn-outline" onclick="closeModal('cal-modal')" style="margin-top:6px">Cancel</button>
     <button class="btn btn-red" id="cm-delete-btn" style="display:none" onclick="deleteCalEntry()">Delete Entry</button>
+  </div>
+</div>
+
+<!-- FOLLOW-UP NOTIFY MODAL (non-tech follow-ups — quotes, billing, etc.) -->
+<div class="modal-overlay" id="followup-notify-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Notify Someone</div>
+    <p style="font-size:12px;color:var(--mu);line-height:1.5;margin-bottom:10px">For follow-ups that aren't a tech dispatch — a quote request, billing question, etc. Sends a notification, doesn't create a ticket.</p>
+    <div class="sh-note" id="fnm-text" style="margin-bottom:10px"></div>
+    <div class="fg">
+      <label>Send To</label>
+      <select id="fnm-recipient"><option value="">— Select —</option></select>
+    </div>
+    <div class="fg"><label>Note (optional)</label><textarea id="fnm-note" placeholder="Any extra context"></textarea></div>
+    <button class="btn btn-nv" onclick="sendFollowupNotification()">Send</button>
+    <button class="btn btn-outline" onclick="closeModal('followup-notify-modal')" style="margin-top:6px">Cancel</button>
   </div>
 </div>
 
@@ -2024,7 +2044,11 @@ function renderDetailTab(f) {
             (r.sig_name ? '<div class="rec-meta">Signed: '+esc(r.sig_name)+(r.sig_date?' · '+esc(r.sig_date):'')+'</div>' : '') +
             (r.followup ? '<div class="rec-meta" style="color:var(--am);display:flex;justify-content:space-between;align-items:center;gap:8px">' +
               '<span>⚠ Follow-up' + (r.followup_resolved ? ' <span style="color:var(--gn);font-weight:700">(resolved)</span>' : '') + ': '+esc(r.followup)+'</span>' +
-              '<button class="btn-outline ntd-resolve-followup" data-id="'+r.id+'" data-reopen="'+(r.followup_resolved?'1':'0')+'" style="padding:2px 8px;font-size:10px;flex-shrink:0">'+(r.followup_resolved?'Reopen':'✓ Resolve')+'</button>' +
+              '<span style="display:flex;gap:6px;flex-shrink:0">' +
+                '<button class="btn-outline ntd-resolve-followup" data-id="'+r.id+'" data-reopen="'+(r.followup_resolved?'1':'0')+'" style="padding:2px 8px;font-size:10px">'+(r.followup_resolved?'Reopen':'✓ Resolve')+'</button>' +
+                (r.followup_resolved ? '' : '<button class="ntd-send-followup" data-id="'+r.id+'" data-tag="" data-source="startup" data-fid="'+esc(currentFacilityId||'')+'" style="padding:2px 8px;font-size:10px">&#8594; Dispatch</button>') +
+                (r.followup_resolved ? '' : '<button class="ntd-notify-followup" data-id="'+r.id+'" data-tag="" data-source="startup" data-fid="'+esc(currentFacilityId||'')+'" style="padding:2px 8px;font-size:10px">&#9993; Notify</button>') +
+              '</span>' +
             '</div>' : '') +
           '</div></div>';
       });
@@ -2115,7 +2139,11 @@ function renderDetailTab(f) {
             var followupsHtml = visitFollowups.length ? '<div style="margin-top:6px">' + visitFollowups.map(function(u) {
               return '<div class="rec-meta" style="color:'+(u.followup_resolved?'var(--gn)':'var(--am)')+';display:flex;justify-content:space-between;align-items:center;gap:8px">' +
                 '<span>'+(u.followup_resolved?'✓':'⚠')+' '+esc(u.tag||'Unit')+(u.followup_resolved?' <span style="color:var(--gn);font-weight:700">(resolved)</span>':'')+': '+esc(u.followup)+'</span>' +
-                '<button class="btn-outline ntd-resolve-followup" data-id="'+r.id+'" data-tag="'+esc(u.tag||'')+'" data-source="pm" data-reopen="'+(u.followup_resolved?'1':'0')+'" style="padding:2px 8px;font-size:10px;flex-shrink:0">'+(u.followup_resolved?'Reopen':'✓ Resolve')+'</button>' +
+                '<span style="display:flex;gap:6px;flex-shrink:0">' +
+                  '<button class="btn-outline ntd-resolve-followup" data-id="'+r.id+'" data-tag="'+esc(u.tag||'')+'" data-source="pm" data-reopen="'+(u.followup_resolved?'1':'0')+'" style="padding:2px 8px;font-size:10px">'+(u.followup_resolved?'Reopen':'✓ Resolve')+'</button>' +
+                  (u.followup_resolved ? '' : '<button class="ntd-send-followup" data-id="'+r.id+'" data-tag="'+esc(u.tag||'')+'" data-source="pm" data-fid="'+esc(currentFacilityId||'')+'" style="padding:2px 8px;font-size:10px">&#8594; Dispatch</button>') +
+                  (u.followup_resolved ? '' : '<button class="ntd-notify-followup" data-id="'+r.id+'" data-tag="'+esc(u.tag||'')+'" data-source="pm" data-fid="'+esc(currentFacilityId||'')+'" style="padding:2px 8px;font-size:10px">&#9993; Notify</button>') +
+                '</span>' +
               '</div>';
             }).join('') + '</div>' : '';
             html += '<div class="rec-row">' +
@@ -3925,6 +3953,92 @@ function ntdResolveFollowup(recordId, resolved) {
   });
 }
 
+// Opens a pre-filled Service Call ticket for a follow-up that needs an
+// actual tech dispatched, instead of only being resolvable in place. Re-reads
+// the source record for the exact follow-up text rather than trusting a data
+// attribute, so free-text notes never have to survive round-tripping through
+// an onclick string. Stashes the follow-up's identity so saveTicket() can
+// link the two — completing this ticket later auto-resolves the follow-up.
+var _tkPendingFollowup = null;
+function openTicketFromFollowup(recordId, tag, source, facilityId) {
+  var table = source === 'pm' ? 'pm_records' : 'startup_records';
+  ntdStore[table].get(recordId).then(function(r) {
+    if (!r) return;
+    var followupText = '', tech = r.tech || '';
+    if (source === 'pm') {
+      var u = (r.units || []).filter(function(x){ return x.tag === tag; })[0];
+      followupText = u ? (u.followup || '') : '';
+    } else {
+      followupText = r.followup || '';
+    }
+    openAddTicket();
+    _tkPendingFollowup = { id: recordId, tag: tag || '', source: source };
+    document.getElementById('tk-type').value = 'service_call';
+    document.getElementById('tk-priority').value = 'routine';
+    document.getElementById('tk-problem').value = (tag ? tag + ' — ' : '') + followupText;
+    document.getElementById('tk-notes').value = 'Created from a ' + (source==='pm' ? 'PM Visit' : 'Startup') + ' follow-up' + (tech ? ' (' + tech + ')' : '') + '.';
+    if (facilityId) {
+      ntdStore.facilities.get(facilityId).then(function(f) {
+        if (f) ticketPickFacility(facilityId, f.name);
+      });
+    }
+  }).catch(function(err) {
+    showToast('Error: ' + (err.message || 'could not load follow-up'));
+  });
+}
+
+// ── NOTIFY OFFICE (non-tech follow-ups — quotes, billing questions, etc.) ─
+// Not every follow-up is field work. "Customer requesting a quote on RTU-5
+// replacement" needs a salesperson, not a tech dispatch — this sends a
+// plain notification to any Hub user without creating a ticket.
+var _tkNotifyContext = null;
+function openFollowupNotifyModal(recordId, tag, source, facilityId) {
+  var table = source === 'pm' ? 'pm_records' : 'startup_records';
+  ntdStore[table].get(recordId).then(function(r) {
+    if (!r) return;
+    var followupText = '';
+    if (source === 'pm') {
+      var u = (r.units || []).filter(function(x){ return x.tag === tag; })[0];
+      followupText = u ? (u.followup || '') : '';
+    } else {
+      followupText = r.followup || '';
+    }
+    _tkNotifyContext = { text: followupText, tag: tag || '', facilityId: facilityId || '' };
+    document.getElementById('fnm-text').textContent = (tag ? tag + ' — ' : '') + followupText;
+    var sel = document.getElementById('fnm-recipient');
+    sel.innerHTML = '<option value="">— Select —</option>' + STAFF_NAMES.map(function(n) {
+      return '<option value="'+esc(n)+'">'+esc(n)+'</option>';
+    }).join('');
+    openModal('followup-notify-modal');
+  }).catch(function(err) {
+    showToast('Error: ' + (err.message || 'could not load follow-up'));
+  });
+}
+function sendFollowupNotification() {
+  var recipient = document.getElementById('fnm-recipient').value;
+  if (!recipient) { showToast('Pick who this should go to'); return; }
+  if (!_tkNotifyContext) return;
+  var note = document.getElementById('fnm-note').value.trim();
+  var facName = '';
+  var proceed = function() {
+    var msg = (_tkNotifyContext.tag ? _tkNotifyContext.tag + ' — ' : '') + _tkNotifyContext.text +
+      (facName ? ' (' + facName + ')' : '') + (note ? ' — ' + note : '');
+    createNotification(recipient, msg, _tkNotifyContext.facilityId || '', 'followup_notify').then(function() {
+      closeModal('followup-notify-modal');
+      showToast('Sent to ' + recipient);
+      _tkNotifyContext = null;
+    });
+  };
+  if (_tkNotifyContext.facilityId) {
+    ntdStore.facilities.get(_tkNotifyContext.facilityId).then(function(f) {
+      facName = f ? f.name : '';
+      proceed();
+    });
+  } else {
+    proceed();
+  }
+}
+
 // PM Checklist follow-ups live one-per-UNIT inside a pm_record's units[]
 // JSONB array (a single PM visit can flag more than one unit), unlike
 // Startup Checklist's one-per-record flag — so resolving one means fetching
@@ -3990,7 +4104,11 @@ function followupItemRow(it, facName) {
         (facName ? '<div style="font-size:11px;color:var(--mu)">'+esc(facName)+'</div>' : '') +
         (it.tech ? '<div style="font-size:11px;color:var(--mu)">'+(it.source==='pm'?'PM Visit':'Startup')+' · '+esc(it.tech)+(it.date?' · '+esc(it.date):'')+'</div>' : '') +
       '</div>' +
-      '<button class="btn-outline ntd-resolve-followup" data-id="'+it.recordId+'" data-tag="'+esc(it.tag)+'" data-source="'+it.source+'" style="padding:3px 9px;font-size:10px;flex-shrink:0">✓ Resolve</button>' +
+      '<div style="display:flex;gap:6px;flex-shrink:0">' +
+        '<button class="btn-outline ntd-resolve-followup" data-id="'+it.recordId+'" data-tag="'+esc(it.tag)+'" data-source="'+it.source+'" style="padding:3px 9px;font-size:10px">✓ Resolve</button>' +
+        '<button class="ntd-send-followup" data-id="'+it.recordId+'" data-tag="'+esc(it.tag)+'" data-source="'+it.source+'" data-fid="'+esc(it.facility_id||'')+'" style="padding:3px 9px;font-size:10px">&#8594; Dispatch</button>' +
+        '<button class="ntd-notify-followup" data-id="'+it.recordId+'" data-tag="'+esc(it.tag)+'" data-source="'+it.source+'" data-fid="'+esc(it.facility_id||'')+'" style="padding:3px 9px;font-size:10px">&#9993; Notify</button>' +
+      '</div>' +
     '</div>' +
     '<div style="font-size:12px;color:var(--am);margin-top:3px;line-height:1.5">'+esc(it.followup)+'</div>' +
   '</div>';
@@ -5633,6 +5751,23 @@ function setTicketViewMode(mode) {
   renderTicketsList();
 }
 
+// A ticket created via "Dispatch" from a follow-up carries source_followup_*
+// fields. Once that ticket lands on Complete, resolve the original follow-up
+// automatically and clear the linkage so this doesn't reprocess it next load.
+// Runs client-side on whoever has the Hub open — not instant the second a
+// tech submits, but picked up the next time anyone views the ticket board.
+function tkAutoResolveFollowups(tickets) {
+  (tickets || []).forEach(function(t) {
+    if (t.status !== 'complete' || !t.source_followup_id) return;
+    if (t.source_followup_source === 'pm') {
+      ntdResolvePmFollowup(t.source_followup_id, t.source_followup_tag, true);
+    } else {
+      ntdResolveFollowup(t.source_followup_id, true);
+    }
+    ntdStore.service_tickets.upsert({ id: t.id, source_followup_id: '', source_followup_tag: '', source_followup_source: '' }).catch(function(){});
+  });
+}
+
 function renderTicketsList() {
   tkPopulateTechFilter();
   if (_tkLastData) { tkRenderCurrentView(_tkLastData); return; }
@@ -5658,6 +5793,7 @@ function renderTicketsList() {
     var jobMap = {};
     (results[5]||[]).forEach(function(j){ jobMap[j.id] = j; });
     _tkLastData = { tickets: results[0]||[], facMap: facMap, recMap: recMap, jobMap: jobMap };
+    tkAutoResolveFollowups(_tkLastData.tickets);
     tkRenderCurrentView(_tkLastData);
   }).catch(function(err) {
     boardEl.innerHTML = emptyState('⚠️','Couldn\'t load tickets', esc(err.message||'Please try again.'));
@@ -5800,6 +5936,7 @@ function openAddTicket() {
   editingTicketId = null;
   ticketFacilitiesCache = null;
   ticketPickedFacilityId = null;
+  _tkPendingFollowup = null;
   document.getElementById('tk-site-suggest').classList.remove('on');
   document.getElementById('ticket-modal-title').textContent = 'New Ticket';
   document.getElementById('tk-type').value = 'service_call';
@@ -5830,6 +5967,7 @@ function openEditTicket(id) {
     editingTicketId = id;
     ticketFacilitiesCache = null;
     ticketPickedFacilityId = t.facility_id || null;
+    _tkPendingFollowup = null;
     document.getElementById('tk-site-suggest').classList.remove('on');
     document.getElementById('ticket-modal-title').textContent = t.ticket_number || 'Edit Ticket';
     document.getElementById('tk-type').value = t.ticket_type || 'service_call';
@@ -5892,6 +6030,11 @@ function saveTicket() {
     record.declined_by = '';
     record.declined_reason = '';
   }
+  if (_tkPendingFollowup && !editingTicketId) {
+    record.source_followup_id = _tkPendingFollowup.id;
+    record.source_followup_tag = _tkPendingFollowup.tag;
+    record.source_followup_source = _tkPendingFollowup.source;
+  }
 
   var wasUnassigned = true;
   var savePromise;
@@ -5915,6 +6058,7 @@ function saveTicket() {
         createNotification(t, 'New ticket assigned: ' + site + ' — ' + problem.slice(0, 80), record.id || '', 'ticket_assigned');
       });
     }
+    _tkPendingFollowup = null;
     _tkLastData = null;
     renderTicketsList();
   }).catch(function(err) {
@@ -6013,6 +6157,30 @@ document.addEventListener('click', function(e) {
     } else {
       ntdResolveFollowup(resolveBtn.getAttribute('data-id'), wantResolved);
     }
+    return;
+  }
+  // Send a follow-up to a tech as a real dispatched ticket — same
+  // before-.ntd-goto ordering as the resolve button above.
+  var sendBtn = e.target.closest('.ntd-send-followup');
+  if (sendBtn) {
+    openTicketFromFollowup(
+      sendBtn.getAttribute('data-id'),
+      sendBtn.getAttribute('data-tag'),
+      sendBtn.getAttribute('data-source'),
+      sendBtn.getAttribute('data-fid')
+    );
+    return;
+  }
+  // Notify a non-tech teammate about a follow-up (quote request, billing
+  // question, etc.) instead of dispatching a tech.
+  var notifyBtn = e.target.closest('.ntd-notify-followup');
+  if (notifyBtn) {
+    openFollowupNotifyModal(
+      notifyBtn.getAttribute('data-id'),
+      notifyBtn.getAttribute('data-tag'),
+      notifyBtn.getAttribute('data-source'),
+      notifyBtn.getAttribute('data-fid')
+    );
     return;
   }
   // Expand/collapse a unit's condition history trail (Units tab)
