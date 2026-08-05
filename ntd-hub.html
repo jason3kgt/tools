@@ -440,6 +440,20 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
 </head>
 <body>
 
+<!-- ACCESS GATE ── simple shared-password stopgap, not real auth. See notes near NTD_HUB_PASSWORD in the script below. -->
+<div id="ntd-gate" style="position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#0F2647 0%,#1B3A6B 55%,#2C4E85 100%);display:flex;align-items:center;justify-content:center;padding:24px">
+  <div style="width:100%;max-width:320px;text-align:center">
+    <div style="width:64px;height:64px;background:#E8531A;border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;box-shadow:0 4px 14px rgba(232,83,26,.4);overflow:hidden">
+      <img src="icon-192.png" alt="NTD" style="width:100%;height:100%;object-fit:cover;display:block">
+    </div>
+    <div style="font-size:20px;font-weight:800;color:#fff;letter-spacing:-.4px;margin-bottom:2px">NTD Hub</div>
+    <div style="font-size:12px;color:rgba(255,255,255,.55);margin-bottom:24px">Enter the team password to continue</div>
+    <input type="password" id="ntd-gate-input" placeholder="Password" autocomplete="off" style="width:100%;padding:13px 14px;border-radius:11px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;font-size:15px;font-family:inherit;text-align:center;margin-bottom:12px">
+    <button id="ntd-gate-btn" style="width:100%;padding:13px 14px;border-radius:11px;border:none;background:#E8531A;color:#fff;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation">Unlock</button>
+    <div id="ntd-gate-err" style="display:none;color:#F4A18A;font-size:12px;margin-top:12px;font-weight:600">Incorrect password — try again.</div>
+  </div>
+</div>
+
 <!-- HEADER -->
 <div class="hdr">
   <div class="hdr-brand">
@@ -6246,6 +6260,64 @@ window.addEventListener('load', function() {
     });
   }
 
+  // Data rendering only ever runs once the access gate is unlocked — see
+  // ntdStartApp() + gate wiring below.
+  ntdInitGate();
+});
+
+// ── ACCESS GATE ──────────────────────────────────────────────────────
+// Client-side-only stopgap, not real authentication (see project notes —
+// the anon key + this app are both public in the repo either way). Its
+// only job is to stop casual/accidental access to customer + ops data
+// before real Supabase Auth is built. EDIT THIS before uploading:
+var NTD_HUB_PASSWORD = 'NTD2026!#%';
+var NTD_GATE_KEY = 'ntdHubGateOK';
+
+function ntdInitGate() {
+  // TV mode runs unattended on an office display — don't block it on a
+  // password prompt no one is there to type. It only ever shows the
+  // calendar view, not customer/equipment data.
+  var tvRequested = (new URLSearchParams(window.location.search)).get('tv') === '1';
+  if (tvRequested) {
+    document.getElementById('ntd-gate').style.display = 'none';
+    ntdStartApp();
+    return;
+  }
+
+  var unlocked = false;
+  try { unlocked = localStorage.getItem(NTD_GATE_KEY) === '1'; } catch(e) {}
+
+  if (unlocked) {
+    document.getElementById('ntd-gate').style.display = 'none';
+    ntdStartApp();
+    return;
+  }
+
+  var input = document.getElementById('ntd-gate-input');
+  var btn = document.getElementById('ntd-gate-btn');
+  var err = document.getElementById('ntd-gate-err');
+
+  function tryUnlock() {
+    if (input.value === NTD_HUB_PASSWORD) {
+      try { localStorage.setItem(NTD_GATE_KEY, '1'); } catch(e) {}
+      document.getElementById('ntd-gate').style.display = 'none';
+      ntdStartApp();
+    } else {
+      err.style.display = 'block';
+      input.value = '';
+      input.focus();
+    }
+  }
+
+  btn.addEventListener('click', tryUnlock);
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') tryUnlock();
+    if (err.style.display === 'block') err.style.display = 'none';
+  });
+  setTimeout(function(){ input.focus(); }, 200);
+}
+
+function ntdStartApp() {
   // Safety check — if ntdStore didn't load, show error instead of hanging
   if (typeof ntdStore === 'undefined') {
     document.getElementById('dashboard-content').innerHTML =
@@ -6272,7 +6344,7 @@ window.addEventListener('load', function() {
       notifPollTimer = setInterval(refreshNotifBadge, 45000);
     } catch(e) { console.error('user pill / notifications setup failed:', e); }
   }
-});
+}
 </script>
 </body>
 </html>
