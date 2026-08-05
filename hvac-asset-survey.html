@@ -317,7 +317,7 @@ textarea{resize:vertical;min-height:70px}
     </div>
   </div>
   <button class="dlb" onclick="dlSummary()">Download Executive Summary PDF</button>
-  <button class="dlb sec" onclick="ntdSubmitAssessment()">&#10003; Submit Assessment to Store</button>
+  <button class="dlb sec" onclick="ntdSubmitAssessment()">&#10003; Save Assessment to NTD Hub</button>
 </div>
 
 <!-- TAB 3: FORECAST -->
@@ -421,7 +421,7 @@ textarea{resize:vertical;min-height:70px}
     </div>
   </div>
   <button class="dlb" onclick="pmGenPDF()">📄 Generate PM Proposal PDF</button>
-  <button class="dlb sec" onclick="ntdSubmitPMQuote()">&#10003; Submit PM Quote to Store</button>
+  <button class="dlb sec" onclick="ntdSubmitPMQuote()">&#10003; Save PM Quote to NTD Hub</button>
   <button class="dlb sec" onclick="pmExportJSON()">📧 Email Quote for Excel Import</button>
 </div>
 
@@ -561,7 +561,7 @@ textarea{resize:vertical;min-height:70px}
     </div>
   </div>
   <button class="dlb" onclick="sqGeneratePDF()">&#128196; Generate Service Proposal PDF</button>
-  <button class="dlb sec" onclick="ntdSubmitServiceQuote()">&#10003; Submit Service Quote to Store</button>
+  <button class="dlb sec" onclick="ntdSubmitServiceQuote()">&#10003; Save Service Quote to NTD Hub</button>
   <button class="dlb sec" onclick="sqClearItems()" style="margin-top:6px;background:#C0392B">&#128465; Clear Line Items</button>
 </div>
 
@@ -650,7 +650,7 @@ textarea{resize:vertical;min-height:70px}
     </div>
   </div>
   <button class="dlb" onclick="aeGeneratePDF()">&#128196; Generate Advanced Estimate PDF</button>
-  <button class="dlb sec" onclick="ntdSubmitAdvancedEstimate()">&#10003; Submit Advanced Estimate to Store</button>
+  <button class="dlb sec" onclick="ntdSubmitAdvancedEstimate()">&#10003; Save Advanced Estimate to NTD Hub</button>
 </div>
 
 
@@ -2793,7 +2793,7 @@ function ntdSubmitAdvancedEstimate() {
       grand_total: fcc(_aeLastResult.adjustedTotal),
       notes: 'Advanced Estimate \u2014 ' + (_aeLastResult.priced.length - _aeLastResult.unmapped.length) + ' unit(s) priced'
     }).then(function() {
-      alert('\u2713 Advanced Estimate submitted for ' + gv('sf') + '.');
+      alert('\u2713 Advanced Estimate saved for ' + gv('sf') + '.');
     }).catch(function(){ alert('Submit failed.'); });
   });
 }
@@ -3914,7 +3914,7 @@ function ntdSubmitAssessment() {
           units: eqs.map(function(eq){ return {tag:eq.tag,type:eq.type,condition:eq.ov}; })
         });
         Promise.all(eqSaves.concat([assessSave])).then(function() {
-          alert('\u2713 Assessment submitted for ' + gv('sf') + '.\n' + eqs.length + ' units: ' + good + ' Good, ' + fair + ' Fair, ' + poor + ' Poor.');
+          alert('\u2713 Assessment saved for ' + gv('sf') + '.\n' + eqs.length + ' units: ' + good + ' Good, ' + fair + ' Fair, ' + poor + ' Poor.');
         }).catch(function(e){ alert('Submit failed. PDFs still available.'); });
       });
     });
@@ -3957,7 +3957,7 @@ function ntdSubmitPMQuote() {
       quarterly_rate: qtrEl?qtrEl.textContent:'', monthly_rate: moEl?moEl.textContent:'',
       plans: Object.keys(pmPlans).filter(function(k){ return pmPlans[k]; }), units: pmUnits
     }).then(function() {
-      alert('\u2713 PM Quote submitted for ' + gv('sf') + '.');
+      alert('\u2713 PM Quote saved for ' + gv('sf') + '.');
     }).catch(function(){ alert('Submit failed.'); });
     ntdWritePMFrequency(facilityId);
   });
@@ -3986,7 +3986,7 @@ function ntdSubmitServiceQuote() {
       gross_profit: (document.getElementById('sq-tot-gross-profit')||{}).textContent||'',
       gross_margin_pct: (document.getElementById('sq-tot-gross-margin')||{}).textContent||''
     }).then(function() {
-      alert('\u2713 Service Quote submitted for ' + gv('sf') + '.');
+      alert('\u2713 Service Quote saved for ' + gv('sf') + '.');
     }).catch(function(){ alert('Submit failed.'); });
   });
 }
