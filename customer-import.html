@@ -530,6 +530,20 @@ ntdInitGate();
 var ciResults = [];
 var CI_WARN_PATTERN = /insurance|bond|mutual|receipt/i;
 
+// Self-contained copy of ntdStore.js's internal name-normalization logic —
+// kept local (not borrowed from ntdStore.js internals) so this tool doesn't
+// break if ntdStore.js changes shape or that helper isn't reachable for
+// any reason. Same algorithm: lowercase, strip punctuation, strip
+// LLC/Inc/Corp/etc, collapse whitespace.
+function ciNormalizeFacName(name) {
+  return (name || '')
+    .toLowerCase()
+    .replace(/[.,'"]/g, '')
+    .replace(/\b(llc|inc|incorporated|corp|corporation|co|ltd|company)\b/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"]/g, function(c) {
     return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
@@ -558,17 +572,17 @@ function ciPreview() {
     facs = facs || [];
     var byNorm = {};
     facs.forEach(function(f) {
-      var n = _normalizeFacName(f.name);
+      var n = ciNormalizeFacName(f.name);
       if (n) { if (!byNorm[n]) byNorm[n] = []; byNorm[n].push(f); }
     });
 
     ciResults = rows.map(function(r) {
-      var norm = _normalizeFacName(r.name);
+      var norm = ciNormalizeFacName(r.name);
       var exact = (byNorm[norm] && byNorm[norm][0]) || null;
       var fuzzy = [];
       if (!exact) {
         facs.forEach(function(f) {
-          var fn = _normalizeFacName(f.name);
+          var fn = ciNormalizeFacName(f.name);
           if (fn && (fn.indexOf(norm) > -1 || norm.indexOf(fn) > -1)) fuzzy.push(f);
         });
       }
