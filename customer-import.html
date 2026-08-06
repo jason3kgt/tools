@@ -473,7 +473,7 @@ Zara at North Park	8687 N Central Expy,, Space # H2-1508	Dallas, TX	Zip: 75225
 
   <div class="card" id="ci-preview-wrap" style="display:none">
     <h2>2. Review before publishing</h2>
-    <p>Nothing has been written to Supabase yet. <b>New</b> rows will create a facility. <b>Already in Hub</b> rows matched an existing facility by name (your 17 PM facilities will show up here) — checking their box only fills in address/city fields that are currently blank, it never overwrites anything you've already entered. <b>Needs review</b> rows had a similar-but-not-exact name match — left unchecked by default so nothing gets merged into the wrong facility; check the box only if you're sure it's actually the same site under a different name.</p>
+    <p>Nothing has been written to Supabase yet. <b>New</b> rows will create a facility. <b>Already in Hub</b> rows matched an existing facility by name (your 17 PM facilities will show up here) — checking their box only fills in address/city fields that are currently blank, it never overwrites anything you've already entered. <b>Needs review</b> rows had a similar-but-not-exact name match — each gets a dropdown instead of a checkbox: default is <b>Skip</b> (does nothing), or you can pick <b>"Same site as ___" </b> to safely fill gaps on that existing facility, or <b>"Different site — create new"</b> if it genuinely isn't the same place.</p>
     <div class="summary-pills" id="ci-pills"></div>
     <div class="row-fields" style="margin-bottom:10px">
       <button class="btn btn-outline" onclick="ciSetAllNew(true)">Check all New</button>
@@ -591,7 +591,8 @@ function ciPreview() {
       return {
         name: r.name, address: r.address, city: r.city, notes: r.notes,
         status: status, existing: exact, fuzzy: fuzzy, warn: warn,
-        checked: status === 'new' && !warn
+        checked: status === 'new' && !warn,
+        reviewAction: 'skip' // review rows default to doing nothing until you choose
       };
     });
 
@@ -620,15 +621,30 @@ function renderCiPreview() {
       : r.status === 'existing' ? '<span class="badge badge-existing">Already in Hub</span>'
       : '<span class="badge badge-review">Needs review</span>';
     var extra = '';
+    var actionCell;
+    var warnHtml = r.warn ? '<div class="warn">⚠ no address — may not be a serviceable site</div>' : '';
+
     if (r.status === 'existing') {
       extra = '<div class="mu" style="margin-top:2px">Fills blank address/city only, never overwrites</div>';
+      actionCell = '<input type="checkbox" data-idx="' + i + '" onchange="ciResults[' + i + '].checked=this.checked" ' + (r.checked ? 'checked' : '') + '>';
     } else if (r.status === 'review') {
+      // Explicit choice, not a bare checkbox — checking a box here used to
+      // silently CREATE a duplicate facility instead of merging into the
+      // match. This makes the three real outcomes explicit instead.
+      var opts = '<option value="skip"' + (r.reviewAction === 'skip' ? ' selected' : '') + '>Skip (leave as-is)</option>';
+      r.fuzzy.forEach(function(f, fi) {
+        opts += '<option value="merge:' + fi + '"' + (r.reviewAction === 'merge:' + fi ? ' selected' : '') + '>' +
+          'Same site as "' + esc(f.name) + '" — fill gaps only</option>';
+      });
+      opts += '<option value="new"' + (r.reviewAction === 'new' ? ' selected' : '') + '>Different site — create new</option>';
       extra = '<div class="mu" style="margin-top:2px">Similar to: ' + esc(r.fuzzy.map(function(f){return f.name;}).join(', ')) + '</div>';
+      actionCell = '<select data-idx="' + i + '" onchange="ciResults[' + i + '].reviewAction=this.value" style="font-size:11px;padding:4px 6px;border-radius:6px;border:1px solid var(--bd)">' + opts + '</select>';
+    } else {
+      actionCell = '<input type="checkbox" data-idx="' + i + '" onchange="ciResults[' + i + '].checked=this.checked" ' + (r.checked ? 'checked' : '') + '>';
     }
-    var warnHtml = r.warn ? '<div class="warn">⚠ no address — may not be a serviceable site</div>' : '';
-    var cb = '<input type="checkbox" data-idx="' + i + '" onchange="ciResults[' + i + '].checked=this.checked" ' + (r.checked ? 'checked' : '') + '>';
+
     return '<tr class="status-' + r.status + '">' +
-      '<td>' + cb + '</td>' +
+      '<td>' + actionCell + '</td>' +
       '<td>' + esc(r.name) + warnHtml + '</td>' +
       '<td>' + esc(r.address) + '</td>' +
       '<td>' + esc(r.city) + '</td>' +
@@ -649,8 +665,23 @@ function ciPublish() {
   var statusEl = document.getElementById('ci-publish-status');
   var typeVal = document.getElementById('ci-type').value;
 
-  var toCreate = ciResults.filter(function(r) { return r.checked && (r.status === 'new' || r.status === 'review'); });
-  var toUpdate = ciResults.filter(function(r) { return r.checked && r.status === 'existing'; });
+  // "new" facilities to create: checked New rows, plus Review rows explicitly
+  // marked "different site — create new".
+  var toCreate = ciResults.filter(function(r) {
+    return (r.status === 'new' && r.checked) || (r.status === 'review' && r.reviewAction === 'new');
+  });
+
+  // Gap-fill updates (never overwrite, only fill blanks): checked Existing
+  // rows, plus Review rows explicitly confirmed as the same site.
+  var toUpdate = [];
+  ciResults.forEach(function(r) {
+    if (r.status === 'existing' && r.checked) {
+      toUpdate.push({ row: r, target: r.existing });
+    } else if (r.status === 'review' && r.reviewAction && r.reviewAction.indexOf('merge:') === 0) {
+      var fi = parseInt(r.reviewAction.split(':')[1], 10);
+      toUpdate.push({ row: r, target: r.fuzzy[fi] });
+    }
+  });
 
   if (!toCreate.length && !toUpdate.length) {
     statusEl.textContent = 'Nothing checked — nothing to publish.';
@@ -668,10 +699,11 @@ function ciPublish() {
     return ntdStore.facilities.upsert(rec);
   });
 
-  var updatePromises = toUpdate.map(function(r) {
-    var patch = { id: r.existing.id };
-    if (!r.existing.address && r.address) patch.address = r.address;
-    if (!r.existing.city && r.city) patch.city = r.city;
+  var updatePromises = toUpdate.map(function(u) {
+    var r = u.row, existing = u.target;
+    var patch = { id: existing.id };
+    if (!existing.address && r.address) patch.address = r.address;
+    if (!existing.city && r.city) patch.city = r.city;
     if (Object.keys(patch).length > 1) {
       return ntdStore.facilities.upsert(patch);
     }
