@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NTD Hub — Customer Import</title>
+<script src="ntdStore.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --nv:#1B3A6B;--nv2:#2C4E85;--nv-deep:#0F2647;
+  --or:#E8531A;--or2:#F4763F;--gn:#1E7A3E;--am:#C67F0A;--rd:#C0392B;
+  --bd:#E4DDD0;--of:#F1ECE2;--bg:#F6F2EA;--tx:#242019;--mu:#7A7263;--wh:#fff;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--tx);font-size:14px;padding:0 0 60px}
+.hdr{background:linear-gradient(135deg,var(--nv-deep) 0%,var(--nv) 55%,var(--nv2) 100%);padding:18px 20px;color:#fff}
+.hdr h1{font-size:18px;font-weight:800;letter-spacing:-.3px}
+.hdr p{font-size:12px;color:rgba(255,255,255,.65);margin-top:3px}
+.wrap{max-width:960px;margin:0 auto;padding:20px}
+.card{background:#fff;border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:16px;box-shadow:0 3px 14px rgba(36,32,25,.06)}
+.card h2{font-size:14px;font-weight:800;color:var(--nv-deep);margin-bottom:8px}
+.card p{font-size:12.5px;color:var(--mu);margin-bottom:10px;line-height:1.5}
+textarea{width:100%;height:220px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;padding:10px;border:1px solid var(--bd);border-radius:9px;resize:vertical;background:var(--of)}
+select,button{font-family:inherit}
+.row-fields{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
+label{font-size:12px;font-weight:700;color:var(--tx)}
+select{padding:8px 10px;border-radius:8px;border:1px solid var(--bd);font-size:13px;background:#fff}
+.btn{padding:11px 18px;border-radius:9px;border:none;font-size:13px;font-weight:700;cursor:pointer;touch-action:manipulation}
+.btn-nv{background:var(--nv);color:#fff}
+.btn-nv:active{opacity:.85}
+.btn-or{background:var(--or);color:#fff}
+.btn-or:active{opacity:.85}
+.btn-outline{background:#fff;border:1px solid var(--bd);color:var(--tx)}
+.btn:disabled{opacity:.45;cursor:default}
+.summary-pills{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+.pill{padding:6px 12px;border-radius:20px;font-size:11.5px;font-weight:700}
+.pill-new{background:#E6F2EA;color:var(--gn)}
+.pill-existing{background:#EAF0F8;color:var(--nv)}
+.pill-review{background:#FCEFE0;color:var(--am)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;padding:8px 6px;border-bottom:2px solid var(--bd);color:var(--mu);font-size:10.5px;text-transform:uppercase;letter-spacing:.03em}
+td{padding:7px 6px;border-bottom:1px solid var(--of);vertical-align:top}
+tr.status-existing{background:#FAFBFD}
+tr.status-review{background:#FFFBF5}
+.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700}
+.badge-new{background:#E6F2EA;color:var(--gn)}
+.badge-existing{background:#EAF0F8;color:var(--nv)}
+.badge-review{background:#FCEFE0;color:var(--am)}
+.warn{color:var(--rd);font-size:10.5px;font-weight:700}
+.mu{color:var(--mu)}
+.table-wrap{max-height:520px;overflow:auto;border:1px solid var(--bd);border-radius:10px}
+#ci-publish-status{margin-top:12px;font-size:13px;font-weight:600}
+.gate{position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#0F2647 0%,#1B3A6B 55%,#2C4E85 100%);display:flex;align-items:center;justify-content:center;padding:24px}
+.gate-box{width:100%;max-width:320px;text-align:center}
+.gate-box input{width:100%;padding:13px 14px;border-radius:11px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;font-size:15px;text-align:center;margin-bottom:12px}
+.gate-box button{width:100%;padding:13px 14px;border-radius:11px;border:none;background:#E8531A;color:#fff;font-size:14px;font-weight:700;cursor:pointer}
+</style>
+</head>
+<body>
+
+<!-- ACCESS GATE — same shared password + localStorage flag as ntd-hub.html, so a device already unlocked there opens straight through here. -->
+<div id="ntd-gate" class="gate">
+  <div class="gate-box">
+    <div style="font-size:20px;font-weight:800;color:#fff;margin-bottom:2px">NTD Hub</div>
+    <div style="font-size:12px;color:rgba(255,255,255,.55);margin-bottom:24px">Enter the team password to continue</div>
+    <input type="password" id="ntd-gate-input" placeholder="Password" autocomplete="off">
+    <button id="ntd-gate-btn">Unlock</button>
+    <div id="ntd-gate-err" style="display:none;color:#F4A18A;font-size:12px;margin-top:12px;font-weight:600">Incorrect password — try again.</div>
+  </div>
+</div>
+
+<div class="hdr">
+  <h1>Customer Import</h1>
+  <p>Bulk-load customer/facility records into NTD Hub — safe to reuse for future exports</p>
+</div>
+
+<div class="wrap">
+
+  <div class="card">
+    <h2>1. Data to import</h2>
+    <p>Pre-loaded with your Foundation customer list export (376 rows). Format is one customer per line, tab-separated: <b>Name</b> [tab] <b>Address</b> [tab] <b>City, State</b> [tab] <b>Notes</b>. To reuse this tool later with a fresh export, just replace the contents of this box (copy/paste straight from Excel keeps the tabs intact) and hit Preview again.</p>
+    <textarea id="ci-data">DISD BP Samuell HS	8928 Palisade Dr	Dallas, TX	Zip: 75217 | Foundation customer #: 18014
+FW NW Community Center	8375 Blue Mound Road	Fort Worth, TX	Zip: 76137 | Foundation customer #: 23004
+FTW Convention Ctr	1201 Houston St	Fort Worth, TX	Zip: 76102 | Foundation customer #: 23028
+Valley Ranch ES	9800 Rodeo Dr	Irving, TX	Zip: 75063 | Foundation customer #: 24008
+IISD Sam Houston MS	3033 Country Club Dr W	Irving, TX	Zip: 75038 | Foundation customer #: 24013
+UTSW NC3	2201 Inwood Rd	Dallas, TX	Zip: 75235 | Foundation customer #: 24016
+3i Construction	400 North St. Paul, Suite 700	Dallas, TX	Zip: 75201
+7T – SevenTablets, Inc.	16803 Dallas Pkwy #300	Addison, TX	Zip: 75001
+Aaron Kaye	5504 Cactus Ct	Arlington, TX	Zip: 76017
+ABB Enterprise Software	4242 W Plano Pkwy	Plano, TX	Zip: 75093
+ABS Modular	1125 Legacy Dr. Suite 300	Frisco, TX	Zip: 75034
+ACARI Management Group, Inc.	1901 N Hwy 360 Suite 660	Arlington, TX	Zip: 76006
+Adolfson &amp; Peterson Constructi	1600 N. Collins Blvd., Ste. 2000	Richardson, TX	Zip: 75080
+Advance Contracting Group	2512 Program Dr #109	Dallas, TX	Zip: 75220
+AECOM HUNT	13355 Noel Rd. #400	Dallas, TX	Zip: 75240
+All 4 Investments, LLC	117 Hillside Dr.	Lewisville, TX	Zip: 75057
+All Tech Electric Texas	117 Hillside Dr., Suite 1	Lewisville, TX	Zip: 75057
+Aloft Hotel	1033 Young St	Dallas, TX	Zip: 75020
+Amerisure Insurance	LockBox # 730502	Dallas, TX	Zip: 753730502
+Anchor Construction	7121 Grape Road	Granger, IN	Zip: 46530
+Andrew Schendel Residence	7408 Stonecrest Dr	Dallas, TX	Zip: 75254
+Aqua Studios Aquariums	4750 S Colony Blvd #110	The Colony, TX	Zip: 75056
+Aramark	407 Interchange St.	McKinney, TX	Zip: 75071
+Asco Equipment	2019 Airport Fwy	Euless, TX	Zip: 76040
+AUI Partners, LLC	13600 Heritage Pkwy, Suite 150	Fort Worth, TX	Zip: 76177
+Automated Mechanical			
+Autos of Dallas	1015 W Airport Fwy	Irving, TX	Zip: 75062
+Azteca Enterprises Inc	2516 Chalk Hill Rd	Dallas, TX	Zip: 75212
+Azteca GCC JV	2415 Chalk Hill Rd	Dallas, TX	Zip: 75212
+Badmus TX Properties	11325 Pegasus St.	Dallas, TX	Zip: 75238
+Bagby Elevator Co. Inc.	2447 Merritt Dr. Suite 200	Garland, TX	Zip: 75041
+Baird, Hampton &amp; Brown	6300 Ridglea Place, Suite 700	Fort Worth, TX	Zip: 76116
+Barbosa, Antonio	4693 Ridge Point	Dallas, TX	Zip: 75211
+Barcel USA, LLC	301 S. Northpoint Dr., Suite 100	Coppell, TX	Zip: 75019
+BC Commercial	705 13th Avenue East	West Fargo, ND	Zip: 58078
+Bianca Sandoval	803 Big Thicket Trail	Mesquite, TX	Zip: 75149
+Big Sky - T&amp;J JV	507 Exposition Ave	Dallas, TX	Zip: 75226
+Big Sky Construction	507 Exposition Avenue	Dallas, TX	Zip: 75226
+Big Tex Auto Mart	11501 E NW Hwy	Dallas, TX	Zip: 75218
+Billingsley Company	9111 Cypress Waters Blvd, Suite 110	Coppell, TX	Zip: 75019
+Billy Davis	385 Lanier Rd	Combine, TX	Zip: 75159
+Blackall Mechanical	3724 Arapaho Rd	Addison, TX	Zip: 75001
+BNR Concrete Polishing	117 Hillside Dr Suite B	Lewisville, TX	Zip: 75057
+Bold Entity	2363 Reagan Street, Suite 140	Dallas, TX	Zip: 75231
+Boterna Farms	11512 Antler Ridge Way	Argyle, TX	Zip: 76226
+Brad Oldham	133 McKinley Dr	Burleson, TX	Zip: 76028
+Brandt Industrial	1728 Briercroft Ct	Carrollton, TX	Zip: 75006
+Brasfield &amp; Gorrie, LLC	3021 7th Avenue South	Birmingham, AL	Zip: 35233
+Brenda Spinelli	1337 Poplar Dr	Mckinney, TX	Zip: 75072
+Brettco Roofing II LP	10943 S FM 1187 Road	Fort Worth, TX	Zip: 76126
+Brian Sanchez	5232 Pentridge Dr.	Sherman, TX	Zip: 75092
+Bridgeview Real Estate	8390 Lyndon B Johnson Fwy, Frontage Rd.	Dallas, TX	Zip: 75243
+BROWN GRAPHICS	11404 Chairman Drive	Dallas, TX	Zip: 75243
+Butler-Cohen Design + Build	3200 Southwest Freeway, Suite 1575	Houston, TX	Zip: 77027
+Byrne Construction	551 E. Berry Street	Fort Worth, TX	Zip: 76110
+C1S Group, Inc.	4231 Sigma Rd., Suite 110	Dallas, TX	Zip: 75244
+Caban Energy	3605 Plano Pkwy Ste 400	Plano, TX	Zip: 75093
+Cactus Abatement &amp; Demolition	211 James St.	Roanoke, TX	Zip: 76262
+Cadence McShane	17300 North Dallas Parkway, Suite 3000	Dallas, TX	Zip: 752481147
+Cadence McShane Construction	7500 Dallas Pkwy., Suite 600	Plano, TX	Zip: 75024
+Campos Engineering Inc.	1331 River Bend Drive	Dallas, TX	Zip: 75247
+Candy Miller Residence	1857 Plumb Creek Dr.	Midlothian, TX	Zip: 76065
+Carmen	3004 Rolling Wood Ln	Keller, TX	Zip: 76248
+Carrco Painting	10379 Plano Rd	Dallas, TX	Zip: 75238
+Cary Reese Residence	2053 Vista Dr	Lewisville, TX	Zip: 75067
+CASPR Technologies	4505 Excel Parkway, Suite 600	Addison, TX	Zip: 75001
+CCG Services, Inc.	6320 Research Rd.	Frisco, TX	Zip: 75033
+Charles Walton's Residence	1846 Summit Ave	Dallas, TX	Zip: 75306
+Church Eleven	1900 South Ewing Ave.	Dallas, TX	Zip: 75216
+Church Eleven32	700 Rivercrest Blvd #2100	Allen, TX	Zip: 75002
+City Electric Supply	201 N Beach St	Fort Worth, TX	Zip: 76111
+City Electric Supply Duncanvil	650 E US 67 Frontage Rd	Duncanville, TX	Zip: 75137
+CityWide REM	912 N. Goliad Street	Rockwall, TX	Zip: 75087
+Clean Rooms West, Inc	1395 Industrial Dr	Tustin, CA	Zip: 92780
+Clear Environmental Services	412 Renfro St.	Rockwall, TX	Zip: 75087
+CMC Development &amp; Construction	1111 Mockingbird Lane, Suite 485	Dallas, TX	Zip: 75247
+Collins Walker	11200 Harmon Rd	Ft Worth, TX	Zip: 76177
+Communication Concepts	4216 Hahn Blvd	Holtam City, TX	Zip: 76117
+Construction Zone of Texas,LLC	1420 Springhill Dr.	Aubrey, TX	Zip: 76227
+Consys Central	11010 Switzer Ave.	Dallas, TX	Zip: 75238
+Coppell Bible Church	751 W. Sandy Lake Rd	Coppell, TX	Zip: 75019
+Core Construction Services TX	6320 Research Rd.	Frisco, TX	Zip: 75033
+County of Dallas			
+CTR Angelican Church	6116 Southwest Blvd.	Fort Worth, TX	Zip: 76109
+CWRD Properties, LLC	3704 Camp Wisdom Rd	Dallas, TX	Zip: 75237
+Dallas College	4343 IH 30	Mesquite, TX	Zip: 75150
+Dan Traxler Residence	1400 Coastal Dr	Rockwall, TX	Zip: 75087
+Daniel Banda			
+Darold Molix	9705 Castleroy Ln	Rowlett, TX	Zip: 75089
+David Dupuy	4324 Cedar Springs Rd #117	Dallas, TX	Zip: 75219
+David Fudge	7610 Maplewood Dr	Rowlett, TX	Zip: 75089
+David Gutierrez	436 Sloan Creek	Fairview, TX	Zip: 75069
+Davis Residence	3717 Dumas Trl	Garland, TX	
+DDCRX, LLC dba Exact Care	8333 Rockside Rd.	Valley View, OH	Zip: 44125
+Deep Ellum Brewery	2823 St Louis St	Dallas, TX	Zip: 75226
+Delta Electronics (USA) Inc.	601 Data Dr	Plano, TX	Zip: 75075
+Denco	5525 Lyons Rd	Garland, TX	Zip: 75243
+DFCF LLC	11802 Bunker Hill Cir	Houston, TX	Zip: 77024
+Dimensional Construction			
+Direct Expansion Solutions	1625 Wallace Dr, Suite 120	Carrollton, TX	Zip: 75006
+DIVERSIFIED PURE CHEM	11050 S. HWY 287	RHOME, TX	Zip: 76078
+Doc Buyington	355 Lanier Rd.	Combine, TX	Zip: 75159
+Dogwood Nursery	6184 CO 41515	Athens, TX	Zip: 75751
+DPR Construction	3131 McKinney Ave Ste 210	Dallas, TX	Zip: 75204
+Draper Garland LLC	6125 Luther Lane #574	Dallas, TX	Zip: 75225
+Dusty Jones	3317 Palisade Falls	Rowlett, TX	Zip: 75088
+DynaTen Corporation	4375 Diplomacy Rd.	Fort Worth, TX	Zip: 76155
+Eco Share Center	516 Twilight Center	Richardson, TX	Zip: 75080
+Electronic Systems Support	3233 W. Kingsley Rd.	Garland, TX	Zip: 75041
+Energy Control Systems	5500 E Loop 820 S #205	Fort Worth, TX	Zip: 76119
+Engineered Structures Inc.	3330 E. Louise Dr., Suite 300	Meridian, ID	Zip: 83642
+Enviromatic Systems, Inc.	2337 W. Warrior Trl	Grand Prairie, TX	Zip: 75052
+ENVIRONMENTAL			
+Environmental Disinfection Sol	47 Enterprise Dr., Unit 2	Windham, NH	Zip: 3087
+Evans Consoles Incorporated	305 East Wall Street	Grapevine, TX	Zip: 76051
+Evolution Mechanical	8100 Mesquite Bend Dr.	Irving, TX	Zip: 75063
+Fd3 Hospitality Group	1851 Tuberville Rd.	Hickory Creek, TX	Zip: 75065
+Federal Home Loan Bank of Dall	8500 Freeport Pkwy #600	Irving, TX	Zip: 75063
+First United Methodist Church	601 S Greenville Ave.	Allen, TX	Zip: 75002
+Fleet Feet - Run On	5180 Eldorado Parkway #7214	McKinney, TX	Zip: 75070
+Fluor Office Building	1201 S. Railroad St.	Lewisville, TX	Zip: 75057
+Focused Eye Care	3121 N PGB Hwy #101	Garland, TX	Zip: 75040
+FPI Builders, LLC	2116 Wenneca Ave.	Fort Worth, TX	Zip: 76102
+Frama-Tech	2000 E Arbrook Blvd Ste 115	Arlington, TX	Zip: 76014
+Frank Dale Construction	250 Bank Street	Fort Worth, TX	Zip: 76092
+Freshii	3821 S Buckner Blvd	Dallas, TX	Zip: 75227
+FWISD ARLINGTON HEIGHTS ATHLET	4501 W. Freeway	Fort Worth, TX	Zip: 76107
+G.W. Mitchell Construction	1926 Gulfmart Ste 201	San Antonio, TX	Zip: 78217
+G2 Automated Technologies	10500 Metric Dr. Ste 122	Dallas, TX	Zip: 75243
+GADBERRY CONSTRUCTION	1312 CONANT ST.	DALLAS, TX	Zip: 75207
+Garratt Callahan	13721 Welch Rd.	Farmers Branch, TX	Zip: 75244
+GEEP	2501 N Great Southwest Pkwy	Grand Prairie, TX	Zip: 75050
+George Allen Court House	600 Commerce St	Dallas, TX	Zip: 75202
+Gilbert May	1627 Windchime Dr	Dallas, TX	Zip: 75224
+Grace Hardeman Elem	6100 Whispering Lane,	Watauga, TX	Zip: 76148
+GW Vines	3839 Singleton Blvd	Dallas, TX	Zip: 75212
+Gwen Aguire	2400 Jupiter Rd #F5	Plano, TX	Zip: 75074
+Harbor Heights Investors, LP	2701 Sunset Ridge Drive, Suite 610	Rockwall, TX	Zip: 75032
+Heat Transfer Solutions, Inc.	3350 Yale Street	Houston, TX	Zip: 77018
+Hensel Phelps Construction Co.	7722 Aviation Place	Dallas, TX	Zip: 75235
+Herzog Transit Services	15100 Trinity Blvd, Suite 100	Forth Worth, TX	Zip: 76155
+Highland Builders, Inc.	2342 Fabens Road, Suite 100	Dallas, TX	Zip: 75229
+Hilti	1100 Valwood Parkway Ste 108	Carrolton, TX	Zip: 75006
+Hilton Canopy Frisco	4455 Frisco Green Ave	Frisco, TX	Zip: 75034
+Hitachi Energy	901 Main Campus Drive	Raleigh, NC	Zip: 27606
+HM&amp;MF Ltd dba Muckleroy&amp;Falls	3200 Riverfront, #200	Fort Worth, TX	Zip: 76107
+Holder Construction Group, LLC	15455 Dallas Pkwy Ste 350	Addisson, TX	Zip: 75001
+Holt Construction	2900 Gateway Drive., Suite 625	Irving, TX	Zip: 75063
+ICI Construction, Inc.	12660 Coit Road	Dallas, TX	Zip: 75251
+ICOM Plumbing	5232 Pentridge Drive	Sherman, TX	Zip: 75092
+iENG Design	1616 Cleveland Ave	Granite City, IL	Zip: 62040
+ILS Gummies	350 Cypress Dr #300	McKinney, TX	Zip: 75071
+IMEG (prev. JQ Engineering)	100 Glass St	Dallas, TX	Zip: 75207
+Imperial Construction	400 I-20 West Ste 200	Weatherford, TX	Zip: 76086
+Inovar Packaging	10470 Miller Rd	Dallas, TX	Zip: 75238
+Integrus Electric	4951 Grisham Drive	Rowlett, TX	Zip: 75088
+Interwork Office Solutions	160 Cooper Rd	West Brling, NJ	Zip: 8091
+Irving Independent School Disc	2621 W. Airport Freeway	Irving, TX	Zip: 75062
+J.T. Vaughn Construction, LLC	10355 Westpark Dr.	Houston, TX	Zip: 77042
+Jack Rabbit Run On Store	5400 E Mockingbird Ln	Dallas, TX	Zip: 75206
+Jacob Davis	600 Cherry St	Forreston, TX	Zip: 76041
+Jamail &amp; Smith Construction LP	4950 Keller Springs, Suite 310	Addison, TX	Zip: 75001
+James R. Thompson, Inc	8750 N Central Expressway, Suite 1800	Dallas, TX	Zip: 75231
+JC Commercial Inc	1801 Lakepoint Drive, Suite 129	Lewisville, TX	Zip: 75057
+JE DUNN CONSTRUCTION	14951 N Dallas Parkway, STE 700	Dallas, TX	Zip: 75254
+JE DUNN/PHILLIPS MAY	14951 N. DALLAS PARKWAY, STE 700	DALLAS, TX	Zip: 75254
+Jeff Jackson	13328 Thornton Dr	Westlake, TX	Zip: 76262
+JMS Integrated Building	P O Box 117147	Carrollton, TX	Zip: 75011
+JNT Construction	3602 Country Club Rd N	Irving, TX	Zip: 75062
+Joe Funk			
+JOESTA Construction	1901 N Highway 360, #660	Grand Prairie, TX	Zip: 75050
+John Gorbutt	13901 FM 1173	Krum, TX	Zip: 76249
+Johnny Phillips	1925 Lee St.	Mesquite, TX	Zip: 75149
+Johnny Phillips Residence	1925 Lee St	Mesquite, TX	Zip: 75149
+Jon Allen	1521 Windy Meadow Dr	Plano, TX	Zip: 75023
+Judie Coffey	705 Tulane Dr.	Waxahachie, TX	Zip: 75165
+Justin Seibert Residence	3002 Sequoia St	Rowlett, TX	
+Kahn Mechanical	2787 Irving Blvd.	Dallas, TX	Zip: 75207
+Kenneth C Killen, MD	9101 N Central Expy	Dallas, TX	Zip: 75231
+Kennington Commercial	7700 Brookhollow Rd	Dallas, TX	Zip: 75219
+Kenny Frazier	2320 Tall Woods Trail	Keller, TX	Zip: 76262
+Key Construction Texas LLC	3960 Sandshell Dr	Ft Worth, TX	Zip: 76137
+KHK Group Ltd.	11255 Camp Bowie West Bvld., Suite 118	Aledo, TX	Zip: 76008
+Kinder Kritter LLC	8928 Garland Rd.	Dallas, TX	Zip: 75218
+King Architectural Metals	9611 E. RL Thornton Frwy.	Dallas, TX	Zip: 75228
+Kinley Construction	7301 E. Commercial Blvd.	Arlington, TX	Zip: 76001
+KPost Roofing &amp; Waterproofing	PO Box 540667	Dallas, TX	Zip: 75354
+Kramer Commercial, Inc	PO Box 15836	Lenexa, KS	Zip: 66285
+Kuiu, LLC	1920 N Lincoln, Suite 101	Dixon, CA	Zip: 95620
+Lago Lane Development			
+Lakeside Surgery	4450 Tubbs Rd	Rockwall, TX	Zip: 75032
+Larry Leaming Residence	6901 Tradonna Ln.	North Richland Hills, TX	Zip: 76182
+Larry Walters	3321 Greenview Dr	Garland, TX	Zip: 75044
+Lee Lewis Construction, Inc.	17177 Preston Rd. Suite 160	Dallas, TX	Zip: 75248
+Lemco Construction	14131 Midway Road	Addison, TX	Zip: 75001
+LEMCO Construction Services	14131 Midway Road Ste#660	Addison, TX	Zip: 75001
+Lennox International	2140 Lakepark Blvd	Richardson, TX	Zip: 75080
+Liberty Engine Parts	3755 Marquis Dr., Suite 113	Garland, TX	Zip: 75042
+Life Fellowship Church	6400 Henneman Way	McKinney, TX	Zip: 75070
+Links Construction	525 S. Loop 288, Suite 105	Denton, TX	Zip: 76205
+Logical Solutions, Inc	407 International Pkwy, #406	Richardson, TX	Zip: 75081
+Lonestar Outdoor News	2465 Merritt Dr.	Garland, TX	Zip: 75041
+Low Voltage Solutions	4205 Lindbergh Drive	Addison, TX	Zip: 75001
+Lubin Enterprises Inc	8111 Walnut Run Rd, Suite 208	Cordova, TN	Zip: 38018
+MA Hunter Company Inc.	20813 FM 2755	Royse City, TX	Zip: 75189
+Mac's Construction Inc.	4521 S Hullen Street, Suite 124	Fort Worth, TX	Zip: 76109
+Manhattan Construction Company			
+Manny Nieto	5102 Glen Vista Dr.	Garland, TX	Zip: 75044
+MAPP, LLC	3625 North Hall St. STE 1400	Dallas, TX	Zip: 75219
+Mark Wall	6400 Gila Ct	Plano, TX	Zip: 75230
+MART, Inc.	1503 Perry Street	Irving, TX	Zip: 75060
+Mary Elder Residence	8744 Ramblewood Ct	Keller, TX	Zip: 76248
+Mary Elder Residence NEW	2720 Mona Vale Rd	Trophy Club, TX	Zip: 76262
+Mary Mac Donell	522 Feathercrest Ln	Mesquite, TX	Zip: 75150
+Mayflower Apartment Complex	411 N Ackard St	Dallas, TX	Zip: 75201
+McCOWNGORDON CONSTRUCTION	850 Main	Kansas City, MO	Zip: 64105
+McGough Construction	4851 Lyndon B Johnson Fwy	Dallas, TX	Zip: 75244
+MDI Inc. General Contractors	1225 Lakeshore Dr., Suite 100	Coppell, TX	Zip: 75019
+Mechanical Partners, Inc.	3541 W. Miller Rd.	Garland, TX	Zip: 75041
+Mechanical Solutions Group	5796 E Hwy 114 Suite 2E	Haslet, TX	Zip: 76052
+Megan DeLeon	953 Sylvania Dr.	Dallas, TX	Zip: 75218
+Mercantile Partners	2601 Meacham Blvd	FTW, TX	Zip: 76137
+Mercedes Chavez	839 S. Windomere Ave.	Dallas, TX	Zip: 75208
+Meza Engineering	4141 Lindbergh Dr	Addison, TX	Zip: 75001
+Michael Walker Construction	14901 Quorom Dr., Suite 580	Dallas, TX	Zip: 75254
+Michele Kimrey	4513 Shady Ln	Rowlett, TX	Zip: 75089
+Michelle Hatcher Kenrey			
+Midlothian ISD	100 Walter Stephenson Rd.	Midlothian, TX	Zip: 76065
+MIKE ANDERSON	615 CREEKBEND CT	MESQUITE, TX	Zip: 75149
+Millenial Construction Service	PO Box 453171	Garland, TX	Zip: 75045
+Miscellaneous Receipts			
+MLGP, LLC	1811 Greenville Ave. Ste 150	Dalllas, TX	Zip: 75206
+MOC Central	909 W Carrier Pkwy	Garand Prairie, TX	Zip: 75050
+Momentum Technologies	1625 W Crosby Rd	Carrollton, TX	Zip: 76006
+Mopac Management	1300 S. University Dr.	Fort Worth, TX	Zip: 76107
+Morales Construction Services	2364 HWY 287 N, Suite 107	Mansfield, TX	Zip: 76063
+National Wholesale Supply, Inc	1972 California Crossing Road	Dallas, TX	Zip: 75220
+Naturich Labs	2505 Merritt Dr	Garland, TX	Zip: 75041
+New Song Church	4220 Fairway Dr	Carrolton, TX	Zip: 75010
+New World Contracting LLC	8500 N Stemmons Frwy Ste 4045	Dallas, TX	Zip: 75247
+NewCrestImage Construction	700 State Hwy 121, Bypass, #175	Lewisville, TX	Zip: 75067
+Newgate Construction	5824 Sky Park Drive	Plano, TX	Zip: 75093
+Nortex Solutions, LLC	404 McKinney Pkwy, Ste F	McKinney, TX	Zip: 75071
+North Texas Ductwork LLC	2477 Merritt Dr.	Garland, TX	Zip: 75041
+North Texas Tollway Authority	5900 W. Plano Parkway, Suite 100	Plano, TX	Zip: 75093
+NTD - SOURCE, JV	10219 Plano Rd	Dallas, TX	Zip: 75238
+NTD Mechanical	2477 Merritt Dr	Garland, TX	Zip: 75041
+Oaks at Five Mile Apartments	3604 Legendary Ln	Dallas, TX	Zip: 75224
+Odd Muse Brewing Co.	4488 Spring Valley Rd.	Farmers Branch, TX	Zip: 75244
+Oncor Electric Delivery	7333 Frankford Rd.	Dallas, TX	Zip: 75252
+One Source Building services	1301 Summit Ave	Plano, TX	Zip: 75074
+O'Reilly Hospitality	7500 Parkwood Blvd.	Plano, TX	Zip: 75024
+P2MG, LLC	5450 NW Central Dr, Ste 330	Houston, TX	Zip: 77092
+Paric Corporation	77 Westport Plaza Suite 250	St. Louis, MO	Zip: 63146
+Pathway Church Burleson	325 NW Renfro St.	Burleson, TX	Zip: 76028
+Pete Durant &amp; Associates	2040 Golden Triangle Dr	Fort Worth, TX	Zip: 76177
+PhaseOne Design Builders, LP	5323 Spring Valley Rd.	Dallas, TX	Zip: 75254
+Philips/May Corporation	1125 Longpoint Ave	Dallas, TX	Zip: 75247
+Phillips/May - Picasso JV	1125 Longpoint Avenue	Dallas, TX	Zip: 75247
+Phoenix I Restoration and Cons	14032 Distribution Way	Farmers Branch, TX	Zip: 75234
+Phoenix Office Technology Serv	4651 Westgrove Dr.	Addison, TX	Zip: 75001
+Picasso Contractors LLC	627 N. St Augustine Rd.	Dallas, TX	Zip: 75217
+Pinnacle Contracting Group LLC	4500 Mercantile Plaza Drive, STE 230	Fort Worth, TX	Zip: 76137
+Pipe Connections	4811 Motley Dr	Mesquite, TX	Zip: 75150
+Plano Chinese Alliance Church	5025 Custard	Plano, TX	Zip: 75023
+Pogue Construction	1512 Bray Central Drive, Suite 300	McKinney, TX	Zip: 75069
+Post L Group	1150 Martin Luther King Jr, Frwy	Fort Worth, TX	Zip: 76104
+Preferred Climate Solutions	11711 Briercroft Court Ste 104	Carrolton, TX	Zip: 75006
+Prepaid Income	This should come out of, gl account 2470		
+Prime IV Hydration &amp; Wellness	2260 Lobo Ln.	Carrllton, TX	Zip: 75010
+Print Appeal, Inc.	11220 Pagemill Rd.	Dallas, TX	Zip: 75243
+Public Storage	200 K Ave	Plano, TX	Zip: 75074
+Quality 1 Energy Systems	10874 Plano Rd, Ste D	Dallas, TX	Zip: 75238
+Quantum Building Solutions	1404 N. McDonald, Suite B	McKinney, TX	Zip: 75071
+Rapid Recovery	3217 E Pioneer Pkwy	Arlington, TX	Zip: 76010
+Ratcliff Constructors, Inc.	4200 Beltway Drive	Addison, TX	Zip: 75001
+RC&amp;E	1350 Forum Way S.	Fort Worth, TX	Zip: 76140
+RdRc Mechanical Services, Inc.	6256 Green Valley Cir.	Aubrey, TX	Zip: 76227
+Real Network Services, Inc.	5529 Redfield St.	Dallas, TX	Zip: 75235
+Reeder General Contractors,Inc	6600 Hawks Creek Ct	Westworth Village, TX	Zip: 76114
+Reese Site Controls	6410 Shorewood Dr.	Arlington, TX	Zip: 76016
+Republic Services	18500 N Allied Way	Phoenix, AZ	Zip: 85054
+Resource Property Group	3218 I-30 #100	Mesquite, TX	Zip: 75150
+Restoration Partners	14032 Distribution Way	Famers Branch, TX	Zip: 75234
+Richardson ISD	1123 S. Greenville Avenue	Richardson, TX	Zip: 75081
+RISD Stults Road ES	8700 Stults Rd	Dallas, TX	Zip: 75243
+Rise IT Solutions, Inc	16803 Dallas, Pkwy #300	Addison, TX	Zip: 75001
+RJM Contractors, Inc.	7616 Benbrook Parkway	Benbrook, TS	Zip: 76126
+Rob McNair Residence	3032 Rolling Wood Ln	Keller, TX	Zip: 76248
+Robert E. Lamb, Inc.	Box 133	Valley Forge, PA	Zip: 19481
+Robert Ratelle	2425 Vickery Blvd	Dallas, TX	Zip: 75206
+Ronnie Beck	13277 Moonlake Way	Haslet, TX	Zip: 76052
+Roy Jorgensen Associates, Inc	3735 Buckeystown Pike, PO Box 70	Buckeystown, MD	Zip: 21717
+Royal Manufacturing	14635 Chrisman Road	Houston, TX	Zip: 77039
+Rudick Construction Group	4925 Greenville Ave. Suite 840	Dallas, TX	Zip: 75206
+Rusty Tilt	1414 Dominion St	Dallas, TX	Zip: 75208
+Ryan Companies US	get info		
+Sabert Corporation	2288 Main Street Extension	Sayreville, NJ	Zip: 8872
+Salas Plumbing Incorporated	3709 Cavalier Dr.	Garland, TX	Zip: 75042
+SALUMRESTAURANT LTD	4152 Cole Ave. Ste. 103	Dallas, TX	Zip: 75204
+Satterfield &amp; Pontikes Constru	6220 N. Beltline Road Ste 200	Irving, TX	Zip: 75063
+Schwob Joint Venture	2349 Glenda Lane	Dallas, TX	Zip: 75229
+SCI Construction, Ltd.	14170 FM 2964	Whitehouse, TX	Zip: 75791
+Scott and Tucker	908 S. Sylvania Avenue	Fort Worth, TX	Zip: 76111
+Scott Fennel Inc	1619 Gooseneck Dr	Bryan, TX	Zip: 77806
+SEDALCO, INC	4100 Fossil Creek Boulevard	Fort Worth, TX	Zip: 76137
+SEKO Aerospace&amp;Aviation	8551 Esters Blvd. Ste 100	Irving, TX	Zip: 75063
+Sentry Technical Services	11421 Chairman Dr.	Dallas, TX	Zip: 75243
+Set up Customer for this Site	DO NOT POST TO THIS CUSTOMER, this is a placeholder for SD		
+Settle Air Inc	PO Box 11-7541	Carrollton, TX	Zip: 75011
+Shannon Brewing Company	311 S Oak St	Trophy Club, TX	Zip: 76262
+Shawmut Design and Constructio	11390 W. Olympic Blvd., Suite 200	Los Angeles, CA	Zip: 90064
+Siemens Corporation	10800 Pecan Park Boulevard, Ste 210/220	Austin, TX	Zip: 78750
+Signature Millwork	2861 Merrell Rd.	Dallas, TX	Zip: 75229
+Sinelli Concepts International	1412 Main Street STE 2000	Dallas, TX	Zip: 75202
+Soby Abraham Residence	904 Cedar Shores Dr	Health, TX	Zip: 75032
+Solis Mammography - Burleson	12500 South Fwy Ste 202	Burleson, TX	Zip: 76028
+SourceBlue, LLC	3 Paragon Drive	Montvale, NJ	Zip: 7654
+SpawGlass Construction	3000 W Loop 820 S	Fort Worth, TX	Zip: 76116
+Spectrum Resource Group, Ltd.	1101 Pamela Dr.	Euless, TX	Zip: 76040
+Steadfast Baptist Church	6900 Denton HWY Ste 106	Watauga, TX	Zip: 76148
+Steele and Freeman, Inc.	1301 Lawson Rd	Fort Worth, TX	Zip: 76131
+Steelworx Industrial Group LLC	1860 E Pump Station Rd.	Fayetteville, AR	Zip: 72701
+Steven Normand	8501 Silverton Dr	Frisco, TX	Zip: 75033
+Stevie Byard	5989 FM 1827	McKinney, TX	Zip: 75071
+Structure Solutions	1200 Industrial Blvd.	Plano, TX	Zip: 75074
+StructureTone	3500 Maple Ave	Dallas, TX	Zip: 75219
+SWINERTON BUILDERS	805 LAS CIMAS PARKWAY, SUITE 130	AUSTIN, TX	Zip: 78746
+Tarrant County	100 E Weatherford	Fort Worth, TX	Zip: 76196
+TDIndustries	13850 Diplomat Dr.	Dallas, TX	Zip: 75234
+Tech Plan, Inc	717 Taylor Dr.	Plano, TX	Zip: 750746778
+Tegrity Contractors	202 N. Allen Drive, Suite E	Allen, TX	Zip: 75013
+Texas Air Systems	6029 W. Campus Circle	Irving, TX	Zip: 75063
+Texas AirSystems LLC	6029 W Campus Circle Dr #100	Irving, TX	Zip: 75063
+Texas Bank	290 S. Preston Rd. Suite 130	Prosper, TX	Zip: 75078
+Texas Health Family Care	4701 Boat Club Rd	Lake Worth, TX	Zip: 76135
+Texas Mutual			
+Texas Outdoor Living			
+Textura			
+The Crowther Group	15400 Knoll Trail Drive, Suite 300	Dallas, TX	Zip: 75248
+The Vertix Companies, Inc.	1600 Corporate Court, STE 100	Irving, TX	Zip: 75038
+The West Chester	8215 West Chester Dr	Dallas, TX	Zip: 75225
+TM Source Building Group Inc	12612 Beech Tree Ln	Euless, TX	Zip: 76040
+Tony Radican	1552 Hwy. 115	Mount Vernon, TX	Zip: 75457
+Trane U.S. Inc.	4200 Sylvania Avenue	Fort Worth, TX	Zip: 76137
+Travis Sellers Residence	1516 Birchbrook Dr	Flower Mound, TX	Zip: 75028
+Traxler Chiropractic	8405 Lakeview Pkwy Ste. # 202	Rowlett, TX	Zip: 75088
+Triple_S Dynamics	1031 S Haskell Ave	Dallas, TX	Zip: 75223
+Tucker Agency Bonds &amp; Insuranc			
+Turner Construction	10100 N Central Expwy Ste 600	Dallas, TX	Zip: 75231
+UNITED DISCIPLES CHRISTIAN CHU	601 E MAIN ST	RICHARDSON, TX	Zip: 75081
+University of North Texas	1901 Main Street	Dallas, TX	Zip: 75201
+Value Feeds	5376 W FM 545	Melissa, TX	Zip: 75454
+Venture Mechanical, Inc.	1644 West Crosby Road	Carrollton, TX	Zip: 75006
+Vestar	5100 Beltline Rd. Suite 430	Dallas, TX	Zip: 75254
+Victor Meza Residence	265 Chestnut Court	Coppell, TX	Zip: 75019
+Vista Bank	5840 West Northwest Hwy	Dallas, TX	Zip: 75225
+W3M PLUMBING	411 W. Texas St.	Mesquite, TX	Zip: 75149
+Walton's Garden	8652 Garland Rd.,	Dallas, TX	Zip: 75218
+Washko Boat Road, LLC	2627 Tillar Street, Suite 121	Fort Worth, TX	Zip: 76107
+Watermark Urgent Care	9780 LBJ FWY Ste 124	Dallas, TX	Zip: 75243
+Way Family Trust	8441 S FM RD 549	Rockwall, TX	Zip: 75032
+WDS Construction	100 Tower Drive	Beaver Dam, WI	Zip: 53916
+Wehner - Bristol Apartments	3604 Legendary Ln	Dallas, TX	Zip: 75224
+Wehner Multifamily LLC	901 International Pkwy Suite 2	Richardson, TX	Zip: 75081
+Weldon Contractors	3428 W. Pioneer Pkwy	Arlington, TX	Zip: 76013
+WilHouse Sheet Metal Inc.	400 Union Bower Ct. Suite 416	Irving, TX	Zip: 75061
+Wilks Construction Company LLC	1430 Markum Ranch Rd	Ft Worth, TX	Zip: 76126
+Will Radican	6017 Heatherglen Dr	Arlington, TX	Zip: 76017
+William Lee	2700 Hanover St.	Dallas, TX	Zip: 75225
+Wings for Women	2603 Inwood Rd	Dallas, TX	Zip: 75235
+Winston Water Cooler	6626 Oakbrook Blvd	Dallas, TX	Zip: 75235
+Yesenia Garcia	1141 Grayhawk Dr.	Forney, TX	Zip: 75126
+Yoga Six West McKinney	3401 S Custer Rd Ste 500	McKinney, TX	Zip: 75070
+Z Constructors	201 W Kaufman St	Richardson, TX	Zip: 75081
+Zara at North Park	8687 N Central Expy,, Space # H2-1508	Dallas, TX	Zip: 75225
+</textarea>
+    <div class="row-fields">
+      <label for="ci-type">Tag all new facilities as:</label>
+      <select id="ci-type">
+        <option value="">— Leave uncategorized —</option>
+        <option value="service_customer">Service Customer</option>
+        <option value="pm_customer">PM Customer</option>
+        <option value="prospect">Prospect</option>
+      </select>
+    </div>
+    <div class="row-fields">
+      <button class="btn btn-nv" id="ci-preview-btn" onclick="ciPreview()">Preview Import</button>
+      <span id="ci-summary" class="mu"></span>
+    </div>
+  </div>
+
+  <div class="card" id="ci-preview-wrap" style="display:none">
+    <h2>2. Review before publishing</h2>
+    <p>Nothing has been written to Supabase yet. <b>New</b> rows will create a facility. <b>Already in Hub</b> rows matched an existing facility by name (your 17 PM facilities will show up here) — checking their box only fills in address/city fields that are currently blank, it never overwrites anything you've already entered. <b>Needs review</b> rows had a similar-but-not-exact name match — left unchecked by default so nothing gets merged into the wrong facility; check the box only if you're sure it's actually the same site under a different name.</p>
+    <div class="summary-pills" id="ci-pills"></div>
+    <div class="row-fields" style="margin-bottom:10px">
+      <button class="btn btn-outline" onclick="ciSetAllNew(true)">Check all New</button>
+      <button class="btn btn-outline" onclick="ciSetAllNew(false)">Uncheck all New</button>
+    </div>
+    <div class="table-wrap">
+      <table id="ci-table">
+        <thead><tr><th></th><th>Name</th><th>Address</th><th>City, State</th><th>Notes</th><th>Status</th></tr></thead>
+        <tbody id="ci-tbody"></tbody>
+      </table>
+    </div>
+    <div class="row-fields" style="margin-top:14px">
+      <button class="btn btn-or" id="ci-publish-btn" onclick="ciPublish()">Publish Checked Rows</button>
+    </div>
+    <div id="ci-publish-status"></div>
+  </div>
+
+</div>
+
+<script>
+// ── ACCESS GATE ── same mechanism as ntd-hub.html, shares the unlock flag.
+var NTD_HUB_PASSWORD = 'NTD2026!#%'; // keep in sync with ntd-hub.html
+var NTD_GATE_KEY = 'ntdHubGateOK';
+
+function ntdInitGate() {
+  var unlocked = false;
+  try { unlocked = localStorage.getItem(NTD_GATE_KEY) === '1'; } catch(e) {}
+  if (unlocked) { document.getElementById('ntd-gate').style.display = 'none'; return; }
+
+  var input = document.getElementById('ntd-gate-input');
+  var btn = document.getElementById('ntd-gate-btn');
+  var err = document.getElementById('ntd-gate-err');
+
+  function tryUnlock() {
+    if (input.value === NTD_HUB_PASSWORD) {
+      try { localStorage.setItem(NTD_GATE_KEY, '1'); } catch(e) {}
+      document.getElementById('ntd-gate').style.display = 'none';
+    } else {
+      err.style.display = 'block';
+      input.value = '';
+      input.focus();
+    }
+  }
+  btn.addEventListener('click', tryUnlock);
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') tryUnlock();
+    if (err.style.display === 'block') err.style.display = 'none';
+  });
+  setTimeout(function(){ input.focus(); }, 200);
+}
+ntdInitGate();
+
+// ── IMPORT LOGIC ─────────────────────────────────────────────────────────
+var ciResults = [];
+var CI_WARN_PATTERN = /insurance|bond|mutual|receipt/i;
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, function(c) {
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
+  });
+}
+
+function ciPreview() {
+  var raw = document.getElementById('ci-data').value;
+  var lines = raw.split(/\r?\n/).filter(function(l) { return l.trim().length > 0; });
+  var rows = lines.map(function(l) {
+    var parts = l.split('\t');
+    return {
+      name: (parts[0] || '').trim(),
+      address: (parts[1] || '').trim(),
+      city: (parts[2] || '').trim(),
+      notes: (parts[3] || '').trim()
+    };
+  }).filter(function(r) { return r.name && r.name.toLowerCase() !== 'name'; });
+
+  var summaryEl = document.getElementById('ci-summary');
+  var btn = document.getElementById('ci-preview-btn');
+  btn.disabled = true;
+  summaryEl.textContent = 'Parsed ' + rows.length + ' rows — checking against existing facilities…';
+
+  ntdStore.facilities.list().then(function(facs) {
+    facs = facs || [];
+    var byNorm = {};
+    facs.forEach(function(f) {
+      var n = _normalizeFacName(f.name);
+      if (n) { if (!byNorm[n]) byNorm[n] = []; byNorm[n].push(f); }
+    });
+
+    ciResults = rows.map(function(r) {
+      var norm = _normalizeFacName(r.name);
+      var exact = (byNorm[norm] && byNorm[norm][0]) || null;
+      var fuzzy = [];
+      if (!exact) {
+        facs.forEach(function(f) {
+          var fn = _normalizeFacName(f.name);
+          if (fn && (fn.indexOf(norm) > -1 || norm.indexOf(fn) > -1)) fuzzy.push(f);
+        });
+      }
+      var status = exact ? 'existing' : (fuzzy.length ? 'review' : 'new');
+      var warn = !r.address && CI_WARN_PATTERN.test(r.name);
+      return {
+        name: r.name, address: r.address, city: r.city, notes: r.notes,
+        status: status, existing: exact, fuzzy: fuzzy, warn: warn,
+        checked: status === 'new' && !warn
+      };
+    });
+
+    btn.disabled = false;
+    summaryEl.textContent = '';
+    renderCiPreview();
+  }).catch(function(err) {
+    btn.disabled = false;
+    summaryEl.textContent = 'Error loading facilities: ' + err.message;
+  });
+}
+
+function renderCiPreview() {
+  var wrap = document.getElementById('ci-preview-wrap');
+  wrap.style.display = 'block';
+
+  var counts = { 'new': 0, 'existing': 0, 'review': 0 };
+  ciResults.forEach(function(r) { counts[r.status]++; });
+  document.getElementById('ci-pills').innerHTML =
+    '<span class="pill pill-new">' + counts['new'] + ' new</span>' +
+    '<span class="pill pill-existing">' + counts['existing'] + ' already in Hub</span>' +
+    '<span class="pill pill-review">' + counts['review'] + ' need review</span>';
+
+  var rowsHtml = ciResults.map(function(r, i) {
+    var statusBadge = r.status === 'new' ? '<span class="badge badge-new">New</span>'
+      : r.status === 'existing' ? '<span class="badge badge-existing">Already in Hub</span>'
+      : '<span class="badge badge-review">Needs review</span>';
+    var extra = '';
+    if (r.status === 'existing') {
+      extra = '<div class="mu" style="margin-top:2px">Fills blank address/city only, never overwrites</div>';
+    } else if (r.status === 'review') {
+      extra = '<div class="mu" style="margin-top:2px">Similar to: ' + esc(r.fuzzy.map(function(f){return f.name;}).join(', ')) + '</div>';
+    }
+    var warnHtml = r.warn ? '<div class="warn">⚠ no address — may not be a serviceable site</div>' : '';
+    var cb = '<input type="checkbox" data-idx="' + i + '" onchange="ciResults[' + i + '].checked=this.checked" ' + (r.checked ? 'checked' : '') + '>';
+    return '<tr class="status-' + r.status + '">' +
+      '<td>' + cb + '</td>' +
+      '<td>' + esc(r.name) + warnHtml + '</td>' +
+      '<td>' + esc(r.address) + '</td>' +
+      '<td>' + esc(r.city) + '</td>' +
+      '<td class="mu">' + esc(r.notes) + '</td>' +
+      '<td>' + statusBadge + extra + '</td>' +
+    '</tr>';
+  }).join('');
+  document.getElementById('ci-tbody').innerHTML = rowsHtml;
+}
+
+function ciSetAllNew(val) {
+  ciResults.forEach(function(r) { if (r.status === 'new') r.checked = val; });
+  renderCiPreview();
+}
+
+function ciPublish() {
+  var btn = document.getElementById('ci-publish-btn');
+  var statusEl = document.getElementById('ci-publish-status');
+  var typeVal = document.getElementById('ci-type').value;
+
+  var toCreate = ciResults.filter(function(r) { return r.checked && (r.status === 'new' || r.status === 'review'); });
+  var toUpdate = ciResults.filter(function(r) { return r.checked && r.status === 'existing'; });
+
+  if (!toCreate.length && !toUpdate.length) {
+    statusEl.textContent = 'Nothing checked — nothing to publish.';
+    return;
+  }
+  if (!confirm('Create ' + toCreate.length + ' new facilities and update ' + toUpdate.length + ' existing ones?')) return;
+
+  btn.disabled = true;
+  statusEl.textContent = 'Publishing…';
+
+  var createPromises = toCreate.map(function(r) {
+    var rec = { name: r.name, address: r.address, city: r.city, notes: r.notes };
+    if (typeVal) rec.type = typeVal;
+    if (typeVal === 'pm_customer') rec.pm_contract = true;
+    return ntdStore.facilities.upsert(rec);
+  });
+
+  var updatePromises = toUpdate.map(function(r) {
+    var patch = { id: r.existing.id };
+    if (!r.existing.address && r.address) patch.address = r.address;
+    if (!r.existing.city && r.city) patch.city = r.city;
+    if (Object.keys(patch).length > 1) {
+      return ntdStore.facilities.upsert(patch);
+    }
+    return Promise.resolve(null);
+  });
+
+  Promise.all(createPromises.concat(updatePromises)).then(function(results) {
+    var created = results.slice(0, createPromises.length).filter(Boolean).length;
+    statusEl.style.color = 'var(--gn)';
+    statusEl.textContent = 'Done — ' + created + ' facilities created, ' + toUpdate.length + ' existing facilities checked for gaps. Re-run Preview to confirm the current state.';
+    btn.disabled = false;
+  }).catch(function(err) {
+    statusEl.style.color = 'var(--rd)';
+    statusEl.textContent = 'Error during publish: ' + err.message + ' — some rows may have been created before the error; re-run Preview to see current state before retrying.';
+    btn.disabled = false;
+  });
+}
+</script>
+</body>
+</html>
