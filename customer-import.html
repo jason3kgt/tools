@@ -550,6 +550,26 @@ function esc(s) {
   });
 }
 
+// Whole-word fuzzy match, not raw character substring. Plain substring
+// matching (e.g. "ctr" found inside "Electric") was producing false
+// "similar to CTR" matches against completely unrelated companies whose
+// names just happened to contain those letters in a row. This requires
+// every word of the shorter name to appear as a WHOLE word in the longer
+// one, and refuses to fuzzy-match names that are too short to be reliable
+// (things like "CTR", "BC", "AAA" should never auto-suggest a match).
+function ciIsFuzzyMatch(normA, normB) {
+  if (!normA || !normB) return false;
+  if (normA.length < 4 || normB.length < 4) return false;
+  var wordsA = normA.split(' ').filter(Boolean);
+  var wordsB = normB.split(' ').filter(Boolean);
+  var shorter = wordsA.length <= wordsB.length ? wordsA : wordsB;
+  var longer = wordsA.length <= wordsB.length ? wordsB : wordsA;
+  var allWordsFound = shorter.every(function(w) {
+    return w.length >= 3 && longer.indexOf(w) > -1;
+  });
+  return allWordsFound;
+}
+
 function ciPreview() {
   var raw = document.getElementById('ci-data').value;
   var lines = raw.split(/\r?\n/).filter(function(l) { return l.trim().length > 0; });
@@ -583,7 +603,7 @@ function ciPreview() {
       if (!exact) {
         facs.forEach(function(f) {
           var fn = ciNormalizeFacName(f.name);
-          if (fn && (fn.indexOf(norm) > -1 || norm.indexOf(fn) > -1)) fuzzy.push(f);
+          if (ciIsFuzzyMatch(fn, norm)) fuzzy.push(f);
         });
       }
       var status = exact ? 'existing' : (fuzzy.length ? 'review' : 'new');
