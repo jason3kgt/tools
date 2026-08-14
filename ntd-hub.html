@@ -2245,6 +2245,7 @@ function renderDetailTab(f) {
               '<div class="rec-title">'+esc(q.frequency||'PM')+ ' Proposal</div>' +
               '<div class="rec-sub">'+esc(q.date||'')+(q.unit_count?' · '+q.unit_count+' units':'')+'</div>' +
               '<div class="rec-meta">Annual: <strong>'+esc(q.annual_total||'—')+'</strong> · Quarterly: '+esc(q.quarterly_rate||'—')+'</div>' +
+              (q.margin_pct ? '<div class="rec-meta">Margin: '+esc(String(q.margin_pct))+'%'+(q.gross_margin_dollars?' ('+esc(q.gross_margin_dollars)+' gross)':'')+'</div>' : '') +
               '<div style="margin-top:6px">'+pmPdfLink+'</div>' +
               '<button class="btn btn-outline btn-sm" style="margin-top:8px" onclick="convertQuoteToProject(\'' + q.id + '\',\'pm\')">→ Set as PM Contract</button>' +
             '</div></div>';
