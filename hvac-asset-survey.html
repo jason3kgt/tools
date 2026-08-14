@@ -162,7 +162,34 @@ textarea{resize:vertical;min-height:70px}
 .ntd-sync-pill{position:fixed;top:calc(env(safe-area-inset-top) + 8px);right:8px;z-index:500;display:none;align-items:center;gap:6px;background:var(--am,#D4820A);color:#fff;font-size:11px;font-weight:700;padding:7px 12px;border-radius:20px;box-shadow:0 3px 10px rgba(0,0,0,.22);cursor:pointer;touch-action:manipulation;font-family:inherit;border:none}
 .ntd-sync-pill.on{display:flex}
 .ntd-sync-pill .ntd-sync-dot{width:7px;height:7px;border-radius:50%;background:#fff;animation:ntdSyncPulse 1.4s ease-in-out infinite;flex-shrink:0}
-@keyframes ntdSyncPulse{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes ntdSyncPulse{0%,100%{opacity:1}50%{opacity:.35}}.ntd-dial-outer{position:relative;width:220px;height:220px;margin:0 auto;touch-action:none;cursor:grab}
+.ntd-dial-outer.dragging{cursor:grabbing}
+.ntd-dial-track{position:absolute;inset:0;border-radius:50%}
+.ntd-dial-face{position:absolute;inset:14px;border-radius:50%;background:radial-gradient(circle at 32% 28%,var(--nv),#0E2140 70%);box-shadow:inset 0 2px 6px rgba(255,255,255,.08),inset 0 -8px 18px rgba(0,0,0,.45),0 10px 24px rgba(0,0,0,.3);display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ntd-dial-value{font-weight:800;font-size:38px;color:var(--or);letter-spacing:-1px}
+.ntd-dial-value span{font-size:19px;opacity:.75}
+.ntd-dial-sub{font-size:9.5px;color:#9AAAC7;letter-spacing:1.5px;margin-top:2px;text-transform:uppercase}
+.ntd-dial-handle{position:absolute;width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,var(--or) 60%,#C85A1B 100%);box-shadow:0 0 0 4px rgba(232,83,26,.18),0 2px 8px rgba(0,0,0,.4);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none}
+.ntd-hero-card{background:linear-gradient(135deg,var(--nv),#2A4E85 130%);border-radius:16px;padding:18px 20px;color:#fff;margin-bottom:14px}
+.ntd-hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
+.ntd-hero-label{font-size:10px;letter-spacing:1px;color:#B8C6E0;text-transform:uppercase;margin-bottom:6px}
+.ntd-hero-value{font-weight:800;font-size:clamp(28px,7vw,36px);letter-spacing:-1px;color:#fff;line-height:1}
+.ntd-hero-qtr{font-size:12px;color:#B8C6E0;margin-top:8px}
+.ntd-hero-qtr strong{color:#fff}
+.ntd-hero-badge{font-size:11px;letter-spacing:.5px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);padding:5px 11px;border-radius:100px;color:#fff;white-space:nowrap}
+.ntd-metric-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.ntd-metric{background:var(--of);border:1px solid var(--bd);border-radius:10px;padding:10px 8px;text-align:center}
+.ntd-metric-label{font-size:9px;letter-spacing:.5px;color:var(--mu);text-transform:uppercase;margin-bottom:5px}
+.ntd-metric-value{font-weight:700;font-size:15px;letter-spacing:-.3px}
+.ntd-metric-value.cost{color:#B45309}
+.ntd-metric-value.margin{color:#1E7A3E}
+.ntd-metric-value.sell{color:var(--or)}
+.ntd-metric-delta{font-size:9px;color:var(--mu);margin-top:2px}
+.ntd-bar-card{background:var(--of);border:1px solid var(--bd);border-radius:10px;padding:10px 12px}
+.ntd-bar-head{display:flex;justify-content:space-between;font-size:10px;color:var(--mu);margin-bottom:6px}
+.ntd-bar-track{height:12px;border-radius:100px;overflow:hidden;display:flex;background:rgba(0,0,0,.06)}
+.ntd-bar-cost{background:linear-gradient(90deg,#8A9BC2,#B0BEDB);transition:width .25s cubic-bezier(.4,0,.2,1)}
+.ntd-bar-margin{background:linear-gradient(90deg,var(--or),#FFA36C);transition:width .25s cubic-bezier(.4,0,.2,1)}
 </style>
 </head>
 <body>
@@ -508,6 +535,27 @@ textarea{resize:vertical;min-height:70px}
       <div style="font-size:11px;color:var(--mu);margin-top:2px">Plan: Materials Included + Coil Cleaning Included (the standard NTD default combination — other plan variations aren't configurable here yet).</div>
     </div>
   </div>
+
+  <div class="card">
+    <div class="ch"><div class="cn">🎛️</div><h2>Target Margin</h2></div>
+    <div class="cb" style="text-align:center;padding-top:6px">
+      <div class="ntd-dial-outer" id="ae-dial-outer">
+        <canvas id="ae-dial-track" width="220" height="220" class="ntd-dial-track"></canvas>
+        <div class="ntd-dial-face">
+          <div class="ntd-dial-value" id="ae-dial-value">25<span>%</span></div>
+          <div class="ntd-dial-sub">Margin</div>
+        </div>
+        <div class="ntd-dial-handle" id="ae-dial-handle"></div>
+      </div>
+      <input type="range" id="ae-margin" min="10" max="70" step="0.5" value="25" oninput="aeMarginDialChange(this)" style="width:88%;accent-color:var(--or);margin-top:6px">
+      <div style="font-size:10px;color:var(--mu);margin-top:6px">Drag the dial or the slider &middot; Range 10%&ndash;70%</div>
+      <div id="ae-zone-note" style="margin-top:12px;padding:9px 12px;border-radius:10px;background:#F0FBF5;border:1px solid #BFE8D0;font-size:11.5px;color:#1E7A3E;text-align:left;display:flex;gap:8px;align-items:flex-start">
+        <div style="width:7px;height:7px;border-radius:50%;background:currentColor;margin-top:4px;flex-shrink:0"></div>
+        <div>Within NTD's standard 25&ndash;35% target range for a job of this scope.</div>
+      </div>
+    </div>
+  </div>
+
   <div class="card">
     <div class="ch"><div class="cn">💵</div><h2>Pricing Assumptions</h2></div>
     <div class="cb">
@@ -516,18 +564,14 @@ textarea{resize:vertical;min-height:70px}
         <div class="fg"><label>Labor Burden %</label><input type="text" id="ae-labor-burden" value="38" oninput="aeSync()"></div>
       </div>
       <div class="r2">
-        <div class="fg"><label>Target Margin <span id="ae-margin-readout" style="font-weight:800;color:var(--nv)">25%</span></label>
-          <input type="range" id="ae-margin" min="10" max="70" step="1" value="25" oninput="aeMarginDialChange(this)" style="width:100%">
-          <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--mu);margin-top:1px"><span>10%</span><span>70%</span></div>
-        </div>
         <div class="fg"><label>Mobilization ($/visit/bldg)</label><input type="text" id="ae-mobilization" value="275" oninput="aeSync()"></div>
+        <div class="fg"><label>Consumable Supplies Fee %</label><input type="text" id="ae-supply-fee" value="2.5" oninput="aeSync()"></div>
       </div>
       <div class="r3">
         <div class="fg"><label>Filter Sell ($/ea)</label><input type="text" id="ae-filter-price" value="18" oninput="aeSync()"></div>
         <div class="fg"><label>Belt Sell ($/ea)</label><input type="text" id="ae-belt-price" value="35" oninput="aeSync()"></div>
         <div class="fg"><label>Coil Clean Sell ($/unit)</label><input type="text" id="ae-coil-price" value="95" oninput="aeSync()"></div>
       </div>
-      <div class="fg"><label>Consumable Supplies Fee %</label><input type="text" id="ae-supply-fee" value="2.5" oninput="aeSync()" style="max-width:140px"></div>
       <div style="font-size:10px;color:var(--mu);margin-top:2px">Burdened labor rate: <strong id="ae-burdened-rate">$62.10/hr</strong> (auto-calculated)</div>
     </div>
   </div>
@@ -564,6 +608,26 @@ textarea{resize:vertical;min-height:70px}
   <div class="card">
     <div class="ch"><div class="cn">💲</div><h2>Pricing Summary</h2></div>
     <div class="cb">
+      <div class="ntd-hero-card" id="ae-hero-card">
+        <div class="ntd-hero-top">
+          <div>
+            <div class="ntd-hero-label">Estimated Total Annual PM Price</div>
+            <div class="ntd-hero-value" id="ae-hero-total">$0.00</div>
+            <div class="ntd-hero-qtr">Billed quarterly at <strong id="ae-hero-qtr">$0.00</strong>/invoice</div>
+          </div>
+          <div class="ntd-hero-badge" id="ae-hero-badge">25% margin</div>
+        </div>
+      </div>
+      <div class="ntd-metric-row">
+        <div class="ntd-metric"><div class="ntd-metric-label">Total Cost</div><div class="ntd-metric-value cost" id="ae-metric-cost">$0.00</div></div>
+        <div class="ntd-metric"><div class="ntd-metric-label">Gross Margin</div><div class="ntd-metric-value margin" id="ae-metric-margin">$0.00</div><div class="ntd-metric-delta" id="ae-metric-margin-pct">0% blended realized</div></div>
+        <div class="ntd-metric"><div class="ntd-metric-label">Customer Sell</div><div class="ntd-metric-value sell" id="ae-metric-sell">$0.00</div></div>
+      </div>
+      <div class="ntd-bar-card">
+        <div class="ntd-bar-head"><span>Cost</span><span>Margin</span></div>
+        <div class="ntd-bar-track"><div class="ntd-bar-cost" id="ae-bar-cost" style="width:70%"></div><div class="ntd-bar-margin" id="ae-bar-margin" style="width:30%"></div></div>
+      </div>
+      <div class="divider" style="margin:14px 0"></div>
       <div class="tot-row"><span class="tlbl">Units Quoted</span><span class="tval" id="ae-units-quoted">0</span></div>
       <div class="tot-row"><span class="tlbl">Total Annual Labor Hours</span><span class="tval" id="ae-labor-hrs-total">0</span></div>
       <div class="tot-row"><span class="tlbl">Total Before Supplies Fee</span><span class="tval" id="ae-total-before-fee">$0.00</span></div>
@@ -733,7 +797,7 @@ function go(n){
   if(n===2){updS();setTimeout(ackInitCanvas,50);}
   if(n===3)updF();
   if(n===4)sqSyncJobInfo();
-  if(n===5)aeSync();
+  if(n===5){setTimeout(aeDialInit,50);aeSync();}
 }
 function gv(id){return(document.getElementById(id)||{}).value||'';}
 function se(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
@@ -1245,8 +1309,7 @@ function restoreDraft() {
         var el = document.getElementById(k);
         if (el && d.ae[k]) el.value = d.ae[k];
       });
-      var mReadout = document.getElementById('ae-margin-readout');
-      if (mReadout) mReadout.textContent = gv('ae-margin') + '%';
+      if (typeof aeRenderDial === 'function') aeRenderDial(parseFloat(gv('ae-margin'))||25);
       if (typeof aeSync === 'function') aeSync();
     }
     document.getElementById('draft-banner').style.display = 'none';
@@ -2078,18 +2141,131 @@ function aePriceJob(allUnits, A) {
   var totalBeforeFee = priced.reduce(function(sum,p){ return sum + (p.price ? p.price.annualTotal : 0); }, 0);
   var supplyFee = totalBeforeFee * A.consumableFeePct;
   var adjustedTotal = totalBeforeFee + supplyFee;
+  // Cost-side rollup (for the Total Cost / Gross Margin metrics): labor+materials+mobilization
+  // go through the margin formula, so their cost basis is costPerVisit*visits; belt/coil are
+  // flat pass-throughs with no margin applied, so their cost equals their sell exactly.
+  var totalCost = priced.reduce(function(sum,p){
+    if (!p.price) return sum;
+    var pr = p.price;
+    var costPerVisit = pr.laborCostPerVisit + pr.materialsCostPerVisit + pr.mobilizationPerVisit;
+    return sum + (costPerVisit * A.visitsPerYear) + pr.beltCostAnnual + pr.coilCleanCostAnnual;
+  }, 0) + supplyFee; // the supplies fee itself is a cost pass-through, not profit
+  var marginDollars = adjustedTotal - totalCost;
+  var marginRealizedPct = adjustedTotal ? (marginDollars / adjustedTotal) * 100 : 0;
   return {
     priced: priced, unmapped: unmapped, totalBeforeFee: totalBeforeFee, supplyFee: supplyFee,
     adjustedTotal: adjustedTotal, quarterlyBilling: adjustedTotal/4, monthlyBilling: adjustedTotal/12,
-    totalAnnualLaborHrs: pool.totalLaborHrsPerVisit * A.visitsPerYear
+    totalAnnualLaborHrs: pool.totalLaborHrsPerVisit * A.visitsPerYear,
+    totalCost: totalCost, marginDollars: marginDollars, marginRealizedPct: marginRealizedPct
   };
 }
 
 var _aeLastResult = null;
 
+// ── MARGIN DIAL (canvas, drag-to-adjust) ────────────────────────────────
+var AE_DIAL_MIN = 10, AE_DIAL_MAX = 70;
+var AE_DIAL_START_ANGLE = -225, AE_DIAL_END_ANGLE = 45; // 270° sweep, gap at bottom
+var _aeDialCtx = null, _aeDialDragging = false, _aeDialInitDone = false;
+
+function aeDialAngleForValue(v) {
+  var t = (v - AE_DIAL_MIN) / (AE_DIAL_MAX - AE_DIAL_MIN);
+  return AE_DIAL_START_ANGLE + t * (AE_DIAL_END_ANGLE - AE_DIAL_START_ANGLE);
+}
+
+function aeDrawDialTrack(value) {
+  var canvas = document.getElementById('ae-dial-track');
+  if (!canvas) return;
+  if (!_aeDialCtx) _aeDialCtx = canvas.getContext('2d');
+  var ctx = _aeDialCtx;
+  var cx = 110, cy = 110, r = 96;
+  ctx.clearRect(0, 0, 220, 220);
+  // background arc
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, AE_DIAL_START_ANGLE*Math.PI/180, AE_DIAL_END_ANGLE*Math.PI/180);
+  ctx.lineWidth = 9; ctx.strokeStyle = 'rgba(0,0,0,.08)'; ctx.lineCap = 'round'; ctx.stroke();
+  // standard range band 25-35%
+  var a1 = aeDialAngleForValue(25)*Math.PI/180, a2 = aeDialAngleForValue(35)*Math.PI/180;
+  ctx.beginPath(); ctx.arc(cx, cy, r, a1, a2);
+  ctx.lineWidth = 9; ctx.strokeStyle = 'rgba(30,122,62,.35)'; ctx.lineCap = 'butt'; ctx.stroke();
+  // active arc
+  var av = aeDialAngleForValue(value)*Math.PI/180;
+  ctx.beginPath(); ctx.arc(cx, cy, r, AE_DIAL_START_ANGLE*Math.PI/180, av);
+  ctx.lineWidth = 9;
+  var grad = ctx.createLinearGradient(0,0,220,220);
+  grad.addColorStop(0,'#E8531A'); grad.addColorStop(1,'#FFA36C');
+  ctx.strokeStyle = grad; ctx.lineCap = 'round'; ctx.stroke();
+  // tick marks every 10%
+  for (var v = AE_DIAL_MIN; v <= AE_DIAL_MAX; v += 10) {
+    var a = aeDialAngleForValue(v)*Math.PI/180;
+    var x1 = cx+Math.cos(a)*(r+8), y1 = cy+Math.sin(a)*(r+8);
+    var x2 = cx+Math.cos(a)*(r+13), y2 = cy+Math.sin(a)*(r+13);
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2);
+    ctx.strokeStyle = 'rgba(0,0,0,.2)'; ctx.lineWidth = 1.5; ctx.stroke();
+  }
+}
+function aePositionDialHandle(value) {
+  var handle = document.getElementById('ae-dial-handle');
+  if (!handle) return;
+  var a = aeDialAngleForValue(value)*Math.PI/180;
+  var cx = 110, cy = 110, r = 96;
+  handle.style.left = (cx+Math.cos(a)*r) + 'px';
+  handle.style.top = (cy+Math.sin(a)*r) + 'px';
+}
+function aeDialAngleFromEvent(clientX, clientY) {
+  var outer = document.getElementById('ae-dial-outer');
+  var rect = outer.getBoundingClientRect();
+  var cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+  var deg = Math.atan2(clientY-cy, clientX-cx) * 180/Math.PI;
+  if (deg < AE_DIAL_START_ANGLE) deg += 360;
+  if (deg > AE_DIAL_END_ANGLE + 360) deg -= 360;
+  var clamped = Math.max(AE_DIAL_START_ANGLE, Math.min(AE_DIAL_END_ANGLE, deg > 180 ? deg-360 : deg));
+  if (deg > AE_DIAL_END_ANGLE && deg < AE_DIAL_START_ANGLE + 360) {
+    var distToStart = Math.abs(deg-(AE_DIAL_START_ANGLE+360)), distToEnd = Math.abs(deg-AE_DIAL_END_ANGLE);
+    clamped = distToStart < distToEnd ? AE_DIAL_START_ANGLE : AE_DIAL_END_ANGLE;
+  }
+  var t = (clamped-AE_DIAL_START_ANGLE)/(AE_DIAL_END_ANGLE-AE_DIAL_START_ANGLE);
+  return AE_DIAL_MIN + t*(AE_DIAL_MAX-AE_DIAL_MIN);
+}
+function aeRenderDial(value) {
+  value = Math.max(AE_DIAL_MIN, Math.min(AE_DIAL_MAX, value));
+  aeDrawDialTrack(value);
+  aePositionDialHandle(value);
+  var dv = document.getElementById('ae-dial-value');
+  if (dv) dv.innerHTML = (value % 1 === 0 ? value.toFixed(0) : value.toFixed(1)) + '<span>%</span>';
+  var slider = document.getElementById('ae-margin');
+  if (slider) slider.value = value;
+}
+function aeDialInit() {
+  if (_aeDialInitDone) { aeRenderDial(parseFloat(gv('ae-margin'))||25); return; }
+  var outer = document.getElementById('ae-dial-outer');
+  if (!outer) return;
+  _aeDialInitDone = true;
+  function startDrag(e){ _aeDialDragging=true; outer.classList.add('dragging'); moveDrag(e); e.preventDefault(); }
+  function moveDrag(e){
+    if (!_aeDialDragging) return;
+    var point = e.touches ? e.touches[0] : e;
+    var value = aeDialAngleFromEvent(point.clientX, point.clientY);
+    aeRenderDial(Math.round(value*2)/2);
+    aeSync();
+  }
+  function endDrag(){ _aeDialDragging=false; outer.classList.remove('dragging'); }
+  outer.addEventListener('mousedown', startDrag);
+  window.addEventListener('mousemove', moveDrag);
+  window.addEventListener('mouseup', endDrag);
+  outer.addEventListener('touchstart', startDrag, {passive:false});
+  window.addEventListener('touchmove', moveDrag, {passive:false});
+  window.addEventListener('touchend', endDrag);
+  outer.tabIndex = 0;
+  outer.addEventListener('keydown', function(e){
+    var cur = parseFloat(gv('ae-margin'));
+    if (e.key==='ArrowUp'||e.key==='ArrowRight'){ aeRenderDial(cur+0.5); aeSync(); }
+    if (e.key==='ArrowDown'||e.key==='ArrowLeft'){ aeRenderDial(cur-0.5); aeSync(); }
+  });
+  aeRenderDial(parseFloat(gv('ae-margin'))||25);
+}
+
 function aeMarginDialChange(el) {
-  var readout = document.getElementById('ae-margin-readout');
-  if (readout) readout.textContent = el.value + '%';
+  aeRenderDial(parseFloat(el.value)||25);
   aeSync();
 }
 
@@ -2106,7 +2282,7 @@ function aeSync() {
     emptyNote.style.display = 'block';
     document.getElementById('ae-unmapped-card').style.display = 'none';
     ['ae-units-quoted','ae-labor-hrs-total'].forEach(function(id){ se(id,'0'); });
-    ['ae-total-before-fee','ae-supply-fee-amt','ae-adjusted-total','ae-quarterly','ae-monthly'].forEach(function(id){ se(id,'$0.00'); });
+    ['ae-total-before-fee','ae-supply-fee-amt','ae-adjusted-total','ae-quarterly','ae-monthly','ae-hero-total','ae-hero-qtr','ae-metric-cost','ae-metric-margin','ae-metric-sell'].forEach(function(id){ se(id,'$0.00'); });
     _aeLastResult = null;
     onFieldChange();
     return;
@@ -2152,6 +2328,34 @@ function aeSync() {
   se('ae-adjusted-total', fcc(result.adjustedTotal));
   se('ae-quarterly', fcc(result.quarterlyBilling));
   se('ae-monthly', fcc(result.monthlyBilling));
+
+  var marginPctVal = parseFloat(gv('ae-margin'))||25;
+  se('ae-hero-total', fcc(result.adjustedTotal));
+  se('ae-hero-qtr', fcc(result.quarterlyBilling));
+  se('ae-hero-badge', marginPctVal.toFixed(marginPctVal%1===0?0:1) + '% margin');
+  se('ae-metric-cost', fcc(result.totalCost));
+  se('ae-metric-margin', fcc(result.marginDollars));
+  se('ae-metric-margin-pct', result.marginRealizedPct.toFixed(1) + '% blended realized');
+  se('ae-metric-sell', fcc(result.adjustedTotal));
+  var costPct = result.adjustedTotal ? (result.totalCost/result.adjustedTotal)*100 : 70;
+  var marginBarPct = 100 - costPct;
+  var barCostEl = document.getElementById('ae-bar-cost'), barMarginEl = document.getElementById('ae-bar-margin');
+  if (barCostEl) barCostEl.style.width = costPct + '%';
+  if (barMarginEl) barMarginEl.style.width = marginBarPct + '%';
+
+  var zoneNote = document.getElementById('ae-zone-note');
+  if (zoneNote) {
+    if (marginPctVal < 25) {
+      zoneNote.style.background = '#FEF2E9'; zoneNote.style.borderColor = '#F5C9A8'; zoneNote.style.color = '#B4530F';
+      zoneNote.innerHTML = '<div style="width:7px;height:7px;border-radius:50%;background:currentColor;margin-top:4px;flex-shrink:0"></div><div>Below NTD\u2019s standard 25% floor \u2014 flag before sending for approval.</div>';
+    } else if (marginPctVal > 35) {
+      zoneNote.style.background = '#FEF2E9'; zoneNote.style.borderColor = '#F5C9A8'; zoneNote.style.color = '#B4530F';
+      zoneNote.innerHTML = '<div style="width:7px;height:7px;border-radius:50%;background:currentColor;margin-top:4px;flex-shrink:0"></div><div>Above NTD\u2019s standard 25\u201335% range \u2014 may affect competitiveness.</div>';
+    } else {
+      zoneNote.style.background = '#F0FBF5'; zoneNote.style.borderColor = '#BFE8D0'; zoneNote.style.color = '#1E7A3E';
+      zoneNote.innerHTML = '<div style="width:7px;height:7px;border-radius:50%;background:currentColor;margin-top:4px;flex-shrink:0"></div><div>Within NTD\u2019s standard 25\u201335% target range for a job of this scope.</div>';
+    }
+  }
   onFieldChange();
 }
 
@@ -2227,6 +2431,9 @@ function ntdAutoSubmitAdvancedEstimate() {
         return { tag: p.eq.tag, category: p.price.libraryCategory, annual_total: p.price.annualTotal };
       }),
       base_total: fcc(_aeLastResult.totalBeforeFee),
+      margin_pct: parseFloat(gv('ae-margin'))||25,
+      total_cost: fcc(_aeLastResult.totalCost),
+      gross_margin_dollars: fcc(_aeLastResult.marginDollars),
       notes: 'Advanced Estimate \u2014 ' + unitCount + ' unit(s) priced'
     }).then(function(){ console.log('[NTD] PM Quote auto-saved to store'); })
       .catch(function(e){ console.warn('[NTD] PM Quote auto-save failed:', e.message); });
@@ -2251,6 +2458,9 @@ function ntdSubmitAdvancedEstimate() {
         return { tag: p.eq.tag, category: p.price.libraryCategory, annual_total: p.price.annualTotal };
       }),
       base_total: fcc(_aeLastResult.totalBeforeFee),
+      margin_pct: parseFloat(gv('ae-margin'))||25,
+      total_cost: fcc(_aeLastResult.totalCost),
+      gross_margin_dollars: fcc(_aeLastResult.marginDollars),
       notes: 'Advanced Estimate \u2014 ' + unitCount + ' unit(s) priced'
     }).then(function() {
       ntdWritePMFrequency(facilityId);
