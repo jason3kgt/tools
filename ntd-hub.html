@@ -598,11 +598,6 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
 </div>
 
 <!-- ③ SEARCH -->
-<!-- ③.5 AT-RISK EQUIPMENT (cross-facility) -->
-<div class="pg" id="pg-health">
-  <div id="health-content"></div>
-</div>
-
 <div class="pg" id="pg-search">
   <div class="search-wrap">
     <input type="text" id="global-search" placeholder="Search everything…" oninput="runGlobalSearch()" autocomplete="off" autocorrect="off" spellcheck="false">
@@ -1433,9 +1428,6 @@ function goPage(page) {
   } else if (page === 'search') {
     hdrBtn.style.display = 'none';
     setTimeout(function(){ var el = document.getElementById('global-search'); if(el) el.focus(); }, 100);
-  } else if (page === 'health') {
-    hdrBtn.style.display = 'none';
-    renderHealthPage();
   } else if (page === 'settings') {
     hdrBtn.style.display = 'none';
     renderSettings();
@@ -3627,89 +3619,6 @@ function renderProjectList() {
 }
 
 // ── SETTINGS ─────────────────────────────────────────────────────────────
-// ── AT-RISK EQUIPMENT (cross-facility) ──────────────────────────────────────
-// Pulls every Poor/Fair condition unit across ALL facilities into one list —
-// a ready-made outreach/replacement-conversation priority list, since that
-// view didn't exist anywhere before (Asset Survey's Health Score is scoped
-// to one survey session, not the whole portfolio). Reuses the same
-// repl_cost/repl_year fields Asset Survey already writes onto equipment
-// rows, rather than re-deriving forecast math here.
-function renderHealthPage() {
-  var wrap = document.getElementById('health-content');
-  wrap.innerHTML = ntdSkeleton(3);
-  Promise.all([
-    ntdStore.equipment.list(function(e){ return e.condition === 'poor' || e.condition === 'fair'; }),
-    ntdStore.facilities.list()
-  ]).then(function(res) {
-    var atRisk = res[0] || [];
-    var facilities = res[1] || [];
-    var facMap = {};
-    facilities.forEach(function(f){ facMap[f.id] = f; });
-
-    var rank = { poor: 0, fair: 1 };
-    atRisk.sort(function(a, b) {
-      var ra = rank[a.condition] != null ? rank[a.condition] : 2;
-      var rb = rank[b.condition] != null ? rank[b.condition] : 2;
-      if (ra !== rb) return ra - rb;
-      var ya = a.repl_year || 9999, yb = b.repl_year || 9999;
-      return ya - yb;
-    });
-
-    var poorCount = atRisk.filter(function(e){ return e.condition === 'poor'; }).length;
-    var fairCount = atRisk.filter(function(e){ return e.condition === 'fair'; }).length;
-    var totalReplVal = atRisk.reduce(function(sum, e){ return sum + (e.repl_cost || 0); }, 0);
-
-    var html = '<div class="section-label" style="--accent:var(--rd)">'+ntdIcon('alert',12)+' At-Risk Equipment — All Facilities</div>';
-    html += '<div class="card"><div class="card-body">' +
-      '<div style="display:flex;gap:10px;flex-wrap:wrap">' +
-        '<div style="flex:1;min-width:90px;text-align:center;padding:10px 6px;border-radius:10px;background:'+(poorCount?'#FDEDEC':'var(--of)')+'">' +
-          '<div style="font-size:22px;font-weight:800;color:'+(poorCount?'var(--rd)':'var(--mu)')+'">'+poorCount+'</div>' +
-          '<div style="font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--mu)">Poor</div>' +
-        '</div>' +
-        '<div style="flex:1;min-width:90px;text-align:center;padding:10px 6px;border-radius:10px;background:'+(fairCount?'#FFF3E0':'var(--of)')+'">' +
-          '<div style="font-size:22px;font-weight:800;color:'+(fairCount?'var(--am)':'var(--mu)')+'">'+fairCount+'</div>' +
-          '<div style="font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--mu)">Fair</div>' +
-        '</div>' +
-        '<div style="flex:1;min-width:90px;text-align:center;padding:10px 6px;border-radius:10px;background:var(--of)">' +
-          '<div style="font-size:22px;font-weight:800;color:var(--nv)">'+(totalReplVal ? '$'+Math.round(totalReplVal/1000)+'k' : '$0')+'</div>' +
-          '<div style="font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--mu)">Est. Replacement Value</div>' +
-        '</div>' +
-      '</div>' +
-    '</div></div>';
-
-    if (!atRisk.length) {
-      html += emptyState('✅','Nothing at risk','No units are currently marked Poor or Fair condition across any facility.');
-      wrap.innerHTML = html;
-      return;
-    }
-
-    html += '<div class="card"><div class="card-body">';
-    atRisk.forEach(function(e) {
-      var f = facMap[e.facility_id];
-      var condColor = e.condition === 'poor' ? 'cond-poor' : 'cond-fair';
-      html += '<div class="rec-row ntd-goto" data-fid="'+(e.facility_id||'')+'" data-tab="equipment" style="cursor:pointer;align-items:center">' +
-        '<div class="rec-icon" style="background:'+(e.condition==='poor'?'#FDEDEC':'#FFF3E0')+'">'+(e.condition==='poor'?'🔴':'🟡')+'</div>' +
-        '<div class="rec-body">' +
-          '<div class="rec-title">'+esc(e.tag||'Unit')+(e.type?' <span style="font-weight:400;color:var(--mu)">· '+esc(e.type)+'</span>':'')+'</div>' +
-          '<div class="rec-sub">'+esc(f ? f.name : 'Unknown facility')+'</div>' +
-          '<div class="rec-meta">' +
-            '<span class="cond-dot '+condColor+'"></span>'+e.condition.charAt(0).toUpperCase()+e.condition.slice(1) +
-            (e.install_year ? ' · Installed '+e.install_year : '') +
-            (e.repl_year ? ' · Est. replace '+e.repl_year : '') +
-          '</div>' +
-          (e.repl_cost ? '<div class="rec-meta">Est. cost: $'+Math.round(e.repl_cost).toLocaleString()+'</div>' : '') +
-        '</div>' +
-        (f && f.phone ? '<a href="tel:'+esc(f.phone)+'" onclick="event.stopPropagation()" class="btn btn-sm btn-outline" style="flex-shrink:0;text-decoration:none;margin:0">📞</a>' : '') +
-      '</div>';
-    });
-    html += '</div></div>';
-    wrap.innerHTML = html;
-  }).catch(function(err) {
-    wrap.innerHTML = emptyState('⚠️','Could not load', esc(err.message||'Please try again.'));
-  });
-}
-
-
 function renderSettings() {
   renderRolePicker();
   renderDirectory();
@@ -4236,8 +4145,7 @@ function renderDashboard() {
     ntdStore.jobs.list(),
     ntdStore.documents ? ntdStore.documents.list() : Promise.resolve([]),
     ntdStore.team_calendar ? ntdStore.team_calendar.list(function(e){ return e.status === 'pending'; }) : Promise.resolve([]),
-    ntdStore.team_calendar ? ntdStore.team_calendar.list() : Promise.resolve([]),
-    ntdStore.equipment.list(function(e){ return e.condition === 'poor'; })
+    ntdStore.team_calendar ? ntdStore.team_calendar.list() : Promise.resolve([])
   ]).then(function(results) {
     var facilities = results[0];
     var startups   = results[1];
@@ -4248,7 +4156,6 @@ function renderDashboard() {
     var docs       = results[6] || [];
     var pendingReqs = results[7] || [];
     var scheduledPmMap = computeScheduledPmMap(results[8] || []);
-    var poorEquip = results[9] || [];
 
     // ── Metrics ──
     var openFollowups = getOpenFollowupItems(startups, pmRecs);
@@ -4368,25 +4275,6 @@ function renderDashboard() {
       html += '</div></div>';
     }
 
-    // ── At-Risk Equipment (cross-facility) ──
-    if (poorEquip.length && prefs.atRisk) {
-      var facMapForRisk = {};
-      facilities.forEach(function(f){ facMapForRisk[f.id] = f.name || 'Unknown facility'; });
-      html += '<div class="section-label" style="--accent:var(--rd)">'+ntdIcon('alert',12)+' At-Risk Equipment</div>';
-      html += '<div class="card card-acc card-acc-rd"><div class="card-body">';
-      poorEquip.slice(0,5).forEach(function(e) {
-        html += '<div class="rec-row ntd-goto" data-fid="'+(e.facility_id||'')+'" data-tab="equipment" style="cursor:pointer">' +
-          '<div class="rec-icon" style="background:#FDEDEC">🔴</div>' +
-          '<div class="rec-body">' +
-            '<div class="rec-title">'+esc(e.tag||'Unit')+(e.type?' <span style="font-weight:400;color:var(--mu)">· '+esc(e.type)+'</span>':'')+'</div>' +
-            '<div class="rec-sub">'+esc(facMapForRisk[e.facility_id]||'Unknown facility')+'</div>' +
-            '<div class="rec-meta" style="color:var(--rd);font-weight:700">Poor condition' + (e.repl_year?' · Est. replace '+e.repl_year:'') + '</div>' +
-          '</div></div>';
-      });
-      html += '<div class="ntd-goto-health" style="font-size:11px;color:var(--mu);padding-top:8px;text-align:center;cursor:pointer">View all at-risk equipment →</div>';
-      html += '</div></div>';
-    }
-
     // ── Active Projects (horizontal strip) ──
     if (activeProjectsAll.length && prefs.activeProjects) {
       var statusLabel = {bidding:'Bidding',awarded:'Awarded',progress:'In Progress'};
@@ -4499,7 +4387,6 @@ var DASH_SECTIONS = [
   { key:'followups',      label:'Open Follow-ups',    sub:'Items flagged during startups' },
   { key:'contracts',      label:'Contracts Renewing', sub:'PM contracts due within 90 days' },
   { key:'pmDue',          label:'PM Visits Due',      sub:'Upcoming and overdue PM visits' },
-  { key:'atRisk',         label:'At-Risk Equipment',  sub:'Poor-condition units, all facilities' },
   { key:'activeProjects', label:'Active Projects',    sub:'Bidding, awarded, in progress' },
   { key:'recentActivity', label:'Recent Activity',    sub:'Latest records across the Hub' }
 ];
@@ -6210,7 +6097,6 @@ document.addEventListener('click', function(e) {
   // Navigate to Scheduling > Requests
   if (e.target.closest('.ntd-goto-schedule')) { currentScheduleView = 'requests'; goPage('schedule'); return; }
   if (e.target.closest('.ntd-goto-pmdue')) { currentScheduleView = 'pmdue'; goPage('schedule'); return; }
-  if (e.target.closest('.ntd-goto-health')) { goPage('health'); return; }
   // "📅 Schedule" button on a PM Due row — open the calendar modal pre-filled
   var schedBtn = e.target.closest('.ntd-schedule-pm');
   if (schedBtn) { scheduleFromPmDue(schedBtn.getAttribute('data-fid'), schedBtn.getAttribute('data-date')); return; }
