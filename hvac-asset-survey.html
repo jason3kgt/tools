@@ -181,9 +181,8 @@ textarea{resize:vertical;min-height:70px}
   <div class="tab" onclick="go(1)"><span class="ti">🔧</span>Units</div>
   <div class="tab" onclick="go(2)"><span class="ti">📊</span>Summary</div>
   <div class="tab" onclick="go(3)"><span class="ti">📈</span>Forecast</div>
-  <div class="tab" onclick="go(4)"><span class="ti">💲</span>PM Quote</div>
-  <div class="tab" onclick="go(5)"><span class="ti">🔨</span>Svc Quote</div>
-  <div class="tab" onclick="go(6)"><span class="ti">🧮</span>Adv Est</div>
+  <div class="tab" onclick="go(4)"><span class="ti">🔨</span>Svc Quote</div>
+  <div class="tab" onclick="go(5)"><span class="ti">💲</span>PM Quote</div>
 </div>
 
 <!-- TAB 0: JOB INFO -->
@@ -347,84 +346,6 @@ textarea{resize:vertical;min-height:70px}
 </div>
 
 <!-- TAB 4: PM QUOTE -->
-<div class="pg" id="pg4">
-  <div class="pmcard">
-    <div class="pmch"><h2>🔧 Service Frequency</h2></div>
-    <div class="cb">
-      <div class="freq-row">
-        <button class="freq-btn on" id="freq-q" onclick="setFreq('Quarterly')" style="touch-action:manipulation">Quarterly<br><small style="font-weight:400;font-size:10px">4x per year</small></button>
-        <button class="freq-btn" id="freq-m" onclick="setFreq('Monthly')" style="touch-action:manipulation">Monthly<br><small style="font-weight:400;font-size:10px">12x per year</small></button>
-        <button class="freq-btn" id="freq-a" onclick="setFreq('Annual')" style="touch-action:manipulation">Annual<br><small style="font-weight:400;font-size:10px">1x per year</small></button>
-      </div>
-    </div>
-  </div>
-  <div class="pmcard">
-    <div class="pmch"><h2>📋 Selected Plan(s)</h2></div>
-    <div class="cb"><div class="plans-grid" id="plans-grid"></div></div>
-  </div>
-  <div class="pmcard">
-    <div class="pmch"><h2>⚙ Equipment List</h2></div>
-    <div class="cb">
-      <button class="addb" id="pmImportBtn" style="margin-bottom:8px">📥 Import from Assessment Units</button>
-      <button class="addb" id="pmAddBtn" style="margin-bottom:8px;margin-top:0">+ Add Unit Manually</button>
-      <div style="overflow-x:auto">
-        <table class="eq-table" id="pm-eq-table">
-          <thead><tr>
-            <th style="width:26px">#</th>
-            <th style="text-align:left;min-width:55px">Tag</th>
-            <th style="min-width:140px">Unit Type</th>
-            <th style="min-width:36px">Qty</th>
-            <th style="min-width:50px">Filters</th>
-            <th style="min-width:40px">Belts</th>
-            <th id="pm-nte-th" style="min-width:65px;display:none">NTE/Qtr</th>
-            <th style="min-width:65px">Rate/Visit</th>
-            <th style="min-width:70px">Annual</th>
-            <th style="width:24px"></th>
-          </tr></thead>
-          <tbody id="pm-body"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-  <div class="pmcard">
-    <div class="pmch"><h2>💰 Material Rates (editable)</h2></div>
-    <div class="cb">
-      <div class="r3">
-        <div class="fg"><label>Filter $/unit</label><input type="number" id="cost-filter" value="18" oninput="pmCalcAll()"></div>
-        <div class="fg"><label>Belt $/unit</label><input type="number" id="cost-belt" value="35" oninput="pmCalcAll()"></div>
-        <div class="fg"><label>Coil Clean $/unit</label><input type="number" id="cost-coil" value="95" oninput="pmCalcAll()"></div>
-      </div>
-    </div>
-  </div>
-  <div class="pmcard">
-    <div class="pmch"><h2>📊 Pricing Summary</h2></div>
-    <div class="cb">
-      <div class="tot-row"><span class="tlbl">Base PM Annual</span><span class="tval" id="pm-annual">$0.00</span></div>
-      <div class="tot-row" id="pm-nte-row" style="display:none"><span class="tlbl">NTE Budget Annual (all units)</span><span class="tval" id="pm-nte-annual">—</span></div>
-      <div class="tot-row"><span class="tlbl">Total Annual Agreement</span><span class="tval" id="pm-grand-annual">$0.00</span></div>
-      <div class="tot-row"><span class="tlbl">Quarterly Billing</span><span class="tval" id="pm-qtr">$0.00</span></div>
-      <div class="tot-row"><span class="tlbl">Monthly Billing</span><span class="tval" id="pm-mo">$0.00</span></div>
-      <div class="tot-row grand"><span class="tlbl">Units Quoted</span><span class="tval" id="pm-units">0</span></div>
-    </div>
-  </div>
-  <div class="pmcard">
-    <div class="pmch"><h2>📝 Agreement Details</h2></div>
-    <div class="cb">
-      <div class="r2">
-        <div class="fg"><label>Agreement #</label><input type="text" id="pm-agr-num" placeholder="PM-2025-001"></div>
-        <div class="fg"><label>Proposal Date</label><input type="date" id="pm-agr-date"></div>
-      </div>
-      <div class="r2">
-        <div class="fg"><label>Renewal Date</label><input type="date" id="pm-renewal"></div>
-        <div class="fg"><label>Attention</label><input type="text" id="pm-attn" placeholder="Contact name"></div>
-      </div>
-    </div>
-  </div>
-  <button class="dlb" onclick="pmGenPDF()">📄 Generate PM Proposal PDF</button>
-  <button class="dlb sec" onclick="ntdSubmitPMQuote()">&#10003; Save PM Quote to NTD Hub</button>
-  <button class="dlb sec" onclick="pmExportJSON()">📧 Email Quote for Excel Import</button>
-</div>
-
 <!-- TAB 5: SERVICE QUOTE -->
 <div class="pg" id="pg5">
   <!-- Job info banner (auto-populated, read-only) -->
@@ -595,7 +516,10 @@ textarea{resize:vertical;min-height:70px}
         <div class="fg"><label>Labor Burden %</label><input type="text" id="ae-labor-burden" value="38" oninput="aeSync()"></div>
       </div>
       <div class="r2">
-        <div class="fg"><label>Target Margin %</label><input type="text" id="ae-margin" value="25" oninput="aeSync()"></div>
+        <div class="fg"><label>Target Margin <span id="ae-margin-readout" style="font-weight:800;color:var(--nv)">25%</span></label>
+          <input type="range" id="ae-margin" min="10" max="70" step="1" value="25" oninput="aeMarginDialChange(this)" style="width:100%">
+          <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--mu);margin-top:1px"><span>10%</span><span>70%</span></div>
+        </div>
         <div class="fg"><label>Mobilization ($/visit/bldg)</label><input type="text" id="ae-mobilization" value="275" oninput="aeSync()"></div>
       </div>
       <div class="r3">
@@ -649,8 +573,8 @@ textarea{resize:vertical;min-height:70px}
       <div class="tot-row"><span class="tlbl">Monthly Billing</span><span class="tval" id="ae-monthly">$0.00</span></div>
     </div>
   </div>
-  <button class="dlb" onclick="aeGeneratePDF()">&#128196; Generate Advanced Estimate PDF</button>
-  <button class="dlb sec" onclick="ntdSubmitAdvancedEstimate()">&#10003; Save Advanced Estimate to NTD Hub</button>
+  <button class="dlb" onclick="aeGeneratePDF()">&#128196; Generate PM Proposal PDF</button>
+  <button class="dlb sec" onclick="ntdSubmitAdvancedEstimate()">&#10003; Save PM Quote to NTD Hub</button>
 </div>
 
 
@@ -662,9 +586,9 @@ var eqs=[],eid=1;
 var CY=new Date().getFullYear();
 
 // PM Quote state
-var pmFreq='Quarterly';
-var pmUnits=[];
-var pmPlans={mat:false,coil:false,comp:false};
+
+
+
 var PM_PLANS=[
   {key:'mat',label:'Materials Included'},
   {key:'coil',label:'In-Depth Coil Cleaning'},
@@ -808,9 +732,8 @@ function go(n){
   window.scrollTo(0,0);
   if(n===2){updS();setTimeout(ackInitCanvas,50);}
   if(n===3)updF();
-  if(n===4)pmRenderTable();
-  if(n===5)sqSyncJobInfo();
-  if(n===6)aeSync();
+  if(n===4)sqSyncJobInfo();
+  if(n===5)aeSync();
 }
 function gv(id){return(document.getElementById(id)||{}).value||'';}
 function se(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
@@ -1322,6 +1245,8 @@ function restoreDraft() {
         var el = document.getElementById(k);
         if (el && d.ae[k]) el.value = d.ae[k];
       });
+      var mReadout = document.getElementById('ae-margin-readout');
+      if (mReadout) mReadout.textContent = gv('ae-margin') + '%';
       if (typeof aeSync === 'function') aeSync();
     }
     document.getElementById('draft-banner').style.display = 'none';
@@ -1920,27 +1845,8 @@ function dlForecast(){
 }
 
 // ── PM QUOTE ──────────────────────────────────────────────────
-function buildPlans(){
-  var g=document.getElementById('plans-grid');g.innerHTML='';
-  PM_PLANS.forEach(function(p){
-    var b=document.createElement('button');b.className='plan-btn'+(pmPlans[p.key]?' on':'');
-    b.innerHTML=p.label.replace('\n','<br>');b.style.touchAction='manipulation';
-    b.setAttribute('data-plankey',p.key);
-    g.appendChild(b);
-  });
-  g.addEventListener('click',function(e){
-    var b=e.target.closest('[data-plankey]');if(!b)return;
-    var key=b.getAttribute('data-plankey');
-    pmPlans[key]=!pmPlans[key];b.classList.toggle('on',pmPlans[key]);pmCalcAll();var nth=document.getElementById('pm-nte-th');if(nth)nth.style.display=pmPlans.comp?'':'none';var ntr=document.getElementById('pm-nte-row');if(ntr)ntr.style.display=pmPlans.comp?'':'none';
-  });
-}
-function setFreq(f){
-  pmFreq=f;
-  document.getElementById('freq-q').classList.toggle('on',f==='Quarterly');
-  document.getElementById('freq-m').classList.toggle('on',f==='Monthly');
-  document.getElementById('freq-a').classList.toggle('on',f==='Annual');
-  pmCalcAll();
-}
+
+
 function pmMapType(faType,tonnage){
   var t=parseFloat(tonnage)||0;
   var fa=(faType||'').toLowerCase();
@@ -1957,471 +1863,14 @@ function pmMapType(faType,tonnage){
   if(fa.indexOf('cooling tower')>-1)return'Cooling Tower';
   return'';
 }
-function pmImport(){
-  if(!eqs.length){alert('No units on the Units tab to import.');return;}
-  pmUnits=[];
-  eqs.forEach(function(eq){
-    var fQty=(parseFloat(eq.f1q)||0)+(parseFloat(eq.f2q)||0);
-    var fSize=[eq.f1s,eq.f2s].filter(Boolean).join(' / ');
-    pmUnits.push({tag:eq.tag||'',type:pmMapType(eq.type,eq.tonnage),qty:1,fqty:fQty||'',fsize:fSize||(eq.f1s||''),bqty:parseFloat(eq.bq)||'',bsize:eq.bs||'',notes:eq.area?'Area: '+eq.area:'',nte:0});
-  });
-  pmRenderTable();pmCalcAll();
-}
-function pmAddUnit(){pmUnits.push({tag:'',type:'',qty:1,fqty:'',fsize:'',bqty:'',bsize:'',notes:'',nte:0});pmRenderTable();pmCalcAll();}
-function pmDelUnit(i){pmUnits.splice(i,1);pmRenderTable();pmCalcAll();}
-function pmTypeSelect(val,idx){
-  var s='<select onchange="pmUnits['+idx+'].type=this.value;pmCalcAll()" style="min-width:130px">';
-  s+='<option value="">-- Select --</option>';
-  PM_UNIT_TYPES.forEach(function(t){s+='<option value="'+t+'"'+(val===t?' selected':'')+'>'+t+'</option>';});
-  s+='</select>';return s;
-}
-function pmEsc(s){return(s||'').replace(/"/g,'&quot;');}
-function pmFmt(n){return'$'+(parseFloat(n)||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');}
-function pmGetRate(type){if(!type||!PM_RATES[type])return 0;if(pmFreq==='Monthly')return PM_RATES[type].m;if(pmFreq==='Annual')return PM_RATES[type].q*4;return PM_RATES[type].q;}
-function pmGetMatAddon(u){
-  var total=0;
-  if(pmPlans.mat){
-    var fc=parseFloat(document.getElementById('cost-filter').value)||18;
-    var bc=parseFloat(document.getElementById('cost-belt').value)||35;
-    total+=(parseFloat(u.fqty)||0)*fc+(parseFloat(u.bqty)||0)*bc;
-  }
-  if(pmPlans.coil){
-    var cc=parseFloat(document.getElementById('cost-coil').value)||95;
-    var vis=pmFreq==='Monthly'?12:(pmFreq==='Annual'?1:4);
-    total+=cc/vis;
-  }
-  return total;
-}
-function pmGetNTETotal(){
-  if(!pmPlans.comp)return 0;
-  return pmUnits.reduce(function(a,u){return a+(parseFloat(u.nte)||0);},0);
-}
-function pmRenderTable(){
-  var tb=document.getElementById('pm-body');tb.innerHTML='';
-  pmUnits.forEach(function(u,i){
-    var rate=pmGetRate(u.type),matA=pmGetMatAddon(u),qty=parseFloat(u.qty)||1;
-    var rpv=(rate+matA)*qty,vis=pmFreq==='Monthly'?12:(pmFreq==='Annual'?1:4),ann=rpv*vis;
-    var tr=document.createElement('tr');
-    tr.innerHTML='<td style="text-align:center;color:var(--mu);font-size:10px">'+(i+1)+'</td>'
-      +'<td><input type="text" value="'+pmEsc(u.tag)+'" placeholder="Tag" onchange="pmUnits['+i+'].tag=this.value"></td>'
-      +'<td>'+pmTypeSelect(u.type,i)+'</td>'
-      +'<td><input type="number" value="'+(u.qty||1)+'" min="1" style="width:36px" onchange="pmUnits['+i+'].qty=this.value;pmCalcAll()"></td>'
-      +'<td><input type="text" value="'+(u.fqty||'')+'" placeholder="Qty" style="width:36px" onchange="pmUnits['+i+'].fqty=this.value;pmCalcAll()"><br>'
-      +'<input type="text" value="'+(u.fsize||'')+'" placeholder="Size" style="width:56px;margin-top:2px" onchange="pmUnits['+i+'].fsize=this.value"></td>'
-      +'<td><input type="text" value="'+(u.bqty||'')+'" placeholder="#" style="width:36px" onchange="pmUnits['+i+'].bqty=this.value;pmCalcAll()"></td>'
-      +'<td style="display:'+(pmPlans.comp?'table-cell':'none')+'"><input type="number" value="'+(u.nte||0)+'" min="0" style="width:60px;text-align:right" placeholder="$0" onchange="pmUnits['+i+'].nte=parseFloat(this.value)||0;pmCalcAll()" title="NTE per quarter for this unit"></td>'
-      +'<td class="rate">'+pmFmt(rpv)+'</td>'
-      +'<td class="num">'+pmFmt(ann)+'</td>'
-      +'<td><button class="del-btn" onclick="pmDelUnit('+i+')" style="touch-action:manipulation">✕</button></td>';
-    tb.appendChild(tr);
-  });
-}
-function pmCalcAll(){
-  pmRenderTable();
-  var vis=pmFreq==='Monthly'?12:(pmFreq==='Annual'?1:4),tot=0,totU=0;
-  pmUnits.forEach(function(u){
-    if(!u.type)return;
-    var rate=pmGetRate(u.type),matA=pmGetMatAddon(u),qty=parseFloat(u.qty)||1;
-    tot+=(rate+matA)*qty*vis;totU+=qty;
-  });
-  var nteTot=pmGetNTETotal()*4;
-  var grandTot=tot+nteTot;
-  document.getElementById('pm-annual').textContent=pmFmt(tot);
-  document.getElementById('pm-nte-annual').textContent=pmPlans.comp?pmFmt(nteTot):'\u2014';
-  document.getElementById('pm-grand-annual').textContent=pmFmt(grandTot);
-  document.getElementById('pm-qtr').textContent=pmFmt(grandTot/4);
-  document.getElementById('pm-mo').textContent=pmFmt(grandTot/12);
-  document.getElementById('pm-units').textContent=totU;
-}
-function pmGenPDF(){
-  var {jsPDF}=window.jspdf;
-  var doc=new jsPDF({orientation:'portrait',unit:'pt',format:'letter'});
-  var NV=[27,58,107],OR=[232,83,26],ST=[46,95,138];
-  var W=612,M=36,IW=W-M*2;
-  var H=792;
 
-  // ── helpers ──────────────────────────────────────────────
-  function secHdr(doc,y,label,col){
-    col=col||NV;
-    doc.setFillColor(col[0],col[1],col[2]);doc.rect(M,y,IW,14,'F');
-    doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(255,255,255);
-    doc.text(label,M+4,y+10);return y+16;
-  }
-  function pgFtr(doc,pg,tot){
-    doc.setFillColor(NV[0],NV[1],NV[2]);doc.rect(0,H-20,W,20,'F');
-    doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(180,196,220);
-    doc.text('NTD Mechanical  |  TACLA65973C  |  North Texas Ductworks LLC  |  ntdmechanical.com  |  214-785-2129',W/2,H-6,{align:'center'});
-    doc.setTextColor(255,255,255);doc.text('Page '+pg+' of '+tot,W-M,H-6,{align:'right'});
-  }
-  function pgHdr(doc,sub){
-    try{doc.addImage(LG,'PNG',M,10,52,44);}catch(e){}
-    doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(NV[0],NV[1],NV[2]);
-    doc.text('NTD Mechanical',M+60,26);
-    doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(80,80,80);
-        doc.text('North Texas Ductworks LLC dba NTD Mechanical',M+60,37);
-    doc.text('License: TACLA65973C  |  2477 Merritt Dr. Garland, TX 75041  |  Service: 214-785-2129  |  Office: 469-323-0454  |  ntdmechanical.com',M+60,47);
-    doc.setFillColor(OR[0],OR[1],OR[2]);doc.rect(M,56,IW,2,'F');
-    doc.setFillColor(NV[0],NV[1],NV[2]);doc.rect(M,60,IW,16,'F');
-    doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(255,255,255);
-    doc.text(sub||'PREVENTIVE MAINTENANCE SERVICE AGREEMENT  |  Per Selected Plan(s)  |  '+pmFreq+' Scheduled Maintenance',M+4,71);
-    return 82;
-  }
 
-  // ═══════════════════════════════════════════════════
-  // PAGE 1 \u2014 Customer Info + Equipment Table
-  // ═══════════════════════════════════════════════════
-  var y=pgHdr(doc,'PREVENTIVE MAINTENANCE SERVICE AGREEMENT  |  Per Selected Plan(s)  |  '+pmFreq+' Scheduled Maintenance');
 
-  // Customer info box
-  y=secHdr(doc,y,'CUSTOMER & AGREEMENT INFORMATION');
-  var ciFields=[
-    ['Renewal Date',gv('pm-renewal'),'Agreement #',gv('pm-agr-num')],
-    ['Customer',gv('sf'),'',''],
-    ['Service Address',[gv('sa'),gv('sct')].filter(Boolean).join(', '),'',''],
-    ['Attention',gv('pm-attn')||gv('scn'),'',''],
-    ['NTD Contact','Jason Ezell  |  945-346-7443  |  jezell@ntdmechanical.com','',''],
-  ];
-  ciFields.forEach(function(r){
-    doc.setFillColor(240,245,252);doc.rect(M,y,IW,14,'F');
-    doc.setDrawColor(210,220,230);doc.rect(M,y,IW,14,'S');
-    doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(NV[0],NV[1],NV[2]);
-    doc.text(r[0],M+3,y+10);
-    doc.setFont('helvetica','normal');doc.setTextColor(0,0,0);doc.setFontSize(8.5);
-    doc.text(r[1]||'',M+80,y+10);
-    if(r[2]){
-      doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(NV[0],NV[1],NV[2]);
-      doc.text(r[2],M+IW/2,y+10);
-      doc.setFont('helvetica','normal');doc.setTextColor(0,0,0);doc.setFontSize(8.5);
-      doc.text(r[3]||'',M+IW/2+70,y+10);
-    }
-    y+=15;
-  });
 
-  // Intro text
-  y+=6;
-  doc.setFont('helvetica','italic');doc.setFontSize(8);doc.setTextColor(60,60,60);
-    var intro='North Texas Ductworks LLC dba NTD Mechanical agrees to furnish services in accordance with the general terms and conditions and all attached scope of maintenance schedules outlined in this agreement. This agreement becomes valid upon execution by both parties. Model and serial numbers will be confirmed and updated upon completion of the first scheduled PM visit.';
-  var iLines=doc.splitTextToSize(intro,IW);
-  doc.text(iLines,M,y);y+=iLines.length*10+8;
 
-  // Site Notes (internal reference)
-  var pmSiteNotes=gv('sn');
-  if(pmSiteNotes){
-    doc.setFillColor(255,251,235);doc.rect(M,y,IW,14,'F');
-    doc.setDrawColor(245,200,80);doc.rect(M,y,IW,14,'S');
-    doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(140,100,0);
-    doc.text('SITE NOTES (Internal Reference):',M+3,y+6);
-    doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(80,60,0);
-    var pmSnLines=doc.splitTextToSize(pmSiteNotes,IW-120);
-    doc.text(pmSnLines[0]||'',M+115,y+6);
-    if(pmSnLines.length>1){
-      y+=14;
-      doc.setFillColor(255,251,235);doc.rect(M,y,IW,14,'F');doc.setDrawColor(245,200,80);doc.rect(M,y,IW,14,'S');
-      doc.text(pmSnLines.slice(1).join(' '),M+3,y+6,{maxWidth:IW-6});
-    }
-    y+=16;
-  }
-  // Equipment table
-  y=secHdr(doc,y,'EQUIPMENT TO BE SERVICED');y+=6;
-  doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(50,50,50);
-  doc.text('The following equipment is covered under this agreement. Model and serial numbers will be verified and updated upon completion of the first scheduled PM visit.',M,y);
-  y+=12;
-  // Table header
-  var showCompNTE=pmPlans.comp;
-  var ecols=showCompNTE?[M,M+32,M+95,M+185,M+310,M+415,M+475]:[M,M+38,M+110,M+200,M+340,M+460];
-  var ehdrs=showCompNTE?['Qty','Unit Type','Make','Model Number','Serial Number','NTE/Qtr','']:['Qty','Unit Type','Make','Model Number','Serial Number',''];
-  doc.setFillColor(NV[0],NV[1],NV[2]);doc.rect(M,y,IW,13,'F');
-  doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(255,255,255);
-  ehdrs.forEach(function(h,i){doc.text(h,ecols[i]+2,y+9);});y+=14;
-  var vis=pmFreq==='Monthly'?12:(pmFreq==='Annual'?1:4),totalAnnual=0;
-  var eqRows=pmUnits.filter(function(u){return u.type;});
-  eqRows.forEach(function(u,idx){
-    if(y>710){doc.addPage();pgFtr(doc,1,4);y=30;}
-    var rate=pmGetRate(u.type),matA=pmGetMatAddon(u),qty=parseFloat(u.qty)||1;
-    totalAnnual+=(rate+matA)*qty*vis;
-    var bg=idx%2===0?[248,251,255]:[255,255,255];
-    doc.setFillColor(bg[0],bg[1],bg[2]);doc.rect(M,y,IW,13,'F');
-    doc.setDrawColor(220,228,238);doc.rect(M,y,IW,13,'S');
-    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(0,0,0);
-    var matchEq=eqs.find(function(e){return e.tag===u.tag;})||{};
-    doc.text(String(qty),ecols[0]+2,y+9);
-    doc.text((u.type||'').substring(0,18),ecols[1]+2,y+9);
-    doc.text((matchEq.manuf||'').substring(0,14),ecols[2]+2,y+9);
-    doc.text((matchEq.model||'').substring(0,16),ecols[3]+2,y+9);
-    doc.text((matchEq.serial||'').substring(0,14),ecols[4]+2,y+9);
-    if(showCompNTE){
-      doc.setFont('helvetica','bold');doc.setTextColor(OR[0],OR[1],OR[2]);
-      doc.text(pmFmt(parseFloat(u.nte)||0),ecols[5]+2,y+9);
-      doc.setFont('helvetica','normal');doc.setTextColor(0,0,0);
-    }
-    y+=14;
-  });
-  // Add blank rows to fill to at least 20 rows
-  var blanksNeeded=Math.max(0,20-eqRows.length);
-  for(var bi=0;bi<blanksNeeded;bi++){
-    var bg2=((eqRows.length+bi)%2===0)?[248,251,255]:[255,255,255];
-    doc.setFillColor(bg2[0],bg2[1],bg2[2]);doc.rect(M,y,IW,13,'F');
-    doc.setDrawColor(220,228,238);doc.rect(M,y,IW,13,'S');
-    y+=14;
-  }
-  // Calculate NTE and grand total for use across all pages
-  var ntePDFTotal=pmGetNTETotal()*4;
-  var grandPDFTotal=totalAnnual+ntePDFTotal;
 
-  pgFtr(doc,1,4);
 
-  // ═══════════════════════════════════════════════════
-  // PAGE 2 \u2014 Scope of Maintenance
-  // ═══════════════════════════════════════════════════
-  doc.addPage();
-  y=pgHdr(doc,'PREVENTIVE MAINTENANCE SERVICE AGREEMENT  |  Per Selected Plan(s)  |  '+pmFreq+' Scheduled Maintenance');
-  y=secHdr(doc,y,'SCOPE OF MAINTENANCE');y+=6;
-  doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(50,50,50);
-  doc.text('This agreement provides four (4) preventive maintenance visits per calendar year, completed on a quarterly basis. The scope of work for each seasonal visit is detailed below.',M,y,{maxWidth:IW});
-  y+=18;
 
-  var seasons=[
-    {name:'Spring',items:[
-      'Replace all filters with MERV 8 pleated media',
-      'Check and tighten all electrical connections; clean electrical compartments',
-      'Full condition assessment \u2014 record volts, amps, refrigerant pressures; compare to nameplate data',
-      'Inspect and clean indoor blower; annual belt inspection and replacement as needed',
-      'Blow out condensate drain lines and treat with algaecide; clean drain pans',
-      'Inspect condenser and evaporator coils; note fouling condition',
-      'Inspect for refrigerant leaks (visual)',
-      'Inspect all safety controls (cooling)',
-      'Inspect electrical disconnect',
-      'Verify thermostat operation',
-    ]},
-    {name:'Summer',items:[
-      'Replace all filters with MERV 8 pleated media',
-      'Check and tighten all electrical connections; clean electrical compartments',
-      'Full condition assessment \u2014 record volts, amps, refrigerant pressures; compare to nameplate data',
-      'Inspect and clean indoor blower components',
-      'Blow out condensate drain lines and treat with algaecide; clean drain pans',
-      'Inspect condenser and evaporator coils; note fouling condition',
-      'Inspect for refrigerant leaks (visual)',
-      'Inspect all safety controls (cooling)',
-      'Inspect electrical disconnect',
-      'Verify thermostat operation',
-    ]},
-    {name:'Fall',items:[
-      'Replace all filters with MERV 8 pleated media',
-      'Clean and adjust ignition and burner assembly (gas units)',
-      'Check and clean heat exchanger; inspect for cracks (gas units)',
-      'Sequence electric heat; check and record amp draws (electric units)',
-      'Inspect and clean indoor blower components',
-      'Check and tighten all electrical connections; clean electrical compartments',
-      'Blow out condensate drain lines and treat with algaecide; clean drain pans',
-      'Verify thermostat operation (heating and cooling)',
-    ]},
-    {name:'Winter',items:[
-      'Replace all filters with MERV 8 pleated media',
-      'Clean and adjust ignition and burner assembly (gas units)',
-      'Inspect and clean indoor blower components',
-      'Check and tighten all electrical connections; clean electrical compartments',
-      'Blow out condensate drain lines and treat with algaecide; clean drain pans',
-      'Verify thermostat operation (heating and cooling)',
-    ]},
-  ];
-
-  var colW=IW/2-4;
-  for(var si=0;si<seasons.length;si+=2){
-    var s1=seasons[si],s2=seasons[si+1];
-    var x1=M,x2=M+colW+8;
-    // Season header bars
-    doc.setFillColor(ST[0],ST[1],ST[2]);doc.rect(x1,y,colW,13,'F');
-    if(s2){doc.setFillColor(ST[0],ST[1],ST[2]);doc.rect(x2,y,colW,13,'F');}
-    doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(255,255,255);
-    doc.text(s1.name,x1+4,y+9);
-    if(s2)doc.text(s2.name,x2+4,y+9);
-    y+=15;
-    var maxItems=Math.max(s1.items.length,s2?s2.items.length:0);
-    for(var ii=0;ii<maxItems;ii++){
-      var rowH=13;
-      if(ii%2===0){doc.setFillColor(245,248,252);}else{doc.setFillColor(255,255,255);}
-      doc.rect(x1,y,colW,rowH,'F');if(s2)doc.rect(x2,y,colW,rowH,'F');
-      doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(30,30,30);
-      if(s1.items[ii])doc.text('• '+s1.items[ii],x1+4,y+9,{maxWidth:colW-6});
-      if(s2&&s2.items[ii])doc.text('• '+s2.items[ii],x2+4,y+9,{maxWidth:colW-6});
-      y+=rowH;
-    }
-    y+=10;
-  }
-
-  pgFtr(doc,2,4);
-
-  // ═══════════════════════════════════════════════════
-  // PAGE 3 \u2014 Plans + Pricing + Exclusions + T&C
-  // ═══════════════════════════════════════════════════
-  doc.addPage();
-  y=pgHdr(doc,'PREVENTIVE MAINTENANCE SERVICE AGREEMENT  |  Per Selected Plan(s)  |  '+pmFreq+' Scheduled Maintenance');
-
-  // Selected Plans
-  y=secHdr(doc,y,'SELECTED PLAN(S)');y+=6;
-  doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(60,60,60);
-  doc.text('NTD shall perform services under the plan(s) marked below. Items not selected remain available as separately quoted add-on services.',M,y,{maxWidth:IW});y+=14;
-  // Plans table header
-  doc.setFillColor(220,228,240);doc.rect(M,y,30,13,'F');doc.rect(M+30,y,80,13,'F');doc.rect(M+110,y,IW-110,13,'F');
-  doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(NV[0],NV[1],NV[2]);
-  doc.text('Selected',M+2,y+9);doc.text('Plan',M+32,y+9);doc.text('Description',M+112,y+9);y+=14;
-  var planDescs={
-    mat:{name:'Materials Included',desc:'All materials and supplies required to perform scheduled maintenance \u2014 including filters, belts, lubricants, algaecide, and cleaning supplies \u2014 are included unless otherwise stated.'},
-    coil:{name:'In-Depth Coil Cleaning',desc:'Annual condenser and evaporator coil cleaning, all materials and labor. Available as an add-on or separate billable service.'},
-    comp:{name:'Replacement Components (NTE)',desc:'A pre-approved quarterly repair authorization per unit, allowing NTD to schedule and complete covered component repairs without requiring a separate quote or customer approval for each occurrence. Covered components include capacitors, contactors, igniters, basic sensors, minor wiring repairs, wire nuts, and standard small parts. Compressors, coils, heat exchangers, refrigerant, and any component requiring specialized equipment or subcontractors are excluded and will be quoted separately. When a covered deficiency is identified during a scheduled PM visit, NTD will notify the customer, order the required part, and schedule a return visit \u2014 all within the pre-approved NTE authorization. This eliminates the back-and-forth of separate service calls, approvals, and invoicing for routine small repairs, keeping your equipment maintained with minimal administrative overhead. If a repair is estimated to exceed the unit\'s quarterly NTE, NTD will obtain written approval before proceeding. Any work authorized beyond the NTE will be invoiced at the standard PM contract rate of $115.00 per hour for labor plus materials. Unused NTE does not roll over \u2014 it resets each quarter. NTE amounts are per unit, non-transferable between units, and will be documented on the visit report provided after each scheduled maintenance visit.'},
-  };
-  ['mat','coil','comp'].forEach(function(key,idx){
-    var pd=planDescs[key];var sel=pmPlans[key];
-    var bg=idx%2===0?[248,251,255]:[255,255,255];
-    var descLines=doc.splitTextToSize(pd.desc,IW-116);
-    var rh=Math.max(26,descLines.length*9+16);
-    doc.setFillColor(bg[0],bg[1],bg[2]);doc.rect(M,y,IW,rh,'F');
-    doc.setDrawColor(215,225,238);doc.rect(M,y,IW,rh,'S');
-    // Checkbox \u2014 vertically centred
-    doc.setDrawColor(NV[0],NV[1],NV[2]);doc.rect(M+6,y+rh/2-6,12,12,'S');
-    if(sel){doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(NV[0],NV[1],NV[2]);doc.text('X',M+7.5,y+rh/2+4);}
-    // Plan name \u2014 top of cell
-    doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(NV[0],NV[1],NV[2]);
-    doc.text(pd.name,M+26,y+11);
-    // Description \u2014 below name, indented same as name
-    doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(40,40,40);
-    doc.text(descLines,M+26,y+20);
-    y+=rh+2;
-  });
-
-  // Pricing & Billing
-  y+=8;y=secHdr(doc,y,'PRICING & BILLING');y+=6;
-  var pRows=[];
-  if(pmPlans.comp&&ntePDFTotal>0){
-    pRows.push(['Base PM Annual',pmFmt(totalAnnual),'NTE Budget Annual',pmFmt(ntePDFTotal)]);
-    pRows.push(['Total Annual Agreement',pmFmt(grandPDFTotal),'Quarterly Billing',pmFmt(grandPDFTotal/4)]);
-  }else{
-    pRows.push(['Annual Agreement Price',pmFmt(grandPDFTotal),'Quarterly Billing Increment',pmFmt(grandPDFTotal/4)]);
-  }
-  pRows.forEach(function(r){
-    doc.setFillColor(240,245,252);doc.rect(M,y,IW/2-2,28,'F');doc.rect(M+IW/2+2,y,IW/2-2,28,'F');
-    doc.setDrawColor(210,220,230);doc.rect(M,y,IW/2-2,28,'S');doc.rect(M+IW/2+2,y,IW/2-2,28,'S');
-    doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(NV[0],NV[1],NV[2]);
-    doc.text(r[0],M+4,y+9);doc.text(r[2],M+IW/2+6,y+9);
-    doc.setFont('helvetica','bold');doc.setFontSize(13);doc.setTextColor(OR[0],OR[1],OR[2]);
-    doc.text(r[1],M+4,y+23);doc.text(r[3],M+IW/2+6,y+23);
-    y+=30;
-  });
-  y+=4;
-  doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(NV[0],NV[1],NV[2]);doc.text('Billing Terms',M,y);y+=10;
-  doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(40,40,40);
-  doc.text('Payment is due upon completion of each quarterly maintenance visit unless alternate payment arrangements have been established in writing prior to the signing of this agreement.',M,y,{maxWidth:IW});y+=16;
-  doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(NV[0],NV[1],NV[2]);doc.text('Service Call Rates for PM Contract Customers:',M,y);y+=10;
-  doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(40,40,40);
-  doc.text('Regular Hours (Mon–Fri, 7:00am–3:30pm): $115.00 per hour',M,y);y+=9;
-  doc.text('After Hours, Weekends & Federal Holidays: $145.00 per hour',M,y);y+=14;
-
-  // Exclusions
-  y=secHdr(doc,y,'EXCLUSIONS');y+=6;
-  doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(40,40,40);
-    var excl='This agreement does not cover any maintenance or repairs not described in the Scope of Maintenance above. Exclusions include, but are not limited to: water distribution systems, refrigerant piping and leak repairs, drain systems beyond standard condensate line maintenance, HEPA filters and pre-filters, ductwork, VAV boxes and fan-powered boxes, control dampers, humidifier components, and any equipment not listed in the Equipment to be Serviced section. Coil cleaning beyond visual inspection is excluded from standard plan pricing and is available as a separately quoted billable service. Refrigerant is not included unless specifically noted.';
-  var exclL=doc.splitTextToSize(excl,IW);doc.text(exclL,M,y);y+=exclL.length*9+8;
-
-  // T&C
-  y=secHdr(doc,y,'TERMS & CONDITIONS');y+=6;
-  var tcs=[
-    ['1. Scope of Work & Inspections','Work limited to signed scope. NTD provides a written inspection report after each visit \u2014 work performed, deficiencies, condition scores, and recommended repairs. No verbal agreements expand scope. Change orders require written approval.'],
-    ['2. Customer Responsibilities','Customer shall: (a) operate equipment per manufacturer specs; (b) report unusual conditions promptly; (c) provide safe access; (d) not relocate equipment without written notice; (e) allow NTD to start/stop equipment; (f) not allow third-party repairs \u2014 unauthorized work voids warranties. Non-transferable.'],
-    ['3. Condensate & DFW Climate','NTD flushes drain lines and treats with algaecide each visit. DFW dew points regularly exceed 70°F. NTD is NOT liable for water damage from normal condensation, drain overflow between visits, or pre-existing moisture damage. Customer must maintain insulation and report water staining immediately.'],
-    ['4. Pricing & Payment','Payment due upon completion of each quarterly visit. Finance charges 1.5%/month (18% APR) on past-due balances. Disputed invoices must be raised in writing within 10 business days. Customer responsible for permit fees, parking, and site access costs.'],
-    ['5. Service Hours & Rates','Standard hours: Mon–Fri, 7:00am–3:30pm (excl. Federal Holidays). PM Contract rates: Normal $115.00/hr | After-hours, nights, weekends & holidays $145.00/hr.'],
-    ['6. Warranties','Labor warranty: 90 days from service date on work directly performed by NTD. Void if third party modifies covered equipment. Parts carry manufacturer warranty only. NO IMPLIED WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.'],
-    ['7. Limitation of Liability','NTD liability limited to direct damage caused solely by NTD negligence. NOT liable for: consequential damages; equipment damage from misuse, acts of God, or power failures; mold; building contents; future code changes; or pre-existing conditions. Max liability = fees paid or 12 months of PM fees.'],
-    ['8. Mold & Air Quality','NTD does not perform mold testing or remediation. Not liable for mold, health effects, or air quality issues regardless of moisture source. When mold is observed it will be documented and Customer notified. Remediation is Customer\'s sole responsibility.'],
-    ['9. Permits, Codes & Licensing','NTD holds TDLR license (TX Occ. Code Ch. 1302). Permit fees billed to Customer. Future government-mandated code changes are NOT covered and will be quoted separately.'],
-    ['10. Modifications & Cancellation','All modifications and cancellations must be in writing. Either party may cancel with 30 days written notice before each quarter or month start. Agreement auto-renews annually unless cancelled per these terms.'],
-    ['11. Indemnification & Insurance','Customer indemnifies NTD against claims from Customer negligence, property conditions, or tenant/visitor claims. NTD maintains TX general liability and workers\' comp coverage. Certificates available on request.'],
-    ['12. Dispute Resolution','Governed by Texas law. Venue: Dallas or Tarrant County. Good-faith mediation required before suit. Prevailing party recovers attorneys\' fees. Customer responsible for collection costs.'],
-  ];
-  var half=Math.ceil(tcs.length/2),cw2=IW/2-4;
-  var colYs=[y,y];
-  for(var ti=0;ti<tcs.length;ti++){
-    var col=ti<half?0:1;
-    var cx=col===0?M:M+cw2+8;
-    var tc=tcs[ti];
-    var bodyLines=doc.splitTextToSize(tc[1],cw2-4);
-    var boxH=bodyLines.length*8+14;
-    if(colYs[col]+boxH>H-30){colYs[col]=y;}
-    doc.setFillColor(ti%2===0?245:255,ti%2===0?248:255,ti%2===0?252:255);
-    doc.rect(cx,colYs[col],cw2,boxH,'F');
-    doc.setDrawColor(215,225,238);doc.rect(cx,colYs[col],cw2,boxH,'S');
-    doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(NV[0],NV[1],NV[2]);
-    doc.text(tc[0],cx+3,colYs[col]+9);
-    doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(30,30,30);
-    doc.text(bodyLines,cx+3,colYs[col]+17);
-    colYs[col]+=boxH+3;
-  }
-
-  pgFtr(doc,3,4);
-
-  // ═══════════════════════════════════════════════════
-  // PAGE 4 \u2014 Execution / Signatures
-  // ═══════════════════════════════════════════════════
-  doc.addPage();
-  y=pgHdr(doc,'PREVENTIVE MAINTENANCE SERVICE AGREEMENT  |  Per Selected Plan(s)  |  '+pmFreq+' Scheduled Maintenance');
-  y=secHdr(doc,y,'AGREEMENT EXECUTION');y+=8;
-
-  // Preamble
-  doc.setFont('helvetica','italic');doc.setFontSize(8);doc.setTextColor(50,50,50);
-    var execPre='By signing below, both parties acknowledge and agree to the terms and conditions of this Preventive Maintenance Service Agreement. This agreement becomes binding upon execution by both parties and shall remain in effect for one (1) year from the renewal date stated above, unless otherwise terminated in accordance with the cancellation terms herein.';
-  var epLines=doc.splitTextToSize(execPre,IW);doc.text(epLines,M,y);y+=epLines.length*10+10;
-
-  // Customer ack box
-  var ackHeaderText='CUSTOMER ACKNOWLEDGMENT \u2014 By signing, Customer confirms they have read and agree to all terms, including:';
-  doc.setFont('helvetica','bold');doc.setFontSize(7.5);
-  var ackHeaderLines=doc.splitTextToSize(ackHeaderText,IW-8);
-  var ackHeaderH=ackHeaderLines.length*9;
-  var ackItems=['\u2022 Condensate disclaimer (Sec. 3)','\u2022 Billing rates $115/$145/hr (Sec. 5)','\u2022 Liability cap (Sec. 7)','\u2022 Cancellation terms (Sec. 10)','\u2022 Non-transferable'];
-  var ackH=14+ackHeaderH+ackItems.length*11+6;
-  doc.setFillColor(232,240,252);doc.rect(M,y,IW,ackH,'F');doc.setDrawColor(180,200,230);doc.rect(M,y,IW,ackH,'S');
-  doc.setFont('helvetica','bold');doc.setFontSize(7.5);doc.setTextColor(NV[0],NV[1],NV[2]);
-  doc.text(ackHeaderLines,M+4,y+9);
-  doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(40,40,40);
-  var ackItemsY=y+9+ackHeaderH+8;
-  for(var ai=0;ai<ackItems.length;ai++){doc.text(ackItems[ai],M+10,ackItemsY+ai*11);}
-  y+=ackH+6;
-
-  // Signature blocks
-  function sigBlock(doc,y,title,name,titleLine){
-    doc.setFillColor(NV[0],NV[1],NV[2]);doc.rect(M,y,IW,13,'F');
-    doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(255,255,255);
-    doc.text(title,M+4,y+9);y+=16;
-    var rows=[['Name',name||''],['Title',titleLine||''],['Signature',''],['Date','']];
-    rows.forEach(function(r,ri){
-      var bg=ri%2===0?[248,251,255]:[255,255,255];
-      doc.setFillColor(bg[0],bg[1],bg[2]);doc.rect(M,y,IW,16,'F');
-      doc.setDrawColor(215,225,238);doc.rect(M,y,IW,16,'S');
-      doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(NV[0],NV[1],NV[2]);
-      doc.text(r[0],M+4,y+11);
-      doc.setFont('helvetica','normal');doc.setTextColor(0,0,0);
-      if(r[1])doc.text(r[1],M+60,y+11);
-      else{doc.setDrawColor(150,150,150);doc.line(M+60,y+12,M+IW-4,y+12);}
-      y+=17;
-    });
-    return y+6;
-  }
-  y=sigBlock(doc,y,'ACCEPTED BY \u2014 AUTHORIZED CUSTOMER REPRESENTATIVE','','');
-  y=sigBlock(doc,y,'PREPARED BY \u2014 NTD MECHANICAL REPRESENTATIVE','Jason Ezell','Outside Sales \u2014 Service Contracts');
-
-  // TDLR footer line
-  y+=8;
-  doc.setFont('helvetica','normal');doc.setFontSize(7);doc.setTextColor(100,100,100);
-  doc.text('Regulated by the Texas Department of Licensing and Regulation  |  PO Box 12157, Austin TX 78711  |  (800) 803-9202 or (512) 463-6599  |  www.tdlr.texas.gov',W/2,y,{align:'center'});
-
-  pgFtr(doc,4,4);
-
-  var blob=doc.output('blob');var url=URL.createObjectURL(blob);
-  window.open(url,'_blank');setTimeout(function(){URL.revokeObjectURL(url);},60000);
-  ntdUpsertAssetFacility(function(facilityId) {
-    ntdUploadPDFWithFeedback(blob,'pm_proposal','PM Proposal — '+(gv('sf')||'Site'),{unitCount:pmUnits.length},facilityId);
-  });
-  ntdAutoSubmitPMQuote();
-}
 
 // ── BID WORKSHEET EXPORT (large PM estimate spreadsheet) ──────────────────
 // Produces a JSON file matching the exact shape ImportFieldAssessment() in
@@ -2638,6 +2087,12 @@ function aePriceJob(allUnits, A) {
 
 var _aeLastResult = null;
 
+function aeMarginDialChange(el) {
+  var readout = document.getElementById('ae-margin-readout');
+  if (readout) readout.textContent = el.value + '%';
+  aeSync();
+}
+
 function aeSync() {
   document.getElementById('ae-cust-echo').textContent = gv('sf') || '(no customer name yet)';
   var A = aeGetAssumptions();
@@ -2711,7 +2166,7 @@ function aeGeneratePDF(){
   var M = 24, y = 24;
   if (typeof LG !== 'undefined' && LG) { try { doc.addImage(LG,'PNG',M,y,32,32); } catch(e){} }
   doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(27,58,107);
-  doc.text('NTD Mechanical \u2014 Advanced PM Estimate', M+40, y+14);
+  doc.text('NTD Mechanical \u2014 PM Proposal', M+40, y+14);
   doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(90,90,90);
   doc.text((gv('sf')||'Site') + '  |  ' + (gv('sd')||''), M+40, y+28);
   y += 50;
@@ -2751,7 +2206,7 @@ function aeGeneratePDF(){
   var blob = doc.output('blob'); var url = URL.createObjectURL(blob);
   window.open(url,'_blank'); setTimeout(function(){URL.revokeObjectURL(url);},60000);
   ntdUpsertAssetFacility(function(facilityId) {
-    ntdUploadPDFWithFeedback(blob,'advanced_estimate','Advanced Estimate \u2014 '+(gv('sf')||'Site'),{unitCount:priced.length},facilityId);
+    ntdUploadPDFWithFeedback(blob,'pm_proposal','PM Proposal \u2014 '+(gv('sf')||'Site'),{unitCount:priced.length},facilityId);
   });
   ntdAutoSubmitAdvancedEstimate();
 }
@@ -2760,19 +2215,22 @@ function ntdAutoSubmitAdvancedEstimate() {
   if (typeof ntdStore === 'undefined' || !_aeLastResult) return;
   ntdUpsertAssetFacility(function(facilityId) {
     if (!facilityId) return;
-    ntdStore.service_quotes.upsert({
+    var unitCount = _aeLastResult.priced.length - _aeLastResult.unmapped.length;
+    ntdStore.pm_quotes.upsert({
       facility_id: facilityId, date: gv('sd'),
-      pricing_engine: 'advanced',
       frequency: gv('ae-freq')==='12' ? 'Monthly' : 'Quarterly',
+      annual_total: fcc(_aeLastResult.adjustedTotal),
+      quarterly_rate: fcc(_aeLastResult.quarterlyBilling),
+      unit_count: unitCount,
       building_count: parseFloat(gv('ae-buildings')) || 1,
       items: _aeLastResult.priced.filter(function(p){return p.price;}).map(function(p){
         return { tag: p.eq.tag, category: p.price.libraryCategory, annual_total: p.price.annualTotal };
       }),
       base_total: fcc(_aeLastResult.totalBeforeFee),
-      grand_total: fcc(_aeLastResult.adjustedTotal),
-      notes: 'Advanced Estimate \u2014 ' + (_aeLastResult.priced.length - _aeLastResult.unmapped.length) + ' unit(s) priced'
-    }).then(function(){ console.log('[NTD] Advanced Estimate auto-saved to store'); })
-      .catch(function(e){ console.warn('[NTD] Advanced Estimate auto-save failed:', e.message); });
+      notes: 'Advanced Estimate \u2014 ' + unitCount + ' unit(s) priced'
+    }).then(function(){ console.log('[NTD] PM Quote auto-saved to store'); })
+      .catch(function(e){ console.warn('[NTD] PM Quote auto-save failed:', e.message); });
+    ntdWritePMFrequency(facilityId);
   });
 }
 
@@ -2781,35 +2239,27 @@ function ntdSubmitAdvancedEstimate() {
   if (!_aeLastResult || !_aeLastResult.priced.length) { alert('Add units on the Equipment Units tab first.'); return; }
   ntdUpsertAssetFacility(function(facilityId) {
     if (!facilityId) return;
-    ntdStore.service_quotes.upsert({
+    var unitCount = _aeLastResult.priced.length - _aeLastResult.unmapped.length;
+    ntdStore.pm_quotes.upsert({
       facility_id: facilityId, date: gv('sd'),
-      pricing_engine: 'advanced',
       frequency: gv('ae-freq')==='12' ? 'Monthly' : 'Quarterly',
+      annual_total: fcc(_aeLastResult.adjustedTotal),
+      quarterly_rate: fcc(_aeLastResult.quarterlyBilling),
+      unit_count: unitCount,
       building_count: parseFloat(gv('ae-buildings')) || 1,
       items: _aeLastResult.priced.filter(function(p){return p.price;}).map(function(p){
         return { tag: p.eq.tag, category: p.price.libraryCategory, annual_total: p.price.annualTotal };
       }),
       base_total: fcc(_aeLastResult.totalBeforeFee),
-      grand_total: fcc(_aeLastResult.adjustedTotal),
-      notes: 'Advanced Estimate \u2014 ' + (_aeLastResult.priced.length - _aeLastResult.unmapped.length) + ' unit(s) priced'
+      notes: 'Advanced Estimate \u2014 ' + unitCount + ' unit(s) priced'
     }).then(function() {
-      alert('\u2713 Advanced Estimate saved for ' + gv('sf') + '.');
+      ntdWritePMFrequency(facilityId);
+      alert('\u2713 PM Quote saved for ' + gv('sf') + '.');
     }).catch(function(){ alert('Submit failed.'); });
   });
 }
 
-function pmExportJSON(){
-  var vis=pmFreq==='Monthly'?12:(pmFreq==='Annual'?1:4),tot=0;
-  pmUnits.forEach(function(u){if(!u.type)return;var r=pmGetRate(u.type),m=pmGetMatAddon(u),q=parseFloat(u.qty)||1;tot+=(r+m)*q*vis;});
-  var selPlanNames=PM_PLANS.filter(function(p){return pmPlans[p.key];}).map(function(p){return p.label.replace(/\n/g,' ');});
-  var data={_source:'NTD_PM_Quote',_version:1,customer_name:gv('sf'),service_address:[gv('sa'),gv('sct')].filter(Boolean).join(', '),attention:gv('pm-attn')||gv('scn'),agreement_number:gv('pm-agr-num'),agreement_date:gv('pm-agr-date'),renewal_date:gv('pm-renewal'),frequency:pmFreq,visits_per_year:vis,selected_plans:selPlanNames,annual_price:tot.toFixed(2),quarterly_price:(tot/4).toFixed(2),cost_filter:document.getElementById('cost-filter').value,cost_belt:document.getElementById('cost-belt').value,cost_coil:document.getElementById('cost-coil').value,
-  units:pmUnits.map(function(u){var r=pmGetRate(u.type),m=pmGetMatAddon(u),q=parseFloat(u.qty)||1,rpv=(r+m)*q;return{tag:u.tag,type:u.type,qty:u.qty,filter_qty:u.fqty,filter_size:u.fsize,belt_qty:u.bqty,belt_size:u.bsize,rate_per_visit:rpv.toFixed(2),annual:(rpv*vis).toFixed(2),notes:u.notes};})};
-  var cust=(gv('sf')||'Quote').replace(/\s+/g,'_');
-  var json=JSON.stringify(data,null,2);
-  var subject=encodeURIComponent('NTD PM Quote - '+(gv('sf')||'Customer'));
-  var body=encodeURIComponent('PM Quote Export for '+(gv('sf')||'Customer')+'\nAnnual Price: $'+parseFloat(data.annual_price).toFixed(2)+'\nQuarterly: $'+parseFloat(data.quarterly_price).toFixed(2)+'\nFrequency: '+data.frequency+'\n\n--- PASTE INTO NOTEPAD AND SAVE AS .json ---\n\n'+json);
-  window.open('mailto:?subject='+subject+'&body='+body);
-}
+
 
 // ── SITE RECORD PDF (internal \u2014 full unit detail + photos) ──────
 function dlSiteRecord(){
@@ -3928,13 +3378,14 @@ function ntdSubmitAssessment() {
 // insensitive); units with no matching row get a minimal new equipment
 // record so PM coverage is never silently lost.
 function ntdWritePMFrequency(facilityId) {
-  if (typeof ntdStore === 'undefined' || !pmUnits.length || !facilityId) return;
-  var saves = pmUnits.map(function(u) {
+  if (typeof ntdStore === 'undefined' || !_aeLastResult || !_aeLastResult.priced.length || !facilityId) return;
+  var freqLabel = gv('ae-freq')==='12' ? 'Monthly' : 'Quarterly';
+  var saves = _aeLastResult.priced.filter(function(p){ return p.price; }).map(function(p) {
     return ntdStore.upsertEquipment({
       facility_id: facilityId,
-      tag: u.tag || '',
-      type: u.type || '',
-      pm_frequency: pmFreq,
+      tag: p.eq.tag || '',
+      type: p.eq.type || '',
+      pm_frequency: freqLabel,
       pm_covered: true
     });
   });
@@ -3943,25 +3394,7 @@ function ntdWritePMFrequency(facilityId) {
     .catch(function(e){ console.warn('[NTD] PM frequency sync failed:', e.message); });
 }
 
-function ntdSubmitPMQuote() {
-  if (typeof ntdStore === 'undefined') { alert('ntdStore not available.'); return; }
-  if (!pmUnits.length) { alert('No units in PM Quote. Build the quote first.'); return; }
-  ntdUpsertAssetFacility(function(facilityId) {
-    if (!facilityId) return;
-    var annualEl = document.getElementById('pm-annual');
-    var qtrEl    = document.getElementById('pm-qtr');
-    var moEl     = document.getElementById('pm-mo');
-    ntdStore.pm_quotes.upsert({
-      facility_id: facilityId, date: gv('sd'), frequency: pmFreq,
-      unit_count: pmUnits.length, annual_total: annualEl?annualEl.textContent:'',
-      quarterly_rate: qtrEl?qtrEl.textContent:'', monthly_rate: moEl?moEl.textContent:'',
-      plans: Object.keys(pmPlans).filter(function(k){ return pmPlans[k]; }), units: pmUnits
-    }).then(function() {
-      alert('\u2713 PM Quote saved for ' + gv('sf') + '.');
-    }).catch(function(){ alert('Submit failed.'); });
-    ntdWritePMFrequency(facilityId);
-  });
-}
+
 
 function ntdSubmitServiceQuote() {
   if (typeof ntdStore === 'undefined') { alert('ntdStore not available.'); return; }
@@ -4113,26 +3546,7 @@ function ntdAutoSubmitAssessment() {
   });
 }
 
-function ntdAutoSubmitPMQuote() {
-  if (typeof ntdStore === 'undefined' || !pmUnits.length) return;
-  ntdUpsertAssetFacility(function(facilityId) {
-    if (!facilityId) return;
-    var annualEl = document.getElementById('pm-annual');
-    var qtrEl    = document.getElementById('pm-qtr');
-    var moEl     = document.getElementById('pm-mo');
-    ntdStore.pm_quotes.upsert({
-      facility_id: facilityId, date: gv('sd'), frequency: pmFreq,
-      unit_count: pmUnits.length,
-      annual_total: annualEl ? annualEl.textContent : '',
-      quarterly_rate: qtrEl ? qtrEl.textContent : '',
-      monthly_rate: moEl ? moEl.textContent : '',
-      plans: Object.keys(pmPlans).filter(function(k){ return pmPlans[k]; }),
-      units: pmUnits
-    }).then(function(){ console.log('[NTD] PM Quote auto-saved to store'); })
-      .catch(function(e){ console.warn('[NTD] PM Quote auto-save failed:', e.message); });
-    ntdWritePMFrequency(facilityId);
-  });
-}
+
 
 function ntdAutoSubmitServiceQuote() {
   if (typeof ntdStore === 'undefined' || !sqItems.length) return;
@@ -4212,15 +3626,9 @@ window.onload=function(){
   }
   var t=new Date();
   document.getElementById('sd').value=String(t.getMonth()+1).padStart(2,'0')+'/'+String(t.getDate()).padStart(2,'0')+'/'+t.getFullYear();
-  document.getElementById('pm-agr-date').value=t.toISOString().split('T')[0];
-  buildPlans();
   renderEqs();
   sqInit();
   ntdLoadModelLibrary();
-  document.getElementById('pmImportBtn').addEventListener('click',function(){
-    if(confirm('Import all units from the Units tab? This will replace the current PM list.'))pmImport();
-  });
-  document.getElementById('pmAddBtn').addEventListener('click',pmAddUnit);
   document.getElementById('sq-add-custom-btn').addEventListener('click',sqAddCustom);
 };
 </script>
