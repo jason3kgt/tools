@@ -86,12 +86,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .fac-row{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--bd);cursor:pointer;touch-action:manipulation;background:#fff;transition:background .15s;border-left:3px solid transparent}
 .fac-row:last-child{border-bottom:none}
 .fac-row:active{background:var(--of)}
-.fac-avatar{width:36px;height:36px;border-radius:10px;background:var(--nv-grad);color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 6px rgba(15,38,71,.25)}
+.fac-avatar{width:36px;height:36px;border-radius:10px;background:var(--nv-grad);color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 6px rgba(15,38,71,.25);position:relative}
+.fac-avatar.has-dot::after{content:'';position:absolute;top:-2px;right:-2px;width:9px;height:9px;border-radius:50%;background:var(--dot);border:2px solid #fff;box-shadow:0 0 4px var(--dot)}
 .fac-info{flex:1;min-width:0}
 .fac-name{font-size:14.5px;font-weight:800;color:var(--nv-deep);letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fac-addr{font-size:10.5px;color:var(--mu);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fac-tags{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
-.tag{font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px;white-space:nowrap}
+.tag{font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px;white-space:nowrap;font-family:var(--font-mono);letter-spacing:.03em;text-transform:uppercase}
 .tag-pm{background:#E8F0FA;color:var(--nv)}
 .tag-startup{background:#E8F5EC;color:var(--gn)}
 .tag-quote{background:#FEF0EA;color:var(--or)}
@@ -144,7 +145,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* ── EMPTY STATE ── */
 .empty{text-align:center;padding:48px 20px 32px;color:var(--mu)}
-.empty-icon{font-size:34px;margin:0 auto 14px;width:72px;height:72px;border-radius:20px;background:var(--of);display:flex;align-items:center;justify-content:center}
+.empty-icon{font-size:34px;margin:0 auto 14px;width:72px;height:72px;border-radius:20px;background:var(--of);border:1px solid var(--bd);display:flex;align-items:center;justify-content:center}
+.empty-eyebrow{font-family:var(--font-mono);font-size:9.5px;font-weight:600;letter-spacing:.14em;color:var(--mu);text-transform:uppercase;margin-bottom:6px}
 .empty h3{font-size:16px;font-weight:800;color:var(--tx);margin-bottom:6px}
 .empty p{font-size:13px;line-height:1.6;max-width:260px;margin:0 auto}
 
@@ -332,7 +334,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .bnav-btn.on::after{content:'';position:absolute;top:6px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--or);box-shadow:0 0 5px var(--or)}
 
 /* ── PROJECT STATUS BADGES ── */
-.status-badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:8px;display:inline-block}
+.status-badge{font-size:10px;font-weight:700;padding:3px 9px 3px 7px;border-radius:8px;display:inline-flex;align-items:center;gap:5px;font-family:var(--font-mono);letter-spacing:.03em;text-transform:uppercase}
+.status-badge::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
 .status-bidding{background:#FFF3E0;color:var(--am)}
 .status-awarded{background:#E8F5EC;color:var(--gn)}
 .status-progress{background:#EEF3FB;color:var(--nv)}
@@ -340,7 +343,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .status-lost{background:#FDEDEC;color:var(--rd)}
 
 /* ── TOAST ── */
-#toast{position:fixed;bottom:84px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--nv-deep);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;opacity:0;transition:opacity .25s,transform .35s cubic-bezier(.2,.9,.3,1.3);z-index:500;white-space:nowrap;pointer-events:none}
+#toast{position:fixed;bottom:84px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--nv-deep);color:#fff;padding:10px 20px;border-radius:20px;font-size:12px;font-weight:600;opacity:0;transition:opacity .25s,transform .35s cubic-bezier(.2,.9,.3,1.3);z-index:500;white-space:nowrap;pointer-events:none;font-family:var(--font-mono);letter-spacing:.04em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+#toast::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--or);box-shadow:0 0 5px var(--or);flex-shrink:0}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* ── MODAL ── */
@@ -1683,13 +1687,14 @@ function renderFacilityListClassic() {
         var tags = tagsArr.slice(0, TAG_CAP).join('');
         if (tagsArr.length > TAG_CAP) tags += '<span class="tag tag-more">+'+(tagsArr.length-TAG_CAP)+' more</span>';
         var _accent = followups ? 'var(--am)' : (_pmStatus && _pmStatus.urgent ? _pmStatus.color : (f.pm_contract ? 'var(--gn)' : 'transparent'));
+        var _dotColor = followups ? 'var(--am)' : (_pmStatus && _pmStatus.urgent ? 'var(--rd)' : (f.pm_contract ? 'var(--gn)' : ''));
         var _delay = Math.min(idx, 14) * 0.025;
         html += '<div class="fac-row ntd-row-in" style="border-left-color:'+_accent+';animation-delay:'+_delay+'s" onclick="goDetail(\''+f.id+'\')">' +
-          '<div class="fac-avatar" style="'+(followups?'background:var(--am)':(_pmStatus && _pmStatus.urgent?'background:var(--rd)':''))+'">'+initials+'</div>' +
+          '<div class="fac-avatar'+(_dotColor?' has-dot':'')+'" style="'+(followups?'background:var(--am)':(_pmStatus && _pmStatus.urgent?'background:var(--rd)':''))+(_dotColor?';--dot:'+_dotColor:'')+'">'+initials+'</div>' +
           '<div class="fac-info">' +
             '<div class="fac-name">'+esc(f.name||'Unnamed')+'</div>' +
             '<div class="fac-addr">'+esc([f.address, f.address2].filter(Boolean).join(', ') || f.city || 'No address')+'</div>' +
-            (f.pm_contract && f.contract && f.contract.annual_value ? '<div class="fac-addr" style="color:var(--gn);font-weight:600;margin-top:1px">'+esc(f.contract.annual_value)+'/yr'+(f.contract.renewal_date?' · Renews '+esc(f.contract.renewal_date):'')+'</div>' : '') +
+            (f.pm_contract && f.contract && f.contract.annual_value ? '<div class="fac-addr" style="color:var(--gn);font-weight:600;margin-top:1px;font-family:var(--font-mono)">'+esc(f.contract.annual_value)+'/yr'+(f.contract.renewal_date?' · Renews '+esc(f.contract.renewal_date):'')+'</div>' : '') +
             (tags ? '<div class="fac-tags">'+tags+'</div>' : '') +
           '</div>' +
           '<div class="fac-arrow">›</div>' +
@@ -2495,16 +2500,16 @@ function renderDetailTab(f) {
       html += '<div class="card-body">';
 
       if (hasContract && (c.annual_value || c.frequency)) {
-        if (c.annual_value) html += '<div style="font-size:24px;font-weight:800;color:var(--gn);margin-bottom:6px">'+esc(c.annual_value)+'<span style="font-size:12px;font-weight:600;color:var(--mu)">/year</span></div>';
+        if (c.annual_value) html += '<div style="font-size:24px;font-weight:800;color:var(--gn);margin-bottom:6px;font-family:var(--font-mono)">'+esc(c.annual_value)+'<span style="font-size:12px;font-weight:600;color:var(--mu)">/year</span></div>';
         var details = [];
         if (c.frequency) details.push(esc(c.frequency));
         if (c.visits_per_year) details.push(esc(c.visits_per_year)+' visits/yr');
         if (c.agreement_num) details.push('#'+esc(c.agreement_num));
         if (details.length) html += '<div style="font-size:12px;color:var(--mu);margin-bottom:8px">'+details.join(' · ')+'</div>';
         html += '<div style="display:grid;grid-template-columns:1fr 1fr'+(schedStatus?' 1fr':'')+ ';gap:6px;margin-bottom:6px">';
-        if (c.start_date) html += '<div style="background:var(--of);border-radius:8px;padding:7px 9px"><div style="font-size:9px;font-weight:700;color:var(--mu);text-transform:uppercase">Start</div><div style="font-size:12px;font-weight:700;color:var(--tx);margin-top:1px">'+esc(c.start_date)+'</div></div>';
-        if (c.renewal_date) html += '<div style="background:'+(isExpiringSoon?'#FFF3E0':'var(--of)')+';border-radius:8px;padding:7px 9px"><div style="font-size:9px;font-weight:700;color:var(--mu);text-transform:uppercase">Renewal</div><div style="font-size:12px;font-weight:700;color:'+(isExpiringSoon?'var(--am)':'var(--tx)')+';margin-top:1px">'+esc(c.renewal_date)+'</div></div>';
-        if (schedStatus) html += '<div style="background:'+(schedStatus.urgent?'#FDEDEC':'var(--of)')+';border-radius:8px;padding:7px 9px"><div style="font-size:9px;font-weight:700;color:var(--mu);text-transform:uppercase">Next Due</div><div style="font-size:12px;font-weight:700;color:'+schedStatus.color+';margin-top:1px">'+schedStatus.label+'</div></div>';
+        if (c.start_date) html += '<div style="background:var(--of);border-radius:8px;padding:7px 9px"><div style="font-size:9px;font-weight:700;color:var(--mu);text-transform:uppercase">Start</div><div style="font-size:12px;font-weight:700;color:var(--tx);margin-top:1px;font-family:var(--font-mono)">'+esc(c.start_date)+'</div></div>';
+        if (c.renewal_date) html += '<div style="background:'+(isExpiringSoon?'#FFF3E0':'var(--of)')+';border-radius:8px;padding:7px 9px"><div style="font-size:9px;font-weight:700;color:var(--mu);text-transform:uppercase">Renewal</div><div style="font-size:12px;font-weight:700;color:'+(isExpiringSoon?'var(--am)':'var(--tx)')+';margin-top:1px;font-family:var(--font-mono)">'+esc(c.renewal_date)+'</div></div>';
+        if (schedStatus) html += '<div style="background:'+(schedStatus.urgent?'#FDEDEC':'var(--of)')+';border-radius:8px;padding:7px 9px"><div style="font-size:9px;font-weight:700;color:var(--mu);text-transform:uppercase">Next Due</div><div style="font-size:12px;font-weight:700;color:'+schedStatus.color+';margin-top:1px;font-family:var(--font-mono)">'+schedStatus.label+'</div></div>';
         html += '</div>';
         if (c.scope) html += '<div style="font-size:11px;color:var(--mu);line-height:1.5;padding-top:6px;border-top:1px solid var(--bd)">'+esc(c.scope)+'</div>';
       } else {
@@ -2693,8 +2698,8 @@ function renderDetailTab(f) {
             (p.wo_number ? '<div style="font-size:11px;color:var(--mu);margin-bottom:2px">Combined PO: '+esc(p.wo_number)+'</div>' : '') +
             (p.po_equip ? '<div style="font-size:11px;color:var(--mu);margin-bottom:2px">Equipment PO: '+esc(p.po_equip)+'</div>' : '') +
             (p.po_parts ? '<div style="font-size:11px;color:var(--mu);margin-bottom:4px">Parts PO: '+esc(p.po_parts)+'</div>' : '') +
-            (p.value ? '<div style="font-size:13px;font-weight:700;color:var(--gn);margin-bottom:4px">'+esc(p.value)+'</div>' : '') +
-            (p.start_date||p.end_date ? '<div style="font-size:11px;color:var(--mu);margin-bottom:8px">'+(p.start_date?'Start: '+esc(p.start_date):'')+(p.start_date&&p.end_date?' · ':'')+(p.end_date?'Target: '+esc(p.end_date):'')+'</div>' : '') +
+            (p.value ? '<div style="font-size:13px;font-weight:700;color:var(--gn);margin-bottom:4px;font-family:var(--font-mono)">'+esc(p.value)+'</div>' : '') +
+            (p.start_date||p.end_date ? '<div style="font-size:11px;color:var(--mu);margin-bottom:8px;font-family:var(--font-mono)">'+(p.start_date?'Start: '+esc(p.start_date):'')+(p.start_date&&p.end_date?' · ':'')+(p.end_date?'Target: '+esc(p.end_date):'')+'</div>' : '') +
             (p.sp_url ? '<a href="'+esc(p.sp_url)+'" target="_blank" class="sp-link" style="margin-bottom:8px;display:inline-flex">SharePoint Folder</a>' : '') +
             (p.notes ? '<div style="font-size:12px;color:var(--mu);line-height:1.5;margin-top:6px;padding-top:8px;border-top:1px solid var(--bd)">'+esc(p.notes)+'</div>' : '') +
             (p.agr_type || p.agr_num ? (function(){
@@ -4246,7 +4251,7 @@ function esc(str) {
 }
 
 function emptyState(icon, title, msg) {
-  return '<div class="empty"><div class="empty-icon">'+icon+'</div><h3>'+title+'</h3><p>'+msg+'</p></div>';
+  return '<div class="empty"><div class="empty-icon">'+icon+'</div><div class="empty-eyebrow">NTD Hub — Nothing Here Yet</div><h3>'+title+'</h3><p>'+msg+'</p></div>';
 }
 
 // A follow-up counts as "open" only while it has text AND hasn't been marked
