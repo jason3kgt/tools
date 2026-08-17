@@ -93,6 +93,43 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .tag-survey{background:#F3F0FA;color:#5B21B6}
 .tag-more{background:var(--of);color:var(--mu)}
 .fac-arrow{color:var(--bd2);font-size:18px;flex-shrink:0}
+
+/* ── FACILITY QUICK ACCESS (recent + needs attention chips) ── */
+.fac-qa{margin-bottom:14px}
+.fac-qa.hidden{display:none}
+.fac-qa-label{font-size:10.5px;font-weight:800;color:var(--mu);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.fac-qa-row{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.fac-qa-row::-webkit-scrollbar{display:none}
+.fac-qa-chip{flex-shrink:0;display:flex;align-items:center;gap:7px;background:#fff;border:1.5px solid var(--bd);border-radius:100px;padding:6px 12px 6px 6px;cursor:pointer;white-space:nowrap;touch-action:manipulation;box-shadow:var(--card-shadow)}
+.fac-qa-chip:active{background:var(--of)}
+.fac-qa-chip.attn{border-color:#F0C6BE}
+.fac-qa-av{width:26px;height:26px;border-radius:8px;background:var(--nv-grad);color:#fff;font-size:10.5px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.fac-qa-chip.attn .fac-qa-av{background:linear-gradient(135deg,var(--rd),#8E2A1E)}
+.fac-qa-nm{font-size:12px;font-weight:700;color:var(--tx)}
+.fac-qa-flag{font-size:10px;font-weight:700;color:var(--mu)}
+.fac-qa-flag.attn{color:var(--rd)}
+
+/* ── FACILITY ROLODEX WHEEL ── */
+.fac-stage{background:radial-gradient(ellipse 120% 100% at 50% -15%,#1B3A6B 0%,var(--nv-deep) 62%,#081A38 100%);border-radius:20px;padding:22px 6px 16px;position:relative;overflow:hidden;margin-bottom:2px;box-shadow:var(--card-shadow)}
+.fac-wheel-vp{height:172px;position:relative;perspective:900px;touch-action:pan-y;outline:none}
+.fac-wheel-track{position:absolute;inset:0;transform-style:preserve-3d}
+.fac-wcard{position:absolute;top:50%;left:50%;width:104px;height:136px;margin:-68px 0 0 -52px;border-radius:15px;background:var(--nv-grad);border:1px solid rgba(255,255,255,.14);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;transition:transform .3s cubic-bezier(.22,.61,.36,1),opacity .3s;box-shadow:0 12px 26px rgba(0,0,0,.35);cursor:pointer;touch-action:manipulation}
+.fac-wcard .av{width:34px;height:34px;border-radius:9px;background:var(--or);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff}
+.fac-wcard.urgent .av{background:var(--rd)}
+.fac-wcard .nm{font-size:10.5px;font-weight:700;color:#fff;text-align:center;padding:0 8px;line-height:1.25;max-height:27px;overflow:hidden}
+.fac-wnav{position:absolute;top:50%;transform:translateY(-50%);width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);color:#fff;font-size:16px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:5;touch-action:manipulation}
+.fac-wnav.left{left:4px} .fac-wnav.right{right:4px}
+.fac-wnav:active{background:rgba(255,255,255,.2)}
+.fac-wempty{color:rgba(255,255,255,.5);font-size:12.5px;text-align:center;padding-top:64px}
+.fac-jumprow{display:flex;gap:3px;justify-content:center;flex-wrap:wrap;padding:12px 8px 0}
+.fac-jump-l{font-size:9.5px;color:var(--mu);width:18px;height:18px;display:flex;align-items:center;justify-content:center;border-radius:5px;cursor:pointer;flex-shrink:0;font-weight:700;touch-action:manipulation}
+.fac-jump-l:active{background:var(--of)}
+.fac-jump-l.dim{opacity:.3;pointer-events:none}
+.fac-sel-card{background:#fff;border:1px solid var(--bd);border-radius:16px;padding:14px 16px;margin-top:12px;display:flex;align-items:center;gap:12px;box-shadow:var(--card-shadow)}
+.fac-sel-info{flex:1;min-width:0}
+.fac-sel-open{background:var(--or);color:#fff;border:none;border-radius:10px;padding:9px 15px;font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer;flex-shrink:0;touch-action:manipulation}
+.fac-view-toggle{text-align:center;font-size:11.5px;color:var(--mu);font-weight:700;padding:12px 0 2px;cursor:pointer;touch-action:manipulation}
+
 .followup-badge{display:inline-flex;align-items:center;gap:4px;background:#FDF0DC;color:var(--am);font-size:10px;font-weight:700;padding:3px 8px;border-radius:8px;border:1px solid #E8B65C}
 .followup-card{background:#FDF5E8;border:1.5px solid #E8B65C;border-radius:14px;padding:14px 16px;margin-bottom:14px}
 .followup-card-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px}
@@ -485,7 +522,20 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
   <div class="search-wrap">
     <input type="text" id="fac-search" placeholder="Search facilities…" oninput="renderFacilityList()" autocomplete="off" autocorrect="off" spellcheck="false">
   </div>
-  <div id="fac-list-wrap"></div>
+  <div class="fac-qa hidden" id="fac-quickaccess"></div>
+  <div id="fac-wheel-wrap">
+    <div class="fac-stage">
+      <div class="fac-wheel-vp" id="facWheelVp" tabindex="0">
+        <div class="fac-wnav left" id="facWLeft">‹</div>
+        <div class="fac-wnav right" id="facWRight">›</div>
+        <div class="fac-wheel-track" id="facWheelTrack"></div>
+      </div>
+    </div>
+    <div class="fac-jumprow" id="facJumpRow"></div>
+    <div class="fac-sel-card" id="facSelCard"></div>
+  </div>
+  <div id="fac-list-wrap" class="hidden"></div>
+  <div class="fac-view-toggle" id="facViewToggle" onclick="toggleFacView()">☰ View as list</div>
 </div>
 
 <!-- ② FACILITY DETAIL -->
@@ -1437,6 +1487,7 @@ function goPage(page) {
 function goDetail(facilityId, tab) {
   currentFacilityId = facilityId;
   currentDetailTab = tab || 'timeline';
+  pushRecentFac(facilityId);
   if (getUserRole() === 'field' && (currentDetailTab === 'projects' || currentDetailTab === 'quotes')) {
     currentDetailTab = 'timeline';
   }
@@ -1463,8 +1514,9 @@ function hdrAction() {
   else if (currentPage === 'photos') openAddHubPhoto();
 }
 
-// ── FACILITY LIST ─────────────────────────────────────────────────────────
-function renderFacilityList() {
+// ── FACILITY LIST (classic scroll view — kept as a fallback behind the
+// "View as list" toggle; unchanged from before the rolodex wheel was added) ─
+function renderFacilityListClassic() {
   var wrap = document.getElementById('fac-list-wrap');
   var q = (document.getElementById('fac-search').value || '').toLowerCase().trim();
   if (typeof ntdStore === 'undefined') {
@@ -1553,6 +1605,252 @@ function renderFacilityList() {
     wrap.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><h3>Load error</h3><p>'+e.message+'</p></div>';
   });
 }
+
+// ── FACILITY LIST VIEW MODE (rolodex wheel ⇄ classic list, per device) ──────
+function facViewMode() {
+  try { return localStorage.getItem('ntdFacView_' + (getCurrentUser() || 'device')) || 'wheel'; } catch(e) { return 'wheel'; }
+}
+function setFacViewMode(mode) {
+  try { localStorage.setItem('ntdFacView_' + (getCurrentUser() || 'device'), mode); } catch(e) {}
+}
+function toggleFacView() {
+  setFacViewMode(facViewMode() === 'wheel' ? 'list' : 'wheel');
+  renderFacilityList();
+}
+
+// This is the function everything else in the app calls (page nav, search
+// oninput, post-add/edit refreshes) — it just decides which view to draw.
+function renderFacilityList() {
+  var mode = facViewMode();
+  var wheelWrap = document.getElementById('fac-wheel-wrap');
+  var qaWrap = document.getElementById('fac-quickaccess');
+  var listWrap = document.getElementById('fac-list-wrap');
+  var toggleBtn = document.getElementById('facViewToggle');
+  if (mode === 'list') {
+    if (wheelWrap) wheelWrap.classList.add('hidden');
+    if (qaWrap) qaWrap.classList.add('hidden');
+    if (listWrap) listWrap.classList.remove('hidden');
+    if (toggleBtn) toggleBtn.textContent = '🎡 View as wheel';
+    renderFacilityListClassic();
+  } else {
+    if (wheelWrap) wheelWrap.classList.remove('hidden');
+    if (listWrap) listWrap.classList.add('hidden');
+    if (toggleBtn) toggleBtn.textContent = '☰ View as list';
+    renderFacilityWheel();
+  }
+}
+
+// ── FACILITY ROLODEX WHEEL ──────────────────────────────────────────────────
+var facWheelAll = [];       // enriched, alphabetical, unfiltered — cached per load
+var facWheelActive = [];    // current (possibly search-filtered) subset shown in the wheel
+var facWheelCurrent = 0;    // index into facWheelActive
+var facWheelLoaded = false;
+var FAC_WHEEL_VISIBLE = 4;  // cards rendered on each side of center
+
+// Same enrichment (tags, PM-due status, follow-up count) as the classic list,
+// computed once and cached so spinning/searching the wheel never re-hits Supabase.
+function loadFacWheelData() {
+  return Promise.all([
+    ntdStore.facilities.list(),
+    ntdStore.startup_records.list(),
+    ntdStore.pm_records.list(),
+    ntdStore.pm_quotes.list(),
+    ntdStore.equipment.list()
+  ]).then(function(results) {
+    var facilitiesRaw = results[0], startups = results[1], pmRecs = results[2], pmQuotes = results[3], equip = results[4];
+    var followupItems = getOpenFollowupItems(startups, pmRecs);
+    facWheelAll = facilitiesRaw.slice().sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); }).map(function(f) {
+      var initials = (f.name||'?').split(' ').map(function(w){ return w[0]; }).join('').substring(0,2).toUpperCase();
+      var hasPM = pmRecs.some(function(r){ return r.facility_id === f.id; });
+      var hasStart = startups.some(function(r){ return r.facility_id === f.id; });
+      var hasQuote = pmQuotes.some(function(r){ return r.facility_id === f.id; });
+      var eqCount = equip.filter(function(e){ return e.facility_id === f.id; }).length;
+      var followups = followupItems.filter(function(it){ return it.facility_id === f.id; }).length;
+      var pmStatus = null;
+      if (f.pm_contract && f.contract && f.contract.frequency) {
+        var facVisits = pmRecs.filter(function(r){ return r.facility_id === f.id; });
+        var lastV = facVisits.sort(function(a,b){ return (b.ts||0)-(a.ts||0); })[0];
+        var lastD = lastV ? lastV.date : (f.contract && f.contract.start_date ? f.contract.start_date : null);
+        var nextV = calcNextVisit(lastD, f.contract.frequency);
+        pmStatus = pmScheduleStatus(nextV);
+      }
+      var tagsArr = [];
+      if (followups) tagsArr.push('<span class="tag" style="background:#FFF3E0;color:var(--am)">⚠ '+followups+' Follow-up'+(followups>1?'s':'')+'</span>');
+      if (pmStatus && pmStatus.urgent) tagsArr.push('<span class="tag" style="background:#FDEDEC;color:'+pmStatus.color+'">'+pmStatus.label+'</span>');
+      if (f.pm_contract) tagsArr.push('<span class="tag tag-pm">PM Contract</span>');
+      if (hasPM) tagsArr.push('<span class="tag tag-pm">PM History</span>');
+      if (hasStart) tagsArr.push('<span class="tag tag-startup">Startup</span>');
+      if (hasQuote) tagsArr.push('<span class="tag tag-quote">Quoted</span>');
+      if (eqCount) tagsArr.push('<span class="tag tag-survey">'+eqCount+' Units</span>');
+      return {
+        id: f.id,
+        name: f.name || 'Unnamed',
+        addr: [f.address, f.address2].filter(Boolean).join(', ') || f.city || 'No address',
+        initials: initials,
+        tagsHtml: tagsArr.join(''),
+        urgent: !!(followups || (pmStatus && pmStatus.urgent)),
+        urgentLabel: followups ? (followups + ' follow-up' + (followups>1?'s':'')) : (pmStatus ? pmStatus.label : '')
+      };
+    });
+    facWheelLoaded = true;
+  });
+}
+
+// Recently-visited tracking — per device/user (localStorage), same pattern as
+// ntdDashPrefs_/ntdProjScope_ elsewhere in this file. Updated from goDetail().
+function facRecentKey() { return 'ntdRecentFac_' + (getCurrentUser() || 'device'); }
+function getRecentFacIds() {
+  try { var raw = localStorage.getItem(facRecentKey()); return raw ? JSON.parse(raw) : []; } catch(e) { return []; }
+}
+function pushRecentFac(fid) {
+  if (!fid) return;
+  try {
+    var arr = getRecentFacIds().filter(function(r){ return r.id !== fid; });
+    arr.unshift({ id: fid, ts: Date.now() });
+    localStorage.setItem(facRecentKey(), JSON.stringify(arr.slice(0, 12)));
+  } catch(e) {}
+}
+
+// "Recent & Needs Attention" chip row above the wheel. Needs-attention is a
+// live computed signal (shared for everyone); recent visits are per-device.
+function renderFacQuickAccess() {
+  var wrap = document.getElementById('fac-quickaccess');
+  if (!wrap) return;
+  var attention = facWheelAll.filter(function(f){ return f.urgent; }).slice(0, 4);
+  var attnIds = {}; attention.forEach(function(f){ attnIds[f.id] = true; });
+  var recentIds = getRecentFacIds().map(function(r){ return r.id; });
+  var recent = recentIds.map(function(id){ return facWheelAll.filter(function(f){ return f.id === id; })[0]; })
+    .filter(function(f){ return f && !attnIds[f.id]; }).slice(0, 4);
+  var items = attention.map(function(f){ return {f:f, attn:true}; }).concat(recent.map(function(f){ return {f:f, attn:false}; }));
+  if (!items.length) { wrap.classList.add('hidden'); wrap.innerHTML = ''; return; }
+  wrap.classList.remove('hidden');
+  var html = '<div class="fac-qa-label">Recent &amp; Needs Attention</div><div class="fac-qa-row">';
+  items.forEach(function(item) {
+    var f = item.f;
+    var flag = item.attn
+      ? '<span class="fac-qa-flag attn">⚠ '+esc(f.urgentLabel||'Overdue')+'</span>'
+      : '<span class="fac-qa-flag">Recent</span>';
+    // .ntd-goto + data-fid so this rides the app's existing global click
+    // handler and opens the facility directly — no extra listener wiring.
+    html += '<div class="fac-qa-chip ntd-goto'+(item.attn?' attn':'')+'" data-fid="'+f.id+'"><div class="fac-qa-av">'+f.initials+'</div><div class="fac-qa-nm">'+esc(f.name)+'</div>'+flag+'</div>';
+  });
+  html += '</div>';
+  wrap.innerHTML = html;
+}
+
+function renderFacilityWheel() {
+  var q = (document.getElementById('fac-search').value || '').toLowerCase().trim();
+  var track = document.getElementById('facWheelTrack');
+  if (typeof ntdStore === 'undefined') {
+    track.innerHTML = '<div class="fac-wempty">Store unavailable — ntdStore.js could not be loaded.</div>';
+    return;
+  }
+  var afterLoad = facWheelLoaded ? Promise.resolve() : loadFacWheelData();
+  afterLoad.then(function() {
+    facWheelActive = !q ? facWheelAll.slice() : facWheelAll.filter(function(f) {
+      return f.name.toLowerCase().indexOf(q) > -1 || f.addr.toLowerCase().indexOf(q) > -1;
+    });
+    facWheelCurrent = Math.max(0, Math.min(facWheelCurrent, facWheelActive.length - 1));
+    if (q) {
+      var qaWrap = document.getElementById('fac-quickaccess');
+      if (qaWrap) qaWrap.classList.add('hidden');
+    } else {
+      renderFacQuickAccess();
+    }
+    renderFacWheelUI();
+  }).catch(function(e) {
+    track.innerHTML = '<div class="fac-wempty">Load error — '+esc(e.message||'')+'</div>';
+  });
+}
+
+function renderFacWheelUI() {
+  var track = document.getElementById('facWheelTrack');
+  var jumpRow = document.getElementById('facJumpRow');
+  var selCard = document.getElementById('facSelCard');
+  if (!facWheelActive.length) {
+    var q = (document.getElementById('fac-search').value || '').trim();
+    track.innerHTML = '<div class="fac-wempty">'+(q ? 'No facilities match “'+esc(q)+'”' : 'No facilities yet — add one or submit data from any NTD tool.')+'</div>';
+    jumpRow.innerHTML = '';
+    selCard.innerHTML = '';
+    return;
+  }
+  track.innerHTML = '';
+  for (var d = -FAC_WHEEL_VISIBLE; d <= FAC_WHEEL_VISIBLE; d++) {
+    var idx = facWheelCurrent + d;
+    if (idx < 0 || idx >= facWheelActive.length) continue;
+    var f = facWheelActive[idx];
+    var card = document.createElement('div');
+    card.className = 'fac-wcard' + (f.urgent ? ' urgent' : '');
+    var angle = d * 26, tx = d * 72, tz = -Math.abs(d) * 56;
+    var scale = 1 - Math.abs(d) * 0.13, opacity = Math.max(1 - Math.abs(d) * 0.22, 0);
+    card.style.transform = 'translateX('+tx+'px) translateZ('+tz+'px) rotateY('+(-angle)+'deg) scale('+scale+')';
+    card.style.opacity = opacity;
+    card.style.zIndex = 10 - Math.abs(d);
+    card.innerHTML = '<div class="av">'+f.initials+'</div><div class="nm">'+esc(f.name)+'</div>';
+    (function(ix){ card.addEventListener('click', function(){ facWheelCurrent = ix; renderFacWheelUI(); }); })(idx);
+    track.appendChild(card);
+  }
+  var sel = facWheelActive[facWheelCurrent];
+  selCard.innerHTML =
+    '<div class="fac-avatar" style="'+(sel.urgent?'background:var(--rd)':'')+'">'+sel.initials+'</div>'+
+    '<div class="fac-sel-info"><div class="fac-name">'+esc(sel.name)+'</div><div class="fac-addr">'+esc(sel.addr)+'</div>'+
+    (sel.tagsHtml ? '<div class="fac-tags">'+sel.tagsHtml+'</div>' : '')+
+    '</div><button class="fac-sel-open ntd-goto" data-fid="'+sel.id+'">Open</button>';
+
+  var used = {};
+  facWheelActive.forEach(function(f){ var L = (f.name||'?').charAt(0).toUpperCase(); used[(L>='A'&&L<='Z')?L:'#'] = true; });
+  var jhtml = '';
+  for (var c = 65; c <= 90; c++) {
+    var L2 = String.fromCharCode(c);
+    jhtml += '<div class="fac-jump-l'+(used[L2]?'':' dim')+'" data-l="'+L2+'">'+L2+'</div>';
+  }
+  jumpRow.innerHTML = jhtml;
+}
+
+// Letter-jump row is rebuilt on every render, so it uses delegation rather
+// than per-element listeners.
+document.addEventListener('click', function(e) {
+  var jl = e.target.closest && e.target.closest('.fac-jump-l');
+  if (!jl) return;
+  var L = jl.getAttribute('data-l');
+  var idx = facWheelActive.findIndex(function(f){ return (f.name||'?').charAt(0).toUpperCase() === L; });
+  if (idx > -1) { facWheelCurrent = idx; renderFacWheelUI(); }
+});
+
+// Arrows + drag/swipe — these elements are static in the page markup (not
+// rebuilt on render), so they're wired once here.
+(function() {
+  var vp = document.getElementById('facWheelVp');
+  var leftBtn = document.getElementById('facWLeft');
+  var rightBtn = document.getElementById('facWRight');
+  if (!vp || !leftBtn || !rightBtn) return; // defensive — page markup not present
+
+  leftBtn.addEventListener('click', function(){ if (facWheelCurrent > 0) { facWheelCurrent--; renderFacWheelUI(); } });
+  rightBtn.addEventListener('click', function(){ if (facWheelCurrent < facWheelActive.length - 1) { facWheelCurrent++; renderFacWheelUI(); } });
+
+  var dragStartX = null, dragStartIdx = 0;
+  function wStart(e) { var p = e.touches ? e.touches[0] : e; dragStartX = p.clientX; dragStartIdx = facWheelCurrent; }
+  function wMove(e) {
+    if (dragStartX === null) return;
+    var p = e.touches ? e.touches[0] : e;
+    var dx = p.clientX - dragStartX;
+    var steps = Math.round(-dx / 66);
+    var next = Math.max(0, Math.min(facWheelActive.length - 1, dragStartIdx + steps));
+    if (next !== facWheelCurrent) { facWheelCurrent = next; renderFacWheelUI(); }
+  }
+  function wEnd() { dragStartX = null; }
+  vp.addEventListener('mousedown', wStart);
+  window.addEventListener('mousemove', wMove);
+  window.addEventListener('mouseup', wEnd);
+  vp.addEventListener('touchstart', wStart, {passive:true});
+  vp.addEventListener('touchmove', wMove, {passive:true});
+  vp.addEventListener('touchend', wEnd);
+
+  vp.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowRight' && facWheelCurrent < facWheelActive.length - 1) { facWheelCurrent++; renderFacWheelUI(); }
+    if (e.key === 'ArrowLeft' && facWheelCurrent > 0) { facWheelCurrent--; renderFacWheelUI(); }
+  });
+})();
 
 // ── FACILITY DETAIL ───────────────────────────────────────────────────────
 function renderDetail() {
