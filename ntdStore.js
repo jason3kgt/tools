@@ -691,6 +691,70 @@ function ntdLearnModel(record) {
   });
 }
 
+// ── GEOCODING (dispatch map) ────────────────────────────────────────────────
+// Turns a facility's street address into map coordinates using OpenStreetMap's
+// free Nominatim service (no API key, no billing account required). Result is
+// cached onto the facility record's lat/lng columns so a site is only ever
+// geocoded once — every later dispatch map load reads it straight off the row,
+// from any device. Nominatim's usage policy allows ~1 request/sec, so lookups
+// for multiple facilities are queued and spaced out client-side instead of
+// fired all at once.
+var _ntdGeoQueue = Promise.resolve();
+var _ntdGeoInFlight = {}; // facility_id -> promise, avoids duplicate concurrent lookups for the same site
+
+function _ntdGeoFetch(query) {
+  var url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(query);
+  return fetch(url).then(function(r) {
+    if (!r.ok) throw new Error('Geocoding request failed');
+    return r.json();
+  }).then(function(rows) {
+    if (!rows || !rows.length) return null;
+    var lat = parseFloat(rows[0].lat), lng = parseFloat(rows[0].lon);
+    if (isNaN(lat) || isNaN(lng)) return null;
+    return { lat: lat, lng: lng };
+  });
+}
+
+// Resolves {lat,lng} for a facility. Uses stored coordinates if present;
+// otherwise geocodes from address+city (assumes Texas — fine for NTD's
+// service area, and harmless as a disambiguation hint elsewhere) and writes
+// the result back so it's cached for next time. Resolves null (never
+// rejects) if there's no address to work from or geocoding turns up nothing
+// — callers should treat that as "can't be plotted" rather than an error.
+function ntdGeocodeFacility(facility) {
+  if (!facility || !facility.id) return Promise.resolve(null);
+  if (facility.lat != null && facility.lng != null && facility.lat !== '' && facility.lng !== '') {
+    var cachedLat = parseFloat(facility.lat), cachedLng = parseFloat(facility.lng);
+    if (!isNaN(cachedLat) && !isNaN(cachedLng)) return Promise.resolve({ lat: cachedLat, lng: cachedLng });
+  }
+  var addr = [facility.address, facility.city].filter(Boolean).join(', ');
+  if (!addr) return Promise.resolve(null);
+  if (_ntdGeoInFlight[facility.id]) return _ntdGeoInFlight[facility.id];
+
+  var fid = facility.id;
+  var p = _ntdGeoQueue.then(function() {
+    return _ntdGeoFetch(addr + ', TX');
+  }).then(function(coords) {
+    // Space subsequent queued requests ~1.1s apart regardless of this one's outcome
+    return new Promise(function(resolve) { setTimeout(function() { resolve(coords); }, 1100); });
+  });
+  _ntdGeoQueue = p.catch(function() { return null; });
+
+  var result = p.then(function(coords) {
+    delete _ntdGeoInFlight[fid];
+    if (coords) {
+      _sb.raw('PATCH', 'facilities', 'id=eq.' + encodeURIComponent(fid), { lat: coords.lat, lng: coords.lng })
+        .catch(function() { /* cache write failed — non-fatal, will just re-geocode next time */ });
+    }
+    return coords;
+  }).catch(function() {
+    delete _ntdGeoInFlight[fid];
+    return null;
+  });
+  _ntdGeoInFlight[fid] = result;
+  return result;
+}
+
 // ── NTDSTORE PUBLIC API ───────────────────────────────────────────────────────
 // Same interface as the localStorage version — no tool code changes needed
 var ntdStore = {
@@ -713,6 +777,7 @@ var ntdStore = {
   migrate:        _migrate,
   matchFacility:  ntdFacilityMatch,
   upsertEquipment:ntdUpsertEquipment,
+  geocodeFacility:ntdGeocodeFacility,
   learnModel:     ntdLearnModel,
   exportAll:      _exportImport.exportAll,
   importAll:      _exportImport.importAll,

@@ -12,6 +12,7 @@
 <title>NTD Hub</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="ntdStore.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -422,6 +423,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .tk-view-toggle{display:flex;border:1.5px solid var(--bd);border-radius:8px;overflow:hidden;flex-shrink:0}
 .tk-view-btn{background:#fff;color:var(--mu);border:none;padding:9px 14px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation}
 .tk-view-btn.on{background:var(--nv);color:#fff}
+.tk-map-daynav{display:flex;align-items:center;justify-content:space-between;background:#fff;border:1.5px solid var(--bd);border-radius:12px;padding:10px 12px;margin-bottom:12px;box-shadow:var(--card-shadow)}
+.tk-map-daynav-btn{background:var(--of);border:1.5px solid var(--bd);border-radius:8px;width:34px;height:34px;font-size:15px;font-weight:700;color:var(--nv);cursor:pointer;flex-shrink:0;touch-action:manipulation}
+.tk-map-daynav-label{font-family:var(--font-display);font-size:16px;font-weight:800;text-transform:uppercase;text-align:center}
+.tk-map-daynav-today{font-size:10.5px;font-weight:700;color:var(--or);cursor:pointer;font-family:var(--font-mono);letter-spacing:.04em;text-transform:uppercase;text-align:center;touch-action:manipulation}
+#tk-map-canvas{height:340px;border-radius:16px;border:1.5px solid var(--bd);box-shadow:var(--card-shadow);margin-bottom:12px;background:var(--of)}
+.tk-map-legend{display:flex;gap:14px;flex-wrap:wrap;background:#fff;border:1.5px solid var(--bd);border-radius:10px;padding:9px 12px;margin-bottom:14px;font-size:11px;font-weight:600;color:var(--mu)}
+.tk-map-legend span{display:inline-flex;align-items:center;gap:5px}
+.tk-map-legend .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.tk-map-unplotted-card{background:#fff;border:1.5px solid var(--bd);border-left:3px solid var(--am);border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:12.5px;cursor:pointer;touch-action:manipulation}
+.tk-map-unplotted-card b{display:block;font-size:13px;margin-bottom:2px}
+.tk-map-unplotted-card .why{color:var(--mu);font-size:11px}
+.tk-map-popup{font-family:inherit}
+.tk-map-popup .ttl{font-weight:800;font-size:13.5px;margin-bottom:2px;color:var(--tx)}
+.tk-map-popup .num{font-family:var(--font-mono);font-size:10.5px;color:var(--mu);margin-bottom:6px}
+.tk-map-popup .row{font-size:12px;margin-bottom:2px;color:var(--tx)}
+.tk-map-popup .badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;color:#fff;margin-top:5px}
+.tk-map-popup .open-link{display:block;margin-top:8px;font-size:11.5px;font-weight:700;color:var(--nv);cursor:pointer;touch-action:manipulation}
 
 .tk-board{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
 .tk-col{min-width:0}
@@ -695,10 +713,28 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
       <div class="tk-view-toggle">
         <button type="button" class="tk-view-btn on" id="tk-view-board-btn" onclick="setTicketViewMode('board')">Board</button>
         <button type="button" class="tk-view-btn" id="tk-view-list-btn" onclick="setTicketViewMode('list')">List</button>
+        <button type="button" class="tk-view-btn" id="tk-view-map-btn" onclick="setTicketViewMode('map')">Map</button>
       </div>
     </div>
     <div id="sched-tickets-board"></div>
     <div id="sched-tickets-table" style="display:none"></div>
+    <div id="sched-tickets-map" style="display:none">
+      <div class="tk-map-daynav">
+        <button type="button" class="tk-map-daynav-btn" onclick="tkMapShiftDay(-1)">&#9664;</button>
+        <div>
+          <div class="tk-map-daynav-label" id="tk-map-date-label">&nbsp;</div>
+          <div class="tk-map-daynav-today" onclick="tkMapJumpToday()">Jump to Today</div>
+        </div>
+        <button type="button" class="tk-map-daynav-btn" onclick="tkMapShiftDay(1)">&#9654;</button>
+      </div>
+      <div id="tk-map-canvas"></div>
+      <div class="tk-map-legend">
+        <span><i class="dot" style="background:var(--rd)"></i> Emergency</span>
+        <span><i class="dot" style="background:var(--am)"></i> Same Day</span>
+        <span><i class="dot" style="background:var(--st)"></i> Routine</span>
+      </div>
+      <div id="tk-map-unplotted"></div>
+    </div>
   </div>
   <div id="sched-requests-view" style="display:none">
     <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
@@ -6161,9 +6197,11 @@ function setTicketViewMode(mode) {
   ticketViewMode = mode;
   document.getElementById('tk-view-board-btn').classList.toggle('on', mode === 'board');
   document.getElementById('tk-view-list-btn').classList.toggle('on', mode === 'list');
+  document.getElementById('tk-view-map-btn').classList.toggle('on', mode === 'map');
   document.getElementById('tk-filter-status').style.display = mode === 'list' ? 'inline-block' : 'none';
   document.getElementById('sched-tickets-board').style.display = mode === 'board' ? 'block' : 'none';
   document.getElementById('sched-tickets-table').style.display = mode === 'list' ? 'block' : 'none';
+  document.getElementById('sched-tickets-map').style.display = mode === 'map' ? 'block' : 'none';
   renderTicketsList();
 }
 
@@ -6201,14 +6239,15 @@ function renderTicketsList() {
     ntdStore.jobs ? ntdStore.jobs.list() : Promise.resolve([])
   ]).then(function(results) {
     var facMap = {};
-    (results[1]||[]).forEach(function(f){ facMap[f.id] = f.name; });
+    var facObjMap = {};
+    (results[1]||[]).forEach(function(f){ facMap[f.id] = f.name; facObjMap[f.id] = f; });
     var recMap = {};
     (results[2]||[]).forEach(function(r){ recMap[r.id] = r; });
     (results[3]||[]).forEach(function(r){ recMap[r.id] = r; });
     (results[4]||[]).forEach(function(r){ recMap[r.id] = r; });
     var jobMap = {};
     (results[5]||[]).forEach(function(j){ jobMap[j.id] = j; });
-    _tkLastData = { tickets: results[0]||[], facMap: facMap, recMap: recMap, jobMap: jobMap };
+    _tkLastData = { tickets: results[0]||[], facMap: facMap, facObjMap: facObjMap, recMap: recMap, jobMap: jobMap };
     tkAutoResolveFollowups(_tkLastData.tickets);
     tkRenderCurrentView(_tkLastData);
   }).catch(function(err) {
@@ -6230,7 +6269,157 @@ function tkRenderCurrentView(data) {
     if (openCount) { badge.textContent = openCount; badge.style.display = 'inline-block'; }
     else { badge.style.display = 'none'; }
   }
-  if (ticketViewMode === 'board') tkRenderBoard(data); else tkRenderTable(data);
+  if (ticketViewMode === 'board') tkRenderBoard(data);
+  else if (ticketViewMode === 'map') tkRenderMap(data);
+  else tkRenderTable(data);
+}
+
+// ── DISPATCH MAP VIEW ────────────────────────────────────────────────────
+// Static-overview map (not live tracking) of the selected day's scheduled
+// calls, so a dispatcher can see at a glance how spread out the day is
+// before assigning techs. Pins are colored by priority, same as the board.
+// Facility addresses are geocoded on demand via ntdStore.geocodeFacility
+// (free, no API key) and the result is cached on the facility record, so
+// repeat views of the same site are instant.
+var _tkMapDate = null;       // 'YYYY-MM-DD', defaults to today
+var _tkLeafletMap = null;    // single Leaflet instance, reused across renders
+var _tkMapMarkers = [];
+var _tkLeafletLoading = null;
+
+function _tkEnsureLeaflet() {
+  if (typeof window.L !== 'undefined') return Promise.resolve();
+  if (_tkLeafletLoading) return _tkLeafletLoading;
+  _tkLeafletLoading = new Promise(function(resolve, reject) {
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+    s.onload = function() { resolve(); };
+    s.onerror = function() { reject(new Error('Could not load map library — check your connection.')); };
+    document.head.appendChild(s);
+  });
+  return _tkLeafletLoading;
+}
+
+function tkFormatMapDateLabel(dateStr) {
+  if (!dateStr) return '';
+  var d = new Date(dateStr + 'T00:00:00');
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+function tkMapShiftDay(delta) {
+  var d = new Date((_tkMapDate || fmtDateISO(new Date())) + 'T00:00:00');
+  d.setDate(d.getDate() + delta);
+  _tkMapDate = fmtDateISO(d);
+  if (_tkLastData) tkRenderMap(_tkLastData);
+}
+
+function tkMapJumpToday() {
+  _tkMapDate = fmtDateISO(new Date());
+  if (_tkLastData) tkRenderMap(_tkLastData);
+}
+
+function tkRenderMapUnplotted(items) {
+  var wrap = document.getElementById('tk-map-unplotted');
+  if (!wrap) return;
+  if (!items.length) { wrap.innerHTML = ''; return; }
+  var html = '<div style="font-family:var(--font-mono);font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--mu);margin:2px 0 8px">Not shown on map ('+items.length+')</div>';
+  html += items.map(function(it) {
+    return '<div class="tk-map-unplotted-card" onclick="openEditTicket(\''+esc(it.t.id)+'\')">' +
+      '<b>'+esc(it.siteName)+' — '+esc(it.t.ticket_number||'')+'</b>' +
+      '<div class="why">'+esc(it.why)+'</div>' +
+    '</div>';
+  }).join('');
+  wrap.innerHTML = html;
+}
+
+function tkRenderMap(data) {
+  if (!_tkMapDate) _tkMapDate = fmtDateISO(new Date());
+  var label = document.getElementById('tk-map-date-label');
+  if (label) label.textContent = tkFormatMapDateLabel(_tkMapDate);
+
+  _tkEnsureLeaflet().then(function() {
+    var canvas = document.getElementById('tk-map-canvas');
+    if (!canvas) return;
+
+    if (!_tkLeafletMap) {
+      canvas.innerHTML = '';
+      _tkLeafletMap = L.map('tk-map-canvas', { scrollWheelZoom: false }).setView([32.8935, -96.6486], 10);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 18
+      }).addTo(_tkLeafletMap);
+    }
+    setTimeout(function() { if (_tkLeafletMap) _tkLeafletMap.invalidateSize(); }, 60);
+
+    _tkMapMarkers.forEach(function(m) { _tkLeafletMap.removeLayer(m); });
+    _tkMapMarkers = [];
+
+    var predicate = tkBuildFilterPredicate(data.facMap);
+    var todays = data.tickets.filter(function(t) {
+      var d = t.scheduled_date || t.requested_date || '';
+      return d === _tkMapDate && predicate(t);
+    });
+
+    var unplotted = [];
+    var toGeocode = [];
+    todays.forEach(function(t) {
+      var fac = t.facility_id ? data.facObjMap[t.facility_id] : null;
+      var siteName = (fac && fac.name) || t.site_name_raw || 'Unknown site';
+      if (!fac) {
+        unplotted.push({ t: t, siteName: siteName, why: 'Not yet matched to a facility on file — link it to plot it.' });
+        return;
+      }
+      if (!fac.address && !fac.city) {
+        unplotted.push({ t: t, siteName: siteName, why: 'No address on file for this facility yet.' });
+        return;
+      }
+      toGeocode.push({ t: t, fac: fac, siteName: siteName });
+    });
+    tkRenderMapUnplotted(unplotted);
+
+    if (!todays.length) {
+      document.getElementById('tk-map-unplotted').innerHTML =
+        '<div style="text-align:center;color:var(--mu);font-size:12.5px;padding:6px 0">No calls scheduled for this day.</div>';
+    }
+
+    var bounds = [];
+    toGeocode.forEach(function(item) {
+      ntdStore.geocodeFacility(item.fac).then(function(coords) {
+        if (!coords) {
+          unplotted.push({ t: item.t, siteName: item.siteName, why: 'Could not locate this address on the map.' });
+          tkRenderMapUnplotted(unplotted);
+          return;
+        }
+        var color = PRIORITY_BORDER[item.t.priority] || 'var(--st)';
+        var icon = L.divIcon({
+          className: '',
+          html: '<div style="width:22px;height:22px;border-radius:50% 50% 50% 0;background:'+color+';border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);transform:rotate(-45deg)"></div>',
+          iconSize: [22, 22],
+          iconAnchor: [11, 22]
+        });
+        var m = L.marker([coords.lat, coords.lng], { icon: icon }).addTo(_tkLeafletMap);
+        var techLine = (item.t.assigned_techs || []).length
+          ? '<div class="row">Tech: '+esc(item.t.assigned_techs.join(', '))+'</div>'
+          : '<div class="row" style="color:var(--mu)">Unassigned</div>';
+        m.bindPopup(
+          '<div class="tk-map-popup">' +
+            '<div class="ttl">'+esc(item.siteName)+'</div>' +
+            '<div class="num">'+esc(item.t.ticket_number||'')+' &middot; '+esc(TICKET_TYPE_LABELS[item.t.ticket_type]||'Service Call')+'</div>' +
+            (item.t.time_window ? '<div class="row"><b>'+esc(item.t.time_window)+'</b></div>' : '') +
+            techLine +
+            '<span class="badge" style="background:'+color+'">'+esc(TICKET_PRIORITY_LABELS[item.t.priority]||'Routine')+'</span>' +
+            '<div class="open-link" onclick="openEditTicket(\''+esc(item.t.id)+'\')">Open Ticket &rarr;</div>' +
+          '</div>'
+        );
+        _tkMapMarkers.push(m);
+        bounds.push([coords.lat, coords.lng]);
+        if (bounds.length) _tkLeafletMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 13 });
+      });
+    });
+  }).catch(function(err) {
+    var canvas = document.getElementById('tk-map-canvas');
+    if (canvas) canvas.innerHTML = '<div style="padding:20px;text-align:center;color:var(--mu);font-size:12.5px">'+esc(err.message||'Map unavailable')+'</div>';
+  });
 }
 
 var PRIORITY_BORDER = {emergency:'var(--rd)', same_day:'var(--am)', routine:'var(--st)'};
