@@ -1259,6 +1259,10 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
       <div style="font-size:10.5px;color:var(--mu);margin-top:4px" id="tk-site-hint">No matching facility on file yet — this will be tracked as a new site until it's matched or created.</div>
       <div id="tk-dup-warning" style="display:none;font-size:11px;font-weight:600;color:var(--am);background:#FFF3E0;border:1.5px solid var(--am);border-radius:8px;padding:8px 10px;margin-top:6px"></div>
     </div>
+    <div class="fg">
+      <label>Project <span style="font-weight:400;color:var(--mu)">— optional, only if this call is tied to a specific project on this facility</span></label>
+      <select id="tk-project" disabled><option value="">— Pick a facility first —</option></select>
+    </div>
     <div class="r2">
       <div class="fg"><label>Contact Name</label><input type="text" id="tk-contact-name" placeholder="Who called"></div>
       <div class="fg"><label>Contact Phone</label><input type="text" id="tk-contact-phone" placeholder="(945) 555-0100"></div>
@@ -1279,7 +1283,7 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
     </div>
     <div class="fg"><label>Problem Reported *</label><textarea id="tk-problem" placeholder="e.g. RTU-2 not cooling, tripping breaker"></textarea></div>
     <div class="r2">
-      <div class="fg"><label>Scheduled Date</label><input type="date" id="tk-date"></div>
+      <div class="fg"><label>Scheduled Date</label><input type="date" id="tk-date" onchange="tkRefreshWorkload()"></div>
       <div class="fg"><label>Time Window</label>
         <select id="tk-window">
           <option value="">— Not Set —</option>
@@ -1301,7 +1305,7 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
       </div>
     </div>
     <div class="fg">
-      <label>Assigned Tech(s)</label>
+      <label>Assigned Tech(s) <span style="font-weight:400;color:var(--mu)">— ⚠ means already booked that day, tap the badge for details</span></label>
       <div id="tk-tech-chips" style="display:flex;flex-wrap:wrap;gap:6px"></div>
     </div>
     <div class="fg" id="tk-lead-fg" style="display:none">
@@ -1454,11 +1458,14 @@ var calTypeFilter = 'all';
 var calFacilitiesCache = null;
 var isTvMode = false;
 var requestingFacilityId = null;
+var requestingProjectId = null;
+var currentServiceCallsProjectFilter = '';
 
 // ── SERVICE TICKETS STATE ───────────────────────────────────────────────────
 var editingTicketId = null;
 var ticketFacilitiesCache = null;
 var ticketPickedFacilityId = null;
+var _tkWorkloadByTech = {}; // techName -> [ "site (time window)", ... ] for the currently selected tk-date
 var editingCalRequester = null;
 var editingCalContact = null;
 var editingCalOriginalStatus = null;
@@ -1623,9 +1630,22 @@ function goPage(page) {
   }
 }
 
+function ntdGotoProjectServiceCalls(facilityId, projectId) {
+  currentServiceCallsProjectFilter = projectId || '';
+  goDetail(facilityId, 'servicecalls');
+}
+function ntdSetServiceCallsProjectFilter(projectId) {
+  currentServiceCallsProjectFilter = projectId || '';
+  ntdStore.facilities.get(currentFacilityId).then(renderDetailTab);
+}
 function goDetail(facilityId, tab) {
   currentFacilityId = facilityId;
   currentDetailTab = tab || 'timeline';
+  // Only ntdGotoProjectServiceCalls sets a project filter before calling
+  // here (and it always passes tab==='servicecalls') — any other entry into
+  // Detail should start unfiltered, so a stale filter from a previous visit
+  // doesn't silently hide everything on a different facility/project.
+  if (currentDetailTab !== 'servicecalls') currentServiceCallsProjectFilter = '';
   pushRecentFac(facilityId);
   if (getUserRole() === 'field' && (currentDetailTab === 'projects' || currentDetailTab === 'quotes')) {
     currentDetailTab = 'timeline';
@@ -2072,6 +2092,7 @@ function unpinNote() {
 
 function switchDetailTab(tab) {
   currentDetailTab = tab;
+  if (tab === 'servicecalls') currentServiceCallsProjectFilter = ''; // tab-bar click always starts unfiltered; ntdGotoProjectServiceCalls sets the filter itself and doesn't go through here
   document.querySelectorAll('.sec-tab').forEach(function(t){ t.classList.remove('on'); });
   document.querySelectorAll('.sec-tab').forEach(function(b){
     if(b.getAttribute('onclick') && b.getAttribute('onclick').indexOf("'"+tab+"'") > -1) b.classList.add('on');
@@ -2652,12 +2673,50 @@ function renderDetailTab(f) {
   else if (currentDetailTab === 'servicecalls') {
     Promise.all([
       ntdStore.service_tickets ? ntdStore.service_tickets.list(function(t){ return t.facility_id === fid; }) : Promise.resolve([]),
-      ntdStore.service_records ? ntdStore.service_records.list(function(r){ return r.facility_id === fid; }) : Promise.resolve([])
+      ntdStore.service_records ? ntdStore.service_records.list(function(r){ return r.facility_id === fid; }) : Promise.resolve([]),
+      ntdStore.jobs.list(function(j){ return j.facility_id === fid && j.type === 'project'; })
     ]).then(function(results) {
-      var tickets = results[0] || [];
-      var recs = results[1] || [];
+      var allTickets = results[0] || [];
+      var allRecs = results[1] || [];
+      var projects = results[2] || [];
+
+      var projectById = {};
+      projects.forEach(function(p){ projectById[p.id] = p.name || 'Project'; });
+      var ticketById = {};
+      allTickets.forEach(function(t){ ticketById[t.id] = t; });
+
+      // Project filter — only relevant when this facility actually has more
+      // than one thing on file to tell apart; a site with 0-1 projects just
+      // sees everything, no dropdown clutter.
+      var filterHtml = '';
+      var activeFilter = currentServiceCallsProjectFilter || '';
+      if (projects.length) {
+        filterHtml = '<div class="fg" style="margin-bottom:14px"><label>Filter by Project</label>' +
+          '<select id="sc-tab-project-filter" onchange="ntdSetServiceCallsProjectFilter(this.value)">' +
+          '<option value="">All Projects &amp; General Service</option>' +
+          projects.map(function(p){ return '<option value="'+esc(p.id)+'"'+(p.id===activeFilter?' selected':'')+'>'+esc(p.name||'Project')+'</option>'; }).join('') +
+          '</select></div>';
+      } else {
+        activeFilter = ''; // nothing to filter by — ignore any stale filter state
+      }
+
+      var tickets = activeFilter ? allTickets.filter(function(t){ return t.project_id === activeFilter; }) : allTickets;
+      // A service_record has no project_id of its own — it inherits one from
+      // the ticket it closed out, if any. Standalone records (no ticket_id,
+      // filled out directly in the field) can't be attributed to a project
+      // and only show up in the unfiltered "All" view.
+      var recs = activeFilter ? allRecs.filter(function(r){
+        var t = r.ticket_id ? ticketById[r.ticket_id] : null;
+        return t && t.project_id === activeFilter;
+      }) : allRecs;
+
+      function projTag(projectId) {
+        return projectId && projectById[projectId] ? ' · <span style="color:var(--st)">'+esc(projectById[projectId])+'</span>' : '';
+      }
+
       if (!tickets.length && !recs.length) {
-        content.innerHTML = emptyState('🛠️','No service calls yet','Service and warranty call history for this site will appear here once a ticket is dispatched or a technician submits a Service Call form.');
+        content.innerHTML = filterHtml + emptyState('🛠️', activeFilter ? 'No service calls for this project' : 'No service calls yet',
+          activeFilter ? 'Nothing on file tied to this project yet.' : 'Service and warranty call history for this site will appear here once a ticket is dispatched or a technician submits a Service Call form.');
         return;
       }
 
@@ -2666,7 +2725,7 @@ function renderDetailTab(f) {
 
       var resStatusLabels = { resolved:'Resolved', follow_up:'Follow-up needed', parts_ordered:'Parts ordered', quote_needed:'Quote needed' };
 
-      var html = '';
+      var html = filterHtml;
 
       // ── Open / In Progress tickets — need attention, tap to open in Dispatch ──
       var openTix = tickets.filter(function(t){ return TICKET_OPEN_STATUSES[t.status]; })
@@ -2681,7 +2740,7 @@ function renderDetailTab(f) {
           html += '<div class="rec-row" style="cursor:pointer" onclick="openEditTicket(\''+t.id+'\')">' +
             '<div class="rec-icon am">🛠️</div>' +
             '<div class="rec-body">' +
-              '<div class="rec-title">'+esc(t.ticket_number||'Ticket')+' <span class="tk-badge tstatus-'+esc(t.status||'new')+'" style="margin-left:4px">'+esc(TICKET_STATUS_LABELS[t.status]||'New')+'</span></div>' +
+              '<div class="rec-title">'+esc(t.ticket_number||'Ticket')+' <span class="tk-badge tstatus-'+esc(t.status||'new')+'" style="margin-left:4px">'+esc(TICKET_STATUS_LABELS[t.status]||'New')+'</span>'+(activeFilter?'':projTag(t.project_id))+'</div>' +
               (t.problem_description ? '<div class="rec-sub">'+esc(t.problem_description)+'</div>' : '') +
               (meta.length ? '<div class="rec-meta">'+meta.join(' · ')+'</div>' : '') +
             '</div></div>';
@@ -2697,10 +2756,11 @@ function renderDetailTab(f) {
         completedRecs.forEach(function(r) {
           var unitTags = (r.units_serviced||[]).map(function(u){ return u.tag; }).filter(Boolean);
           var statusColor = r.resolution_status === 'resolved' || !r.resolution_status ? 'gn' : 'am';
+          var recProjectId = r.ticket_id && ticketById[r.ticket_id] ? ticketById[r.ticket_id].project_id : null;
           html += '<div class="rec-row">' +
             '<div class="rec-icon '+statusColor+'">'+(statusColor==='gn'?'✅':'⚠️')+'</div>' +
             '<div class="rec-body">' +
-              '<div class="rec-title">'+esc(r.problem_reported || 'Service Call')+'</div>' +
+              '<div class="rec-title">'+esc(r.problem_reported || 'Service Call')+(activeFilter?'':projTag(recProjectId))+'</div>' +
               '<div class="rec-sub">'+(r.date?esc(r.date):'')+(r.tech?' · '+esc(r.tech):'')+(unitTags.length?' · '+esc(unitTags.join(', ')):'')+'</div>' +
               (r.diagnosis ? '<div class="rec-meta"><b>Diagnosis:</b> '+esc(r.diagnosis)+'</div>' : '') +
               (r.work_performed ? '<div class="rec-meta"><b>Work Done:</b> '+esc(r.work_performed)+'</div>' : '') +
@@ -2722,7 +2782,7 @@ function renderDetailTab(f) {
           html += '<div class="rec-row" style="cursor:pointer" onclick="openEditTicket(\''+t.id+'\')">' +
             '<div class="rec-icon mu">🛠️</div>' +
             '<div class="rec-body">' +
-              '<div class="rec-title">'+esc(t.ticket_number||'Ticket')+' <span class="tk-badge tstatus-'+esc(t.status||'new')+'" style="margin-left:4px">'+esc(TICKET_STATUS_LABELS[t.status]||'')+'</span></div>' +
+              '<div class="rec-title">'+esc(t.ticket_number||'Ticket')+' <span class="tk-badge tstatus-'+esc(t.status||'new')+'" style="margin-left:4px">'+esc(TICKET_STATUS_LABELS[t.status]||'')+'</span>'+(activeFilter?'':projTag(t.project_id))+'</div>' +
               (t.problem_description ? '<div class="rec-sub">'+esc(t.problem_description)+'</div>' : '') +
             '</div></div>';
         });
@@ -2802,15 +2862,22 @@ function renderDetailTab(f) {
   }
 
   else if (currentDetailTab === 'projects') {
-    ntdStore.jobs.list(function(j){ return j.facility_id === fid && (j.type === 'project' || j.type === 'startup_job'); }).then(function(rows) {
+    Promise.all([
+      ntdStore.jobs.list(function(j){ return j.facility_id === fid && (j.type === 'project' || j.type === 'startup_job'); }),
+      ntdStore.service_tickets ? ntdStore.service_tickets.list(function(t){ return t.facility_id === fid && t.project_id; }) : Promise.resolve([])
+    ]).then(function(results) {
+      var rows = results[0];
+      var tickets = results[1] || [];
       var projs = rows.filter(function(j){ return j.type === 'project'; });
       var submittalCount = {};
       rows.filter(function(j){ return j.type === 'startup_job' && j.project_id; }).forEach(function(j){ submittalCount[j.project_id] = (submittalCount[j.project_id]||0) + 1; });
+      var ticketCount = {};
+      tickets.forEach(function(t){ ticketCount[t.project_id] = (ticketCount[t.project_id]||0) + 1; });
       var addBtn = '<button class="btn btn-nv" onclick="openAddProject(\''+fid+'\')" style="margin-bottom:14px">+ Add Project</button>';
       if (!projs.length) { content.innerHTML = addBtn + emptyState('📁','No projects yet','Add a project to coordinate startups, service and warranty work for this facility with the PM/Service department.'); return; }
       var html = addBtn;
       projs.sort(function(a,b){return (b.ts||0)-(a.ts||0);}).forEach(function(p) {
-        html += ntdProjectCardHTML(p, fid, submittalCount[p.id]||0);
+        html += ntdProjectCardHTML(p, fid, submittalCount[p.id]||0, ticketCount[p.id]||0);
       });
       content.innerHTML = html;
     });
@@ -3905,7 +3972,7 @@ function ntdTeamLine(label, name) {
     (d ? ' <a href="'+telHref(d.phone)+'" style="color:var(--nv);font-weight:700;text-decoration:none">📞 '+esc(d.phone)+'</a>' : '') +
     '</div>';
 }
-function ntdProjectCardHTML(p, fid, submittalCount) {
+function ntdProjectCardHTML(p, fid, submittalCount, ticketCount) {
   var isComplete = p.status === 'complete';
   var accent = isComplete ? 'var(--bd2)' : 'var(--st)';
   var phases = (Array.isArray(p.phases) ? p.phases.slice() : []).sort(function(a,b){ return (a.date||'~').localeCompare(b.date||'~'); });
@@ -3928,9 +3995,10 @@ function ntdProjectCardHTML(p, fid, submittalCount) {
           return '<div style="font-size:11px;color:var(--tx);margin-bottom:2px">🗓 '+esc(ph.label||'Phase')+(ph.date?' · <strong style="font-family:var(--font-mono)">'+esc(ntdPhaseDateLabel(ph.date))+'</strong>':'')+'</div>';
         }).join('') + (phases.length > 3 ? '<div style="font-size:10.5px;color:var(--mu)">+'+(phases.length-3)+' more phase(s)</div>' : '') + '</div>' : '') +
       (submittalCount ? '<div style="font-size:11px;color:var(--st);font-weight:600;margin-top:6px">📋 '+submittalCount+' submittal'+(submittalCount===1?'':'s')+' on file</div>' : '') +
+      (ticketCount ? '<div style="font-size:11px;color:var(--am);font-weight:600;margin-top:4px;cursor:pointer" onclick="ntdGotoProjectServiceCalls(\''+fid+'\',\''+p.id+'\')">🛠️ '+ticketCount+' service call'+(ticketCount===1?'':'s')+' on file — view →</div>' : '') +
       (p.notes ? '<div style="font-size:12px;color:var(--mu);line-height:1.5;margin-top:6px;padding-top:8px;border-top:1px solid var(--bd)">'+esc(p.notes)+'</div>' : '') +
       '<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">' +
-        '<button class="btn btn-or btn-sm" onclick="openRequestTech(\''+fid+'\')">🔧 Request Tech</button>' +
+        '<button class="btn btn-or btn-sm" onclick="openRequestTech(\''+fid+'\',\''+p.id+'\')">🔧 Request Tech</button>' +
         '<button class="btn btn-outline btn-sm" onclick="openEditProject(\''+p.id+'\',\''+fid+'\',true)">📎 Submittals/Docs</button>' +
         '<button class="btn btn-outline btn-sm" onclick="openEditProject(\''+p.id+'\',\''+fid+'\')">✏️ Edit</button>' +
         '<button class="btn btn-red btn-sm" onclick="deleteProject(\''+p.id+'\')">Delete</button>' +
@@ -5556,8 +5624,9 @@ function renderPmDueList() {
 // it's assigned, and — since completeTicket() already notifies whoever is in
 // entered_by — the requesting PM gets a real in-app notification the moment
 // a tech closes it out, automatically, with zero extra steps for dispatch.
-function openRequestTech(facilityId) {
+function openRequestTech(facilityId, projectId) {
   requestingFacilityId = facilityId;
+  requestingProjectId = projectId || null;
   document.getElementById('rm-type').value = 'job';
   document.getElementById('rm-priority').value = 'routine';
   document.getElementById('rm-date').value = fmtDateISO(new Date());
@@ -5594,6 +5663,7 @@ function saveTechRequest() {
       priority: document.getElementById('rm-priority').value,
       facility_id: requestingFacilityId,
       site_name_raw: '',
+      project_id: requestingProjectId || null,
       problem_description: (visitTag ? '[' + visitTag + '] ' : '') + note,
       scheduled_date: date,
       status: 'new',
@@ -5607,6 +5677,7 @@ function saveTechRequest() {
     closeModal('req-modal');
     showToast('Sent to Dispatch — it\'s on the ticket board now');
     refreshSchedReqBadge();
+    requestingProjectId = null;
   }).catch(function(err) {
     showToast('Error: ' + (err.message||'could not submit request'));
   });
@@ -6303,9 +6374,64 @@ function tkRenderTechChips() {
   var techs = (typeof window.NTD_FIELD_TECHS !== 'undefined') ? window.NTD_FIELD_TECHS : [];
   wrap.innerHTML = techs.map(function(t) {
     var active = _tkTechSelected.indexOf(t) > -1;
-    return '<span onclick="tkToggleTech(\''+t.replace(/'/g,"\\'")+'\')" style="cursor:pointer;padding:6px 12px;border-radius:16px;font-size:12px;font-weight:600;border:1.5px solid '+(active?'var(--nv)':'var(--bd)')+';background:'+(active?'var(--nv)':'#fff')+';color:'+(active?'#fff':'var(--tx)')+'">'+esc(t)+(active?' &times;':'')+'</span>';
+    var busy = _tkWorkloadByTech[t];
+    var busyBadge = (busy && busy.length)
+      ? ' <span title="Already booked '+esc(busy.join(', '))+'" style="color:'+(active?'#FFE0B3':'var(--am)')+'">&#9888; '+busy.length+'</span>'
+      : '';
+    return '<span onclick="tkToggleTech(\''+t.replace(/'/g,"\\'")+'\')" style="cursor:pointer;padding:6px 12px;border-radius:16px;font-size:12px;font-weight:600;border:1.5px solid '+(active?'var(--nv)':(busy&&busy.length?'var(--am)':'var(--bd)'))+';background:'+(active?'var(--nv)':'#fff')+';color:'+(active?'#fff':'var(--tx)')+'">'+esc(t)+busyBadge+(active?' &times;':'')+'</span>';
   }).join('');
   tkRenderLeadSelect();
+}
+
+// Looks up who else is already booked (via other open, non-canceled tickets)
+// on the currently selected Scheduled Date, so dispatch can see a conflict
+// before assigning a tech, not after. Re-run whenever the date changes.
+function tkRefreshWorkload() {
+  var date = (document.getElementById('tk-date')||{}).value;
+  if (!date || !ntdStore.service_tickets) { _tkWorkloadByTech = {}; tkRenderTechChips(); return; }
+  Promise.all([
+    ticketLoadFacilitiesCache(),
+    ntdStore.service_tickets.list(function(t) {
+      return t.scheduled_date === date && t.status !== 'canceled' && t.id !== editingTicketId;
+    })
+  ]).then(function(res) {
+    var facMap = {};
+    (res[0]||[]).forEach(function(f){ facMap[f.id] = f.name; });
+    _tkWorkloadByTech = {};
+    (res[1]||[]).forEach(function(t) {
+      var label = (t.facility_id ? (facMap[t.facility_id] || 'a site') : (t.site_name_raw || 'a site')) +
+        (t.time_window ? ' (' + t.time_window + ')' : '');
+      (t.assigned_techs||[]).forEach(function(name) {
+        if (!_tkWorkloadByTech[name]) _tkWorkloadByTech[name] = [];
+        _tkWorkloadByTech[name].push(label);
+      });
+    });
+    tkRenderTechChips();
+  }).catch(function(){ _tkWorkloadByTech = {}; tkRenderTechChips(); });
+}
+
+// Populates the optional Project select once a facility is picked — only
+// facilities with Projects on file will have anything to choose beyond
+// "No specific project."
+function tkLoadProjectsForFacility(facilityId, selectedProjectId) {
+  var sel = document.getElementById('tk-project');
+  if (!sel) return;
+  if (!facilityId) {
+    sel.innerHTML = '<option value="">— Pick a facility first —</option>';
+    sel.disabled = true;
+    return;
+  }
+  sel.disabled = false;
+  sel.innerHTML = '<option value="">— No specific project —</option>';
+  ntdStore.jobs.list(function(j){ return j.facility_id === facilityId && j.type === 'project'; }).then(function(rows) {
+    (rows||[]).forEach(function(p) {
+      var opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.name || 'Project';
+      if (p.id === selectedProjectId) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  }).catch(function(){});
 }
 function tkToggleTech(name) {
   var idx = _tkTechSelected.indexOf(name);
@@ -6740,9 +6866,11 @@ function openAddTicket() {
   document.getElementById('tk-problem').value = '';
   document.getElementById('tk-date').value = fmtDateISO(new Date());
   document.getElementById('tk-window').value = '';
+  tkLoadProjectsForFacility(null, null);
   _tkTechSelected = [];
   _tkLeadTech = '';
   tkRenderTechChips();
+  tkRefreshWorkload();
   document.getElementById('tk-status').value = 'new';
   document.getElementById('tk-notes').value = '';
   document.getElementById('tk-by').value = getCurrentUser() || '';
@@ -6779,6 +6907,8 @@ function openEditTicket(id) {
     _tkTechSelected = (t.assigned_techs || []).slice();
     _tkLeadTech = t.lead_tech || (t.assigned_techs && t.assigned_techs[0]) || '';
     tkRenderTechChips();
+    tkRefreshWorkload();
+    tkLoadProjectsForFacility(t.facility_id || null, t.project_id || null);
     document.getElementById('tk-status').value = t.status || 'new';
     document.getElementById('tk-notes').value = t.dispatcher_notes || '';
     document.getElementById('tk-by').value = t.entered_by || getCurrentUser() || '';
@@ -6801,6 +6931,7 @@ function saveTicket() {
     priority: document.getElementById('tk-priority').value,
     facility_id: ticketPickedFacilityId || null,
     site_name_raw: ticketPickedFacilityId ? '' : site,
+    project_id: (document.getElementById('tk-project') || {}).value || null,
     contact_name: document.getElementById('tk-contact-name').value.trim(),
     contact_phone: document.getElementById('tk-contact-phone').value.trim(),
     po_number: document.getElementById('tk-po').value.trim(),
@@ -6903,6 +7034,7 @@ function ticketPickFacility(id, name) {
   document.getElementById('tk-site-suggest').classList.remove('on');
   document.getElementById('tk-site-hint').style.display = 'none';
   ticketCheckDuplicate(id);
+  tkLoadProjectsForFacility(id, null);
 }
 
 // Warns (doesn't block) if this site already has an open ticket — dispatchers
