@@ -1100,29 +1100,20 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
 
     <div id="pm-docs-section" class="hidden">
       <div class="divider"></div>
-      <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mu);margin-bottom:10px">Submittals — Startup Jobs</div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mu);margin-bottom:10px">Submittals — Equipment Upload</div>
       <div id="pm-submittals-list" style="margin-bottom:10px"></div>
 
-      <div class="fg"><label>Paste Submittal JSON from Claude</label>
-        <textarea id="pm-submittal-json" placeholder='Paste the JSON Claude extracted from the submittal PDF here…' style="font-family:monospace;font-size:11px;min-height:80px"></textarea>
-      </div>
-      <div id="pm-submittal-err" class="banner err hidden"></div>
-      <button class="btn btn-outline" onclick="ntdPublishProjectSubmittal()" type="button">📋 Publish Submittal as Startup Job</button>
-
-      <div class="divider"></div>
       <div class="fg">
-        <label>Or paste an equipment list from Excel / a spreadsheet</label>
-        <div style="font-size:11px;color:var(--mu);margin-bottom:6px">
-          Select the cells in Excel, copy, and paste below — the columns come through automatically.
-          Typing it in by hand? Separate each value with a <strong>comma</strong> instead of spaces
-          (e.g. <code>RTU-1, RTU, MODEL-123, SN456, 5, 16x20x1, A38</code>). First row can be column
-          headers (Tag, Type, Model, Serial, Tonnage, Filter Size, Belt Size — any order) — if there's
-          no header row, that order is assumed. Using the NTD Project Equipment Template? Its
-          Economizer/Thermostat/Curb Adapter/VFD/Humidifier/Other Accessory/Additional Notes columns
-          fold themselves into a final "Notes" column by formula — paste the whole thing (including
-          that Notes column) and the accessory summary lands right on the unit's record automatically.
+        <label>Paste from the NTD Project Equipment Template</label>
+        <div style="font-size:11px;color:var(--mu);margin-bottom:6px;line-height:1.6">
+          1. Fill out the NTD Project Equipment Template — one row per unit.<br>
+          2. In Excel, select your finished rows (header row is fine to include) and copy (Ctrl/Cmd+C).<br>
+          3. Paste below (Ctrl/Cmd+V).<br>
+          4. Tap <strong>Preview Rows</strong> and check the table looks right — fix anything right there.<br>
+          5. Tap <strong>Publish</strong>. Every unit — including its accessory info — lands on this
+          project's facility right away, visible on the Units tab.
         </div>
-        <textarea id="pm-submittal-paste" placeholder="Paste copied Excel cells here…" style="font-family:monospace;font-size:11px;min-height:80px"></textarea>
+        <textarea id="pm-submittal-paste" placeholder="Paste copied Excel rows here…" style="font-family:monospace;font-size:11px;min-height:80px"></textarea>
       </div>
       <button class="btn btn-outline" onclick="ntdParseSpreadsheetPaste()" type="button">Preview Rows</button>
       <div id="pm-paste-err" class="banner err hidden"></div>
@@ -3404,19 +3395,12 @@ function ntdToggleSubmittalHidden(jobId, hideIt, projectId) {
   });
 }
 
-function ntdShowPasteErr(msg) {
-  var el = document.getElementById('pm-submittal-err');
-  el.textContent = msg;
-  el.classList.remove('hidden');
-}
-function ntdHidePasteErr() {
-  document.getElementById('pm-submittal-err').classList.add('hidden');
-}
-
-// Shared by both the JSON-paste and spreadsheet-paste publish paths.
+// Publishes a parsed equipment list (from the spreadsheet-paste box) as a new
+// startup_job + equipment records on this project's facility.
 // `data` shape: {job_name, equipment_type, manufacturer, project_number, units:[...]}
 // each unit may also include `options` — free text for per-unit special requirements
-// (e.g. "Economizer", "Powered Exhaust") that a tech needs to know before starting the unit.
+// (e.g. accessory info folded in by the NTD Project Equipment Template's Notes
+// column) that a tech needs to know before starting the unit.
 function ntdPublishSubmittalData(data) {
   var units = data.units || [];
   return ntdStore.facilities.get(editingProjectFacilityId).then(function(fac) {
@@ -3459,25 +3443,7 @@ function ntdPublishSubmittalData(data) {
   });
 }
 
-function ntdPublishProjectSubmittal() {
-  var raw = document.getElementById('pm-submittal-json').value.trim();
-  if (!raw) { ntdShowPasteErr('Paste the submittal JSON first.'); return; }
-  var data;
-  try { data = JSON.parse(raw); }
-  catch (e) { ntdShowPasteErr('Invalid JSON — check for missing commas or brackets. Error: ' + e.message); return; }
-  ntdHidePasteErr();
-  if (!editingProjectId || !editingProjectFacilityId) { ntdShowPasteErr('Save the project before publishing a submittal.'); return; }
-
-  ntdPublishSubmittalData(data).then(function(count) {
-    showToast('✓ Submittal published — ' + count + ' unit(s)');
-    document.getElementById('pm-submittal-json').value = '';
-    ntdRenderProjectSubmittals(editingProjectId, editingProjectFacilityId);
-  }).catch(function(err) {
-    ntdShowPasteErr('Publish failed: ' + (err.message || 'see console for details'));
-  });
-}
-
-// ── SPREADSHEET PASTE (no AI needed — parses tab-separated Excel paste) ────
+// ── SPREADSHEET PASTE (parses tab-separated Excel paste — the only submittal path) ─
 var _pasteRows = [];
 var PASTE_COLUMN_ALIASES = {
   tag:         ['tag','unit tag','unit','unit #','unit id'],
@@ -3936,11 +3902,10 @@ function openEditProject(id, facilityId, scrollToDocs) {
     ntdPopulateFacilityPicker(editingProjectFacilityId);
     ntdRenderFacilityEquipment(editingProjectFacilityId);
     document.getElementById('pm-docs-section').classList.remove('hidden');
-    document.getElementById('pm-submittal-json').value = '';
     document.getElementById('pm-submittal-paste').value = '';
     document.getElementById('pm-paste-preview').innerHTML = '';
     _pasteRows = [];
-    ntdHidePasteErr();
+    ntdHidePasteRowErr();
     ntdRenderProjectDocs(id);
     ntdRenderProjectSubmittals(id, editingProjectFacilityId);
     openModal('proj-modal');
