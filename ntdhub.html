@@ -1214,14 +1214,6 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
       <div class="fg"><label>Assigned Tech</label>
         <select id="cm-tech">
           <option value="">— Select Tech —</option>
-          <option value="Carlos Mendoza">Carlos Mendoza</option>
-          <option value="Conner Rouse">Conner Rouse</option>
-          <option value="Diego Preciado">Diego Preciado</option>
-          <option value="Geoff Grider">Geoff Grider</option>
-          <option value="Nicholas Hosack">Nicholas Hosack</option>
-          <option value="Raul Lopez">Raul Lopez</option>
-          <option value="Scott Adkins">Scott Adkins</option>
-          <option value="Tristan Black">Tristan Black</option>
         </select>
       </div>
     </div>
@@ -1467,9 +1459,11 @@ var requestingFacilityId = null;
 var editingTicketId = null;
 var ticketFacilitiesCache = null;
 var ticketPickedFacilityId = null;
+var editingTicketLinkedCalendarId = null;
 var editingCalRequester = null;
 var editingCalContact = null;
 var editingCalOriginalStatus = null;
+var editingCalSyncedTicketId = null;
 
 // ── USER IDENTITY (Tier 1 — device-local, no password) ─────────────────────
 var STAFF_NAMES = ['Amy Carreon','Billy Davis','Blake Orite','Cary Reese','Evyn Fairman','Jaidon Lacewell','Jason Ezell','Julie Shindoll','Kyle Mackey','Landon Cantrell','Liz Parker','Mari Torres','Toby Sharp','Valeria Ramirez','Yesenia Garcia'];
@@ -2557,14 +2551,6 @@ function renderDetailTab(f) {
         if (c.renewal_date) html += '<div style="background:'+(isExpiringSoon?'#FFF3E0':'var(--of)')+';border-radius:8px;padding:7px 9px"><div style="font-size:9px;font-weight:700;color:var(--mu);text-transform:uppercase">Renewal</div><div style="font-size:12px;font-weight:700;color:'+(isExpiringSoon?'var(--am)':'var(--tx)')+';margin-top:1px;font-family:var(--font-mono)">'+esc(c.renewal_date)+'</div></div>';
         if (schedStatus) html += '<div style="background:'+(schedStatus.urgent?'#FDEDEC':'var(--of)')+';border-radius:8px;padding:7px 9px"><div style="font-size:9px;font-weight:700;color:var(--mu);text-transform:uppercase">Next Due</div><div style="font-size:12px;font-weight:700;color:'+schedStatus.color+';margin-top:1px;font-family:var(--font-mono)">'+schedStatus.label+'</div></div>';
         html += '</div>';
-        if (c.crew && c.crew.size) {
-          var crewParts = [(c.crew.techs||0)+' tech'+((c.crew.techs===1)?'':'s')];
-          if (c.crew.helpers) crewParts.push(c.crew.helpers+' helper'+((c.crew.helpers===1)?'':'s'));
-          var crewLabel = crewParts.join(' + ');
-          if (c.crew.hrsPerVisit) crewLabel += ' · ~'+c.crew.hrsPerVisit+' hrs/visit';
-          if (c.crew.daysPerVisit) crewLabel += ' · ~'+c.crew.daysPerVisit+' day'+((c.crew.daysPerVisit===1)?'':'s')+' on site';
-          html += '<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:7px 9px;margin-bottom:6px;font-size:12px;color:var(--nv);font-weight:600">&#128119; Send: '+esc(crewLabel)+'</div>';
-        }
         if (c.scope) html += '<div style="font-size:11px;color:var(--mu);line-height:1.5;padding-top:6px;border-top:1px solid var(--bd)">'+esc(c.scope)+'</div>';
       } else {
         html += '<div style="font-size:13px;color:var(--mu)">No contract details yet. <span style="color:var(--st);cursor:pointer;font-weight:600" onclick="switchDetailTab(\'pm_contract\')">Add contract details →</span></div>';
@@ -2658,12 +2644,6 @@ function renderDetailTab(f) {
           '<div class="fg"><label>Renewal Date</label><input type="text" id="c-renew" value="'+esc(c.renewal_date||'')+'" placeholder="MM/DD/YYYY"></div>' +
         '</div>' +
         '<div class="fg"><label>Scope / Inclusions</label><textarea id="c-scope" placeholder="e.g. 35 RTUs, 2 AHUs…">'+esc(c.scope||'')+'</textarea></div>' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">' +
-          '<div class="fg"><label>Techs / Visit</label><input type="text" id="c-crew-techs" value="'+esc((c.crew&&c.crew.techs!=null)?String(c.crew.techs):'')+'" placeholder="e.g. 2"></div>' +
-          '<div class="fg"><label>Helpers / Visit</label><input type="text" id="c-crew-helpers" value="'+esc((c.crew&&c.crew.helpers!=null)?String(c.crew.helpers):'')+'" placeholder="e.g. 0"></div>' +
-          '<div class="fg"><label>Labor Hrs / Visit</label><input type="text" id="c-crew-hrs" value="'+esc((c.crew&&c.crew.hrsPerVisit!=null)?String(c.crew.hrsPerVisit):'')+'" placeholder="e.g. 11.5"></div>' +
-        '</div>' +
-        '<div style="font-size:11px;color:var(--mu);margin-top:-6px;margin-bottom:10px">From the PM Quote’s Crew Sizing card, or set manually. This is what dispatch sees when scheduling a visit.</div>' +
         '<button class="btn btn-nv" onclick="saveContract()">Save Contract</button>' +
         '</div></div>';
       content.innerHTML = html;
@@ -2707,7 +2687,6 @@ function renderDetailTab(f) {
               '<div class="rec-sub">'+esc(q.date||'')+(q.unit_count?' · '+q.unit_count+' units':'')+'</div>' +
               '<div class="rec-meta">Annual: <strong>'+esc(q.annual_total||'—')+'</strong> · Quarterly: '+esc(q.quarterly_rate||'—')+'</div>' +
               (q.margin_pct ? '<div class="rec-meta">Margin: '+esc(String(q.margin_pct))+'%'+(q.gross_margin_dollars?' ('+esc(q.gross_margin_dollars)+' gross)':'')+'</div>' : '') +
-              (q.crew && q.crew.size ? '<div class="rec-meta">Crew: '+(q.crew.techs||0)+' tech'+((q.crew.techs===1)?'':'s')+(q.crew.helpers?' + '+q.crew.helpers+' helper'+((q.crew.helpers===1)?'':'s'):'')+(q.crew.daysPerVisit?' · ~'+q.crew.daysPerVisit+' day'+((q.crew.daysPerVisit===1)?'':'s')+'/visit':'')+'</div>' : '') +
               '<div style="margin-top:6px">'+pmPdfLink+'</div>' +
               '<button class="btn btn-outline btn-sm" style="margin-top:8px" onclick="convertQuoteToProject(\'' + q.id + '\',\'pm\')">→ Set as PM Contract</button>' +
             '</div></div>';
@@ -2820,18 +2799,6 @@ function renderDetailTab(f) {
 
 function saveContract() {
   ntdStore.facilities.get(currentFacilityId).then(function(f) {
-    var existingCrew = (f.contract && f.contract.crew) || {};
-    var cTechs   = parseInt((document.getElementById('c-crew-techs')||{}).value, 10);
-    var cHelpers = parseInt((document.getElementById('c-crew-helpers')||{}).value, 10);
-    var cHrs     = parseFloat((document.getElementById('c-crew-hrs')||{}).value);
-    var hasCrewInput = !isNaN(cTechs) || !isNaN(cHelpers) || !isNaN(cHrs);
-    var techs = isNaN(cTechs) ? (existingCrew.techs || 0) : cTechs;
-    var helpers = isNaN(cHelpers) ? (existingCrew.helpers || 0) : cHelpers;
-    var crewHrs = isNaN(cHrs) ? (existingCrew.hrsPerVisit || 0) : cHrs;
-    var crewSizeTotal = techs + helpers;
-    var crewDaysPerVisit = (crewHrs && crewSizeTotal) ? Math.ceil(crewHrs / (crewSizeTotal * 8)) : (existingCrew.daysPerVisit || null);
-    var cVisitsPerYear = parseFloat((document.getElementById('c-vis')||{}).value) || null;
-    var crewDaysAnnual = (crewDaysPerVisit && cVisitsPerYear) ? crewDaysPerVisit * cVisitsPerYear : (existingCrew.daysAnnual || null);
     f.pm_contract = true;
     f.contract = {
       agreement_num:  (document.getElementById('c-agr')||{}).value  || '',
@@ -2840,14 +2807,7 @@ function saveContract() {
       visits_per_year:(document.getElementById('c-vis')||{}).value  || '',
       start_date:     (document.getElementById('c-start')||{}).value || '',
       renewal_date:   (document.getElementById('c-renew')||{}).value || '',
-      scope:          (document.getElementById('c-scope')||{}).value || '',
-      crew: (hasCrewInput || existingCrew.size) ? {
-        size: crewSizeTotal, techs: techs, helpers: helpers,
-        hrsPerVisit: crewHrs,
-        daysPerVisit: crewDaysPerVisit,
-        daysAnnual: crewDaysAnnual,
-        recommendedSize: existingCrew.recommendedSize || null
-      } : null
+      scope:          (document.getElementById('c-scope')||{}).value || ''
     };
     return ntdStore.facilities.upsert(f);
   }).then(function() {
@@ -3996,8 +3956,7 @@ function convertQuoteToProject(quoteId, quoteType) {
           visits_per_year: freqVisits[q.frequency] ? String(freqVisits[q.frequency]) : (existing.visits_per_year || ''),
           start_date:      q.date || existing.start_date || '',
           renewal_date:    existing.renewal_date || '',
-          scope:           (q.unit_count ? q.unit_count + ' units under PM contract. ' : '') + 'Converted from PM Proposal dated ' + (q.date || '') + '.',
-          crew:            q.crew || existing.crew || null
+          scope:           (q.unit_count ? q.unit_count + ' units under PM contract. ' : '') + 'Converted from PM Proposal dated ' + (q.date || '') + '.'
         };
         return ntdStore.facilities.upsert(fac);
       }).then(function() {
@@ -5705,6 +5664,23 @@ function calToggleFields() {
   if (!jobTypes[type]) document.getElementById('cm-title-suggest').classList.remove('on');
 }
 
+// Fills the Assigned Tech dropdown from the single shared roster
+// (window.NTD_FIELD_TECHS, in ntdStore.js) instead of a hardcoded list that
+// can drift out of sync with the ticket modal's tech chips and my-jobs.html's
+// tech picker. Idempotent — safe to call more than once (e.g. on every
+// modal open) since it skips work once the options are already populated.
+function cmPopulateTechOptions() {
+  var sel = document.getElementById('cm-tech');
+  if (!sel || sel.options.length > 1) return;
+  var techs = (typeof window.NTD_FIELD_TECHS !== 'undefined') ? window.NTD_FIELD_TECHS : [];
+  techs.forEach(function(name) {
+    var opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    sel.appendChild(opt);
+  });
+}
+
 function calLoadFacilitiesCache() {
   if (calFacilitiesCache) return Promise.resolve(calFacilitiesCache);
   return ntdStore.facilities.list().then(function(rows) {
@@ -5763,6 +5739,8 @@ function openAddCalEntry() {
   editingCalRequester = null;
   editingCalContact = null;
   editingCalOriginalStatus = null;
+  editingCalSyncedTicketId = null;
+  cmPopulateTechOptions();
   calToggleFields();
   openModal('cal-modal');
 }
@@ -5798,12 +5776,14 @@ function openEditCalEntry(id) {
     document.getElementById('cm-title').value = e.title || '';
     document.getElementById('cm-note').value = e.note || '';
     document.getElementById('cm-status').value = e.status || 'confirmed';
+    cmPopulateTechOptions();
     document.getElementById('cm-tech').value = e.assigned_tech || '';
     document.getElementById('cm-by').value = e.entered_by || getCurrentUser() || '';
     document.getElementById('cm-delete-btn').style.display = 'block';
     editingCalRequester = e.requested_by || null;
     editingCalContact = e.requested_by_contact || null;
     editingCalOriginalStatus = e.status || 'confirmed';
+    editingCalSyncedTicketId = e.synced_ticket_id || null;
     document.getElementById('cm-notify-btn').style.display = editingCalContact ? 'block' : 'none';
     calToggleFields();
     openModal('cal-modal');
@@ -5828,6 +5808,97 @@ function notifyRequester() {
     var digits = contact.replace(/[^\d+]/g, '');
     window.open('sms:' + digits + '&body=' + encodeURIComponent(msg), '_blank');
   }
+}
+
+// ── CALENDAR ↔ DISPATCH SYNC ─────────────────────────────────────────────────
+// my-jobs.html (the tech's "Today's Jobs" screen) reads ONLY from
+// service_tickets — it never queries team_calendar. That means a "Request
+// Tech" from a Project card (or any Job/Site Visit/PM Visit entry added
+// straight on the Calendar) shows up on the Calendar but never reaches the
+// tech's own job list, since those live in team_calendar. This keeps a
+// mirror service_tickets row in sync whenever a calendar entry is a
+// confirmed, tech-assigned job, so both views agree. Best-effort — if this
+// fails the calendar entry itself is still saved; the caller only logs it.
+// Fields BOTH sides mirror: who's assigned and when, and whether that's
+// locked in. Everything else (priority, contact info, PO#, billing type,
+// dispatcher notes, calendar title/note) belongs to whichever screen it was
+// entered on and is only ever set once, at creation — a later save on
+// either side never overwrites the other side's own fields, only these.
+function ntdCalStatusForTicket(ticketRecord) {
+  var openNonCanceled = ['scheduled','dispatched','en_route','on_site','complete','needs_follow_up','invoiced'];
+  var hasTech = ticketRecord.assigned_techs && ticketRecord.assigned_techs.length;
+  return (hasTech && openNonCanceled.indexOf(ticketRecord.status) > -1) ? 'confirmed' : 'pending';
+}
+
+function ntdSyncCalendarTicket(calRecord, calId) {
+  if (!ntdStore.service_tickets) return Promise.resolve();
+  var jobTypes = {job:1, site_visit:1, site_inspection:1, job_walk:1, pm_visit:1};
+  var shouldHaveTicket = !!(jobTypes[calRecord.entry_type] && calRecord.status === 'confirmed' && calRecord.assigned_tech);
+
+  if (!shouldHaveTicket) {
+    // No longer a confirmed, tech-assigned job (still pending, tech
+    // unassigned, or type changed) — if a ticket was synced before, pull
+    // the tech off it so it drops out of Today's Jobs. Never deletes the
+    // ticket row itself (anon key can't delete, and it preserves history);
+    // the link is kept so re-confirming reuses the same ticket number.
+    if (editingCalSyncedTicketId) {
+      return ntdStore.service_tickets.upsert({
+        id: editingCalSyncedTicketId, assigned_techs: [], lead_tech: '', status: 'canceled'
+      }).catch(function(){});
+    }
+    return Promise.resolve();
+  }
+
+  if (editingCalSyncedTicketId) {
+    // Already linked — only push the shared fields. Anything the tech or
+    // dispatcher set directly on the ticket (priority, contact info, PO#,
+    // notes) is left alone so this save doesn't stomp it.
+    return ntdStore.service_tickets.upsert({
+      id: editingCalSyncedTicketId,
+      scheduled_date: calRecord.date,
+      assigned_techs: [calRecord.assigned_tech],
+      lead_tech: calRecord.assigned_tech,
+      status: 'scheduled'
+    });
+  }
+
+  // First time this calendar entry is confirmed with a tech — create the
+  // paired ticket with its full starting details.
+  var ticketRecord = {
+    ticket_type: calRecord.entry_type === 'pm_visit' ? 'pm_visit' : 'service_call',
+    priority: 'routine',
+    facility_id: calRecord.facility_id || null,
+    site_name_raw: calRecord.facility_id ? '' : calRecord.title,
+    problem_description: calRecord.note || calRecord.title,
+    scheduled_date: calRecord.date,
+    assigned_techs: [calRecord.assigned_tech],
+    lead_tech: calRecord.assigned_tech,
+    status: 'scheduled',
+    dispatcher_notes: 'Created from a Calendar entry. Linked both ways — editing either one updates the other.',
+    entered_by: calRecord.entered_by || '',
+    linked_calendar_id: calId || '',
+    ticket_number: newTicketNumber()
+  };
+  return ntdStore.service_tickets.upsert(ticketRecord).then(function(saved) {
+    editingCalSyncedTicketId = (saved && saved.id) || null;
+    if (editingCalSyncedTicketId && calId) {
+      return ntdStore.team_calendar.upsert({ id: calId, synced_ticket_id: editingCalSyncedTicketId });
+    }
+  });
+}
+
+// The reverse direction — a ticket that was created from (or later linked
+// to) a Calendar entry pushes its own date/tech/status back onto that
+// calendar row when saved directly from the Dispatch board, so editing
+// either screen keeps both in sync instead of only Calendar → Ticket.
+function ntdSyncTicketCalendar(ticketRecord, calId) {
+  if (!ntdStore.team_calendar || !calId) return Promise.resolve();
+  return ntdStore.team_calendar.upsert({
+    id: calId,
+    date: ticketRecord.scheduled_date || '',
+    assigned_tech: ticketRecord.lead_tech || '',
+    status: ntdCalStatusForTicket(ticketRecord)
+  }).catch(function(){});
 }
 
 function saveCalEntry() {
@@ -5855,12 +5926,18 @@ function saveCalEntry() {
 
   var justConfirmed = jobTypes[type] && editingCalOriginalStatus === 'pending' && record.status === 'confirmed' && editingCalRequester;
 
-  ntdStore.team_calendar.upsert(record).then(function() {
+  ntdStore.team_calendar.upsert(record).then(function(saved) {
+    var calId = editingCalId || (saved && saved.id) || null;
     closeModal('cal-modal');
     showToast('Saved');
     if (justConfirmed) {
       var msg = 'Your tech request for ' + title + ' on ' + date + ' is confirmed' + (record.assigned_tech ? ' — ' + record.assigned_tech + ' is assigned.' : '.');
       createNotification(editingCalRequester, msg, editingCalId, 'schedule_confirmed');
+    }
+    if (calId) {
+      ntdSyncCalendarTicket(record, calId).catch(function(err) {
+        console.error('ntdSyncCalendarTicket failed:', err);
+      });
     }
     renderCalendarWeek();
     refreshSchedReqBadge();
@@ -5873,6 +5950,11 @@ function saveCalEntry() {
 function deleteCalEntry() {
   if (!editingCalId) return;
   if (!confirm('Delete this entry?')) return;
+  if (editingCalSyncedTicketId && ntdStore.service_tickets) {
+    ntdStore.service_tickets.upsert({
+      id: editingCalSyncedTicketId, assigned_techs: [], lead_tech: '', status: 'canceled'
+    }).catch(function(){});
+  }
   ntdStore.team_calendar.delete(editingCalId).then(function() {
     closeModal('cal-modal');
     showToast('Deleted');
@@ -6582,6 +6664,7 @@ function openAddTicket() {
   editingTicketId = null;
   ticketFacilitiesCache = null;
   ticketPickedFacilityId = null;
+  editingTicketLinkedCalendarId = null;
   _tkPendingFollowup = null;
   document.getElementById('tk-site-suggest').classList.remove('on');
   document.getElementById('ticket-modal-title').textContent = 'New Ticket';
@@ -6613,6 +6696,7 @@ function openEditTicket(id) {
     editingTicketId = id;
     ticketFacilitiesCache = null;
     ticketPickedFacilityId = t.facility_id || null;
+    editingTicketLinkedCalendarId = t.linked_calendar_id || null;
     _tkPendingFollowup = null;
     document.getElementById('tk-site-suggest').classList.remove('on');
     document.getElementById('ticket-modal-title').textContent = t.ticket_number || 'Edit Ticket';
@@ -6704,6 +6788,14 @@ function saveTicket() {
         createNotification(t, 'New ticket assigned: ' + site + ' — ' + problem.slice(0, 80), record.id || '', 'ticket_assigned');
       });
     }
+    // If this ticket originated from (or is linked to) a Calendar entry,
+    // push the date/tech/status back onto it — see ntdSyncTicketCalendar.
+    // Keeps editing either screen in sync instead of only Calendar → Ticket.
+    if (editingTicketLinkedCalendarId) {
+      ntdSyncTicketCalendar(record, editingTicketLinkedCalendarId).catch(function(err) {
+        console.error('ntdSyncTicketCalendar failed:', err);
+      });
+    }
     _tkPendingFollowup = null;
     _tkLastData = null;
     renderTicketsList();
@@ -6715,6 +6807,11 @@ function saveTicket() {
 function deleteTicket() {
   if (!editingTicketId) return;
   if (!confirm('Delete this ticket?')) return;
+  if (editingTicketLinkedCalendarId && ntdStore.team_calendar) {
+    ntdStore.team_calendar.upsert({
+      id: editingTicketLinkedCalendarId, status: 'pending', assigned_tech: ''
+    }).catch(function(){});
+  }
   ntdStore.service_tickets.delete(editingTicketId).then(function() {
     closeModal('ticket-modal');
     showToast('Deleted');
@@ -6966,6 +7063,7 @@ function ntdStartApp() {
   try { refreshSchedReqBadge(); } catch(e) { console.error('refreshSchedReqBadge failed:', e); }
   try { initTvModeIfRequested(); } catch(e) { console.error('initTvModeIfRequested failed:', e); }
   try { applyRoleGating(); } catch(e) { console.error('applyRoleGating failed:', e); }
+  try { cmPopulateTechOptions(); } catch(e) { console.error('cmPopulateTechOptions failed:', e); }
 
   var tvRequested = (new URLSearchParams(window.location.search)).get('tv') === '1';
   if (!tvRequested) {
