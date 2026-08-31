@@ -1330,7 +1330,10 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
   </div>
 </div>
 
-<!-- REQUEST TECH MODAL (used from a Project card) -->
+<!-- REQUEST TECH MODAL (used from a Project card) — submits straight into the
+     real Dispatch ticket board (service_tickets), same as a ticket entered
+     from Schedule → Tickets, so it's immediately schedulable and the
+     requester gets an automatic in-app notification when a tech closes it out. -->
 <div class="modal-overlay" id="req-modal">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
@@ -1339,18 +1342,28 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
       <label>Facility</label>
       <div style="font-size:14px;font-weight:700;color:var(--nv);padding:4px 0" id="req-fac-name"></div>
     </div>
-    <div class="fg">
-      <label>Visit Type</label>
-      <select id="rm-type">
-        <option value="job">Job — tech(s) needed on-site</option>
-        <option value="site_visit">Site Visit</option>
-        <option value="site_inspection">Site Inspection</option>
-      </select>
+    <div class="r2">
+      <div class="fg">
+        <label>Visit Type</label>
+        <select id="rm-type">
+          <option value="job">Job — tech(s) needed on-site</option>
+          <option value="site_visit">Site Visit</option>
+          <option value="site_inspection">Site Inspection</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Priority</label>
+        <select id="rm-priority">
+          <option value="routine">Routine</option>
+          <option value="same_day">Same Day</option>
+          <option value="emergency">Emergency</option>
+        </select>
+      </div>
     </div>
     <div class="fg"><label>Date Needed *</label><input type="date" id="rm-date"></div>
     <div class="fg"><label>What's needed *</label><textarea id="rm-note" placeholder="e.g. RTU-3 down, no cooling — need tech ASAP"></textarea></div>
     <div class="fg"><label>Requested By</label><input type="text" id="rm-by" placeholder="Your name"></div>
-    <div class="fg"><label>Your Phone or Email <span style="font-size:9px;font-weight:400;color:var(--mu);text-transform:none">(so ops can notify you when confirmed)</span></label><input type="text" id="rm-contact" placeholder="e.g. (945) 555-0100 or you@ntdmechanical.com"></div>
+    <div class="fg"><label>Your Phone or Email <span style="font-size:9px;font-weight:400;color:var(--mu);text-transform:none">(optional — for dispatch's reference)</span></label><input type="text" id="rm-contact" placeholder="e.g. (945) 555-0100 or you@ntdmechanical.com"></div>
     <button class="btn btn-nv" onclick="saveTechRequest()">Submit Request</button>
     <button class="btn btn-outline" onclick="closeModal('req-modal')" style="margin-top:6px">Cancel</button>
   </div>
@@ -5471,7 +5484,7 @@ function renderRequestsList() {
     if (!pending.length) {
       wrap.innerHTML = scope === 'mine'
         ? emptyState('✅','Nothing here', 'You haven\'t submitted any tech requests that are still pending.')
-        : emptyState('✅','No pending requests','Tech requests submitted from a Project will show up here for confirmation.');
+        : emptyState('✅','No pending requests','A PM\'s "Request a Tech" now goes straight to the Tickets board (New column) instead of landing here — check Tickets for anything needing dispatch. This tab still catches any older manual calendar entries left in Pending status.');
       return;
     }
 
@@ -5533,9 +5546,20 @@ function renderPmDueList() {
 }
 
 // ── REQUEST TECH (from a Project card) ──────────────────────────────────────
+// Was writing to team_calendar (a "pending request" holding area completely
+// disconnected from the real dispatch pipeline — a confirmed calendar entry
+// never showed up in a tech's My Jobs, never got a ?ticket= deep link, and
+// closing it out only fired a manual mailto/sms popup for ops to remember to
+// send). Now it writes straight into service_tickets, same table the office
+// Dispatch board reads and writes — so a PM's request is immediately visible
+// on the board, assignable to a tech, reaches that tech's My Jobs the moment
+// it's assigned, and — since completeTicket() already notifies whoever is in
+// entered_by — the requesting PM gets a real in-app notification the moment
+// a tech closes it out, automatically, with zero extra steps for dispatch.
 function openRequestTech(facilityId) {
   requestingFacilityId = facilityId;
   document.getElementById('rm-type').value = 'job';
+  document.getElementById('rm-priority').value = 'routine';
   document.getElementById('rm-date').value = fmtDateISO(new Date());
   document.getElementById('rm-note').value = '';
   document.getElementById('rm-by').value = getCurrentUser() || '';
@@ -5551,6 +5575,8 @@ function openRequestTech(facilityId) {
   openModal('req-modal');
 }
 
+var RM_TYPE_TAG = { site_visit: 'Site Visit', site_inspection: 'Site Inspection' }; // 'job' needs no tag — it's the default ask
+
 function saveTechRequest() {
   var date = document.getElementById('rm-date').value;
   var note = document.getElementById('rm-note').value.trim();
@@ -5558,21 +5584,28 @@ function saveTechRequest() {
   if (!note) { showToast('Please describe what\'s needed'); return; }
   if (!requestingFacilityId) { showToast('Missing facility — please try again'); return; }
 
+  var visitTag = RM_TYPE_TAG[document.getElementById('rm-type').value] || '';
+  var requestedBy = document.getElementById('rm-by').value.trim();
+  var requesterContact = document.getElementById('rm-contact').value.trim();
+
   ntdStore.facilities.get(requestingFacilityId).then(function(f) {
     var record = {
-      entry_type: document.getElementById('rm-type').value,
-      date: date,
-      title: (f && f.name) || 'Facility',
-      note: note,
+      ticket_type: 'service_call',
+      priority: document.getElementById('rm-priority').value,
       facility_id: requestingFacilityId,
-      status: 'pending',
-      requested_by: document.getElementById('rm-by').value.trim(),
-      requested_by_contact: document.getElementById('rm-contact').value.trim()
+      site_name_raw: '',
+      problem_description: (visitTag ? '[' + visitTag + '] ' : '') + note,
+      scheduled_date: date,
+      status: 'new',
+      assigned_techs: [],
+      entered_by: requestedBy,
+      dispatcher_notes: 'Submitted from Project card' + (requesterContact ? ' — requester reachable at ' + requesterContact : ''),
+      ticket_number: newTicketNumber()
     };
-    return ntdStore.team_calendar.upsert(record);
+    return ntdStore.service_tickets.upsert(record);
   }).then(function() {
     closeModal('req-modal');
-    showToast('Request submitted — ops will confirm');
+    showToast('Sent to Dispatch — it\'s on the ticket board now');
     refreshSchedReqBadge();
   }).catch(function(err) {
     showToast('Error: ' + (err.message||'could not submit request'));
@@ -6215,6 +6248,16 @@ function notifItemClick(notifId, relatedId) {
           if (doc.file_url) window.open(doc.file_url, '_blank');
         }
       });
+      return;
+    }
+    // Ticket-related notifications carry a service_tickets id, not a
+    // team_calendar id — route those into the ticket edit modal instead of
+    // trying (and silently failing) to open a nonexistent calendar entry.
+    var TICKET_NOTIF_TYPES = { ticket_completed:1, ticket_en_route:1, ticket_assigned:1 };
+    if (n && TICKET_NOTIF_TYPES[n.type] && relatedId) {
+      currentScheduleView = 'tickets';
+      goPage('schedule');
+      setTimeout(function(){ openEditTicket(relatedId); }, 200);
       return;
     }
     if (relatedId) {
