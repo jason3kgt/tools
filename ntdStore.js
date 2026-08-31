@@ -846,10 +846,33 @@ var ntdStore = {
   // each carry their own copy of this logic. patch can include any
   // service_tickets column — status, facility_id, linked_job_id,
   // linked_record_id, resolution_summary, follow_up_needed, follow_up_note.
+  // Also notifies whoever entered the ticket (dispatcher/PM) that it's done —
+  // every field tool gets this for free since they all route through here.
   completeTicket: function(ticketId, patch) {
     if (!ticketId || !this.service_tickets) return Promise.resolve(null);
-    var record = Object.assign({ id: ticketId, status: 'complete' }, patch || {});
-    return this.service_tickets.upsert(record).catch(function(err) {
+    var serviceTickets = this.service_tickets;
+    var notifications = this.notifications;
+    return serviceTickets.get(ticketId).then(function(existing) {
+      var record = Object.assign({ id: ticketId, status: 'complete' }, patch || {});
+      return serviceTickets.upsert(record).then(function(saved) {
+        if (existing && existing.entered_by && notifications) {
+          var siteLabel = existing.site_name_raw || existing.ticket_number || 'a job';
+          var techLabel = (existing.assigned_techs && existing.assigned_techs.length) ? existing.assigned_techs.join(', ') : 'A tech';
+          var isFollowUp = record.status === 'needs_follow_up';
+          var msg = techLabel + ' ' + (isFollowUp ? 'finished at ' : 'completed ') + (existing.ticket_number || siteLabel) +
+            (record.resolution_summary ? ' — ' + record.resolution_summary : '') +
+            (isFollowUp ? ' (needs follow-up)' : '');
+          notifications.upsert({
+            recipient_name: existing.entered_by,
+            message: msg,
+            related_id: ticketId,
+            type: 'ticket_completed',
+            read: false
+          }).catch(function(){});
+        }
+        return saved;
+      });
+    }).catch(function(err) {
       console.warn('[NTD] completeTicket failed (field record was still saved):', err.message || err);
       return null;
     });
