@@ -1244,8 +1244,9 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
     <div class="r2">
       <div class="fg">
         <label>Ticket Type</label>
-        <select id="tk-type">
+        <select id="tk-type" onchange="if(this.value==='warranty') document.getElementById('tk-billing').value='warranty'; tkRenderCrewHint();">
           <option value="service_call">Service Call</option>
+          <option value="warranty">Warranty</option>
           <option value="pm_visit">PM Visit</option>
           <option value="startup">Startup</option>
           <option value="survey">Equipment Survey</option>
@@ -1312,6 +1313,9 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
         </select>
       </div>
     </div>
+    <div class="fg" id="tk-crew-hint-fg" style="display:none">
+      <div style="background:#EAF1FA;border:1.5px solid var(--nv);border-radius:8px;padding:8px 10px;font-size:12px;color:var(--nv);font-weight:600">📋 PM Contract staffing: <span id="tk-crew-hint-text" style="font-weight:400"></span></div>
+    </div>
     <div class="fg">
       <label>Assigned Tech(s) <span style="font-weight:400;color:var(--mu)">— ⚠ means already booked that day, tap the badge for details</span></label>
       <div id="tk-tech-chips" style="display:flex;flex-wrap:wrap;gap:6px"></div>
@@ -1377,6 +1381,7 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
         <label>Visit Type</label>
         <select id="rm-type">
           <option value="job">Job — tech(s) needed on-site</option>
+          <option value="warranty">Warranty Callback</option>
           <option value="site_visit">Site Visit</option>
           <option value="site_inspection">Site Inspection</option>
         </select>
@@ -2646,6 +2651,8 @@ function renderDetailTab(f) {
         var details = [];
         if (c.frequency) details.push(esc(c.frequency));
         if (c.visits_per_year) details.push(esc(c.visits_per_year)+' visits/yr');
+        if (c.crew_size) details.push(esc(c.crew_size)+' tech'+(c.crew_size=='1'?'':'s')+'/visit');
+        if (c.est_hours) details.push('~'+esc(c.est_hours)+' hrs/visit');
         if (c.agreement_num) details.push('#'+esc(c.agreement_num));
         if (details.length) html += '<div style="font-size:12px;color:var(--mu);margin-bottom:8px">'+details.join(' · ')+'</div>';
         html += '<div style="display:grid;grid-template-columns:1fr 1fr'+(schedStatus?' 1fr':'')+ ';gap:6px;margin-bottom:6px">';
@@ -2744,6 +2751,10 @@ function renderDetailTab(f) {
         '<div class="r2">' +
           '<div class="fg"><label>Contract Start</label><input type="text" id="c-start" value="'+esc(c.start_date||'')+'" placeholder="MM/DD/YYYY"></div>' +
           '<div class="fg"><label>Renewal Date</label><input type="text" id="c-renew" value="'+esc(c.renewal_date||'')+'" placeholder="MM/DD/YYYY"></div>' +
+        '</div>' +
+        '<div class="r2">' +
+          '<div class="fg"><label>Techs / Helpers Needed</label><input type="text" id="c-crew" value="'+esc(c.crew_size||'')+'" placeholder="e.g. 2"></div>' +
+          '<div class="fg"><label>Est. Hours Per Visit</label><input type="text" id="c-hrs" value="'+esc(c.est_hours||'')+'" placeholder="e.g. 6"></div>' +
         '</div>' +
         '<div class="fg"><label>Scope / Inclusions</label><textarea id="c-scope" placeholder="e.g. 35 RTUs, 2 AHUs…">'+esc(c.scope||'')+'</textarea></div>' +
         '<button class="btn btn-nv" onclick="saveContract()">Save Contract</button>' +
@@ -3017,6 +3028,8 @@ function saveContract() {
       visits_per_year:(document.getElementById('c-vis')||{}).value  || '',
       start_date:     (document.getElementById('c-start')||{}).value || '',
       renewal_date:   (document.getElementById('c-renew')||{}).value || '',
+      crew_size:      (document.getElementById('c-crew')||{}).value || '',
+      est_hours:      (document.getElementById('c-hrs')||{}).value  || '',
       scope:          (document.getElementById('c-scope')||{}).value || ''
     };
     return ntdStore.facilities.upsert(f);
@@ -5917,13 +5930,15 @@ function saveTechRequest() {
   if (!note) { showToast('Please describe what\'s needed'); return; }
   if (!requestingFacilityId) { showToast('Missing facility — please try again'); return; }
 
-  var visitTag = RM_TYPE_TAG[document.getElementById('rm-type').value] || '';
+  var rmType = document.getElementById('rm-type').value;
+  var isWarranty = rmType === 'warranty';
+  var visitTag = RM_TYPE_TAG[rmType] || '';
   var requestedBy = document.getElementById('rm-by').value.trim();
   var requesterContact = document.getElementById('rm-contact').value.trim();
 
   ntdStore.facilities.get(requestingFacilityId).then(function(f) {
     var record = {
-      ticket_type: 'service_call',
+      ticket_type: isWarranty ? 'warranty' : 'service_call',
       priority: document.getElementById('rm-priority').value,
       facility_id: requestingFacilityId,
       site_name_raw: '',
@@ -5933,6 +5948,7 @@ function saveTechRequest() {
       status: 'new',
       assigned_techs: [],
       entered_by: requestedBy,
+      billing_type: isWarranty ? 'warranty' : undefined,
       dispatcher_notes: 'Submitted from Project card' + (requesterContact ? ' — requester reachable at ' + requesterContact : ''),
       ticket_number: newTicketNumber()
     };
@@ -6605,7 +6621,7 @@ function notifItemClick(notifId, relatedId) {
 }
 
 // ── SERVICE TICKETS (DISPATCH BOARD) ────────────────────────────────────────
-var TICKET_TYPE_LABELS = {service_call:'Service Call', pm_visit:'PM Visit', startup:'Startup', survey:'Equipment Survey'};
+var TICKET_TYPE_LABELS = {service_call:'Service Call', warranty:'Warranty', pm_visit:'PM Visit', startup:'Startup', survey:'Equipment Survey'};
 var TICKET_PRIORITY_LABELS = {emergency:'Emergency', same_day:'Same Day', routine:'Routine'};
 var BILLING_TYPE_LABELS = {standard:'Standard', 't&m':'T&M', contract_pm:'Contract PM', quoted:'Quoted', warranty:'Warranty', quote_pending:'Quote Pending'};
 function tkWarrantyBadgeHTML(billingType) {
@@ -7174,6 +7190,7 @@ function openAddTicket() {
   document.getElementById('tk-delete-btn').style.display = 'none';
   document.getElementById('tk-photos-fg').style.display = 'none';
   document.getElementById('tk-photos-hint').style.display = 'block';
+  document.getElementById('tk-crew-hint-fg').style.display = 'none';
   openModal('ticket-modal');
 }
 
@@ -7215,6 +7232,7 @@ function openEditTicket(id) {
     document.getElementById('tk-photos-fg').style.display = 'block';
     document.getElementById('tk-photos-hint').style.display = 'none';
     tkRenderTicketPhotos(id);
+    tkRenderCrewHint();
     openModal('ticket-modal');
   }).catch(function(err) {
     showToast(err.message || 'Could not load ticket');
@@ -7405,6 +7423,30 @@ function ticketPickFacility(id, name) {
   document.getElementById('tk-site-hint').style.display = 'none';
   ticketCheckDuplicate(id);
   tkLoadProjectsForFacility(id, null);
+  tkRenderCrewHint();
+}
+
+// Surfaces the PM Contract's staffing estimate (techs/helpers + est. hours,
+// set on the facility's PM Contract tab) right on the dispatch ticket, so
+// whoever's scheduling a PM Visit doesn't have to go dig it up separately —
+// e.g. Paradox Church's contract says 2 techs / ~6 hrs, this shows it the
+// moment that facility + PM Visit type are both selected.
+function tkRenderCrewHint() {
+  var fg = document.getElementById('tk-crew-hint-fg');
+  var isPmVisit = document.getElementById('tk-type').value === 'pm_visit';
+  if (!isPmVisit || !ticketPickedFacilityId || typeof ntdStore === 'undefined') {
+    fg.style.display = 'none';
+    return;
+  }
+  ntdStore.facilities.get(ticketPickedFacilityId).then(function(f) {
+    var c = (f && f.contract) || {};
+    if (!c.crew_size && !c.est_hours) { fg.style.display = 'none'; return; }
+    var bits = [];
+    if (c.crew_size) bits.push(c.crew_size + ' tech' + (c.crew_size == '1' ? '' : 's'));
+    if (c.est_hours) bits.push('~' + c.est_hours + ' hrs');
+    document.getElementById('tk-crew-hint-text').textContent = bits.join(' · ');
+    fg.style.display = 'block';
+  }).catch(function() { fg.style.display = 'none'; });
 }
 
 // Warns (doesn't block) if this site already has an open ticket — dispatchers
