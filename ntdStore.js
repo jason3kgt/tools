@@ -521,7 +521,7 @@ var _exportImport = {
 // in each tool) AND the central Photo Hub page in ntd-hub.html. Both paths
 // funnel through here so every photo gets a `documents` row and is browsable
 // by facility, without changing how/when the underlying file gets uploaded.
-var NTD_PHOTO_FORM_TYPES = ['facility_photo','unit_photo','data_plate_photo','site_photo'];
+var NTD_PHOTO_FORM_TYPES = ['facility_photo','unit_photo','data_plate_photo','site_photo','ticket_photo'];
 
 function _photoSignedUrl(path) {
   return fetch(SUPABASE_URL + '/storage/v1/object/sign/ntd-files/' + path, {
@@ -573,8 +573,13 @@ var ntdPhotos = {
     });
   },
 
-  // Manual upload from the Photo Hub's "+ Add Photo" flow. facilityId is
-  // optional — omit it for an "Unassigned" photo the user can tag later.
+  // Manual upload from the Photo Hub's "+ Add Photo" flow — also reused by
+  // ntd-hub.html's ticket Photos section and my-jobs.html's quick job-card
+  // photo button, both passing formType:'ticket_photo' and jobId: the
+  // ticket's id so the photo shows up in that ticket's own photo list (and
+  // still browsable centrally via the Photo Hub, since 'ticket_photo' is in
+  // NTD_PHOTO_FORM_TYPES). facilityId is optional — omit it for an
+  // "Unassigned" photo the user can tag later.
   upload: function(params) {
     if (!params || !params.blob) return Promise.reject(new Error('blob is required'));
     var slug = (params.facilityName || 'unassigned')
@@ -584,7 +589,7 @@ var ntdPhotos = {
       return _photoSignedUrl(path).then(function(signedUrl) {
         return _sb.upsert('documents', {
           facility_id: params.facilityId || null,
-          job_id:      null,
+          job_id:      params.jobId || null,
           equipment_id: params.equipmentId || null,
           form_type:   params.formType || 'facility_photo',
           description: params.description || 'Photo',

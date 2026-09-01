@@ -2924,6 +2924,21 @@ function ljApplyUnit(job, unit){
     }, 300);
   }
 
+  // Pre-fill belt size if set on the unit — same submittal field
+  // (u.belt_size) that filter size above already reads, just never applied
+  // to the RTU/AHU "Belt Qty / Size" text field until now. It saved fine
+  // before this fix, it just didn't show back up on load.
+  var beltSize = unit.belt_size || '';
+  if(beltSize){
+    setTimeout(function(){
+      ['rtu_blt','ahu_blt'].forEach(function(fid){
+        var el = document.getElementById(fid);
+        if(!el || el.value) return; // don't overwrite something already typed
+        el.value = beltSize;
+      });
+    }, 300);
+  }
+
   // Show preloaded banner and collapse the Load Job card
   var preloaded = document.getElementById('lj_preloaded');
   preloaded.innerHTML = '\u2713 Loaded: ' + esc2(job.name||'') + ' \u2014 ' + esc2(unit.tag||'') +

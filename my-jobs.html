@@ -158,6 +158,12 @@ textarea{resize:vertical;min-height:70px}
 .job-num{font-size:10px;color:var(--mu);font-weight:700;margin-top:2px}
 .job-meta-row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
 .job-desc{font-size:13px;color:var(--tx);line-height:1.5;margin-bottom:10px}
+.job-dispatch-notes{background:#FFF4EC;border:1.5px solid var(--or);border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:12.5px;color:var(--tx);line-height:1.5;white-space:pre-wrap}
+.job-dispatch-notes b{color:var(--or);display:block;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
+.mj-photo-strip{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.mj-photo-thumb{width:44px;height:44px;border-radius:7px;overflow:hidden;flex-shrink:0;display:block;border:1.5px solid var(--bd)}
+.mj-photo-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.mj-photo-add{width:44px;height:44px;border-radius:7px;border:1.5px dashed var(--nv);display:flex;align-items:center;justify-content:center;color:var(--nv);font-size:16px;cursor:pointer;flex-shrink:0;background:#fff;touch-action:manipulation}
 .job-actions{display:flex;gap:8px;flex-wrap:wrap}
 .job-actions .btn{flex:1;min-width:110px;padding:11px;border-radius:9px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;touch-action:manipulation;text-align:center;border:none}
 .btn-start{background:var(--or);color:#fff}
@@ -223,6 +229,7 @@ textarea{resize:vertical;min-height:70px}
 </div>
 
 </div>
+<input type="file" id="mj-photo-input" accept="image/*" capture="environment" style="display:none">
 <script>
 function esc(s){ return (s||'').toString().replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function createNotification(recipientName, message, relatedId, type) {
@@ -236,6 +243,28 @@ function createNotification(recipientName, message, relatedId, type) {
   }).catch(function(err) { console.error('createNotification failed:', err); });
 }
 function fmtDateISO(d){ function p(n){return n<10?'0'+n:''+n;} return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
+
+// Notifies whoever entered the ticket AND, if it's tied to a Project, that
+// project's assigned PM — so a PM hears about activity on their own project
+// even when they weren't the one who happened to create the ticket. Dedupes
+// so the same person never gets double-notified.
+function notifyTicketStakeholders(existing, message, relatedId, type) {
+  if (!existing) return Promise.resolve();
+  var recipients = {};
+  if (existing.entered_by) recipients[existing.entered_by] = true;
+  function fire() {
+    return Promise.all(Object.keys(recipients).map(function(name) {
+      return createNotification(name, message, relatedId, type);
+    }));
+  }
+  if (existing.project_id && typeof ntdStore !== 'undefined' && ntdStore.jobs) {
+    return ntdStore.jobs.get(existing.project_id).then(function(proj) {
+      if (proj && proj.assigned_pm) recipients[proj.assigned_pm] = true;
+      return fire();
+    }).catch(function() { return fire(); });
+  }
+  return fire();
+}
 
 var TICKET_TYPE_LABELS = {service_call:'Service Call', pm_visit:'PM Visit', startup:'Startup', survey:'Equipment Survey'};
 var TICKET_PRIORITY_LABELS = {emergency:'Emergency', same_day:'Same Day', routine:'Routine'};
@@ -251,6 +280,83 @@ var TICKET_TOOL_MAP = {
   survey:'equipment-survey.html'
 };
 var TICKET_OPEN_STATUSES = {new:1, scheduled:1, dispatched:1, en_route:1, on_site:1, needs_follow_up:1};
+
+// ── QUICK TICKET PHOTOS ──────────────────────────────────────────────────
+// Lets a tech snap a photo straight from the job card (e.g. on arrival,
+// before doing anything else) without opening the full completion form —
+// separate from service-call.html's own before/after job photos, which are
+// part of the resolution paperwork at the END of a call. These are stored
+// the same way (documents table, via ntdStore.photos.upload) with
+// form_type 'ticket_photo' and job_id = the ticket's id, so dispatch can
+// see them too from the ticket's photo section in NTD Hub.
+var _mjTicketById = {};   // populated each mjRenderJobs() pass, read by the file input's change handler
+var _mjFacMap = {};
+var _mjPhotosByTicket = {};
+var _mjPhotoUploading = {};
+
+function mjCompressImage(file, maxDim, quality) {
+  maxDim = maxDim || 1600; quality = quality || 0.75;
+  return new Promise(function(resolve, reject) {
+    var url = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function() {
+      URL.revokeObjectURL(url);
+      var w = img.width, h = img.height;
+      if (w > maxDim || h > maxDim) {
+        if (w >= h) { h = Math.round(h*maxDim/w); w = maxDim; }
+        else { w = Math.round(w*maxDim/h); h = maxDim; }
+      }
+      var canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      if (canvas.toBlob) {
+        canvas.toBlob(function(blob){ resolve(blob); }, 'image/jpeg', quality);
+      } else {
+        resolve(null);
+      }
+    };
+    img.onerror = function(e) { URL.revokeObjectURL(url); reject(e); };
+    img.src = url;
+  });
+}
+
+function mjPickPhoto(ticketId) {
+  var input = document.getElementById('mj-photo-input');
+  input.setAttribute('data-ticket', ticketId);
+  input.click();
+}
+
+document.getElementById('mj-photo-input').addEventListener('change', function() {
+  var file = this.files[0];
+  var ticketId = this.getAttribute('data-ticket');
+  this.value = '';
+  if (!file || !ticketId) return;
+  var t = _mjTicketById[ticketId];
+  if (!t || typeof ntdStore === 'undefined' || !ntdStore.photos) return;
+  var fac = t.facility_id ? _mjFacMap[t.facility_id] : null;
+  var facName = fac ? fac.name : (t.site_name_raw || '');
+  _mjPhotoUploading[ticketId] = true;
+  mjRenderJobs();
+  mjCompressImage(file, 1600, 0.75).then(function(blob) {
+    if (!blob) throw new Error('Could not process photo');
+    return ntdStore.photos.upload({
+      blob: blob,
+      facilityId: t.facility_id || null,
+      facilityName: facName,
+      jobId: ticketId,
+      formType: 'ticket_photo',
+      description: 'Ticket photo — ' + (t.ticket_number || ''),
+      tech: mjGetTech() || ''
+    });
+  }).then(function() {
+    delete _mjPhotoUploading[ticketId];
+    mjRenderJobs();
+  }).catch(function(err) {
+    delete _mjPhotoUploading[ticketId];
+    mjRenderJobs();
+    alert('Photo upload failed: ' + (err.message || 'please try again'));
+  });
+});
 
 function mjGetTech() {
   try { return localStorage.getItem('ntdFieldTechName') || null; } catch(e) { return null; }
@@ -315,6 +421,9 @@ function mjRenderJobs() {
     ntdStore.facilities.list().then(function(facs) {
       var facMap = {};
       (facs||[]).forEach(function(f){ facMap[f.id] = f; });
+      _mjFacMap = facMap;
+      _mjTicketById = {};
+      mine.forEach(function(t){ _mjTicketById[t.id] = t; });
 
       var recPromise = doneToday.length
         ? Promise.all([
@@ -325,7 +434,22 @@ function mjRenderJobs() {
           ])
         : Promise.resolve([[],[],[],[]]);
 
-      recPromise.then(function(results) {
+      // Quick photos a tech snapped straight from the job card (see the
+      // QUICK TICKET PHOTOS block above) — fetched alongside the completed-
+      // job PDF lookups so one query covers both, then grouped by ticket.
+      var photoPromise = (mine.length && ntdStore.documents)
+        ? ntdStore.documents.list(function(d){ return d.form_type === 'ticket_photo'; })
+        : Promise.resolve([]);
+
+      Promise.all([recPromise, photoPromise]).then(function(both) {
+        var results = both[0];
+        var photoRows = both[1] || [];
+        _mjPhotosByTicket = {};
+        photoRows.forEach(function(d) {
+          if (!d.job_id) return;
+          if (!_mjPhotosByTicket[d.job_id]) _mjPhotosByTicket[d.job_id] = [];
+          _mjPhotosByTicket[d.job_id].push(d);
+        });
         var serviceRecs = results[0] || [], pmRecs = results[1] || [], startupRecs = results[2] || [], jobs = results[3] || [];
         var recByTicket = {};
         serviceRecs.forEach(function(r){ if (r.ticket_id) recByTicket[r.ticket_id] = r; });
@@ -376,7 +500,14 @@ function mjRenderJobs() {
                 (isMultiTech ? '<span class="status-badge" style="background:var(--of);color:var(--tx)">👥 '+esc((t.assigned_techs||[]).join(', '))+'</span>' : '') +
               '</div>' +
               (t.problem_description ? '<div class="job-desc">'+esc(t.problem_description)+'</div>' : '') +
+              (t.dispatcher_notes ? '<div class="job-dispatch-notes"><b>Notes from Dispatch</b>'+esc(t.dispatcher_notes)+'</div>' : '') +
               (isMultiTech && !isLead ? '<div class="job-desc" style="color:var(--mu);font-style:italic">Lead: '+esc(t.lead_tech)+' — they\'ll fill out the paperwork on this one.</div>' : '') +
+              '<div class="mj-photo-strip">' +
+                (_mjPhotosByTicket[t.id] || []).map(function(p) {
+                  return '<a class="mj-photo-thumb" href="'+esc(p.file_url)+'" target="_blank" rel="noopener"><img src="'+esc(p.file_url)+'" alt="Ticket photo"></a>';
+                }).join('') +
+                '<div class="mj-photo-add" onclick="mjPickPhoto(\''+esc(t.id)+'\')" title="Add photo">'+(_mjPhotoUploading[t.id] ? '…' : '📷')+'</div>' +
+              '</div>' +
               '<div class="job-actions">' +
                 (isLead ? '<button type="button" class="btn btn-start" onclick="location.href=\''+tool+'?ticket='+esc(t.id)+'\'">Start Job</button>' : '') +
                 (t.status !== 'dispatched' && t.status !== 'en_route' ? '<button type="button" class="btn btn-status" onclick="mjSetStatus(\''+esc(t.id)+'\',\'en_route\')">On My Way</button>' : '') +
@@ -403,7 +534,7 @@ function mjRenderJobs() {
           return '<div class="done-row"><span class="done-site">'+esc(siteName)+'</span>' + right + '</div>';
         }).join('');
       }
-      }); // end recPromise.then
+      }); // end Promise.all([recPromise, photoPromise]).then
     });
   }).catch(function(err) {
     wrap.innerHTML = '<div class="empty">Couldn\'t load your jobs — ' + esc(err.message||'please try again') + '</div>';
@@ -418,9 +549,9 @@ function mjSetStatus(ticketId, status) {
     : Promise.resolve(null);
   notifyEnRoute.then(function(existing) {
     return ntdStore.service_tickets.upsert({ id: ticketId, status: status }).then(function() {
-      if (existing && existing.entered_by) {
+      if (existing) {
         var siteLabel = existing.site_name_raw || existing.ticket_number || 'a job';
-        createNotification(existing.entered_by, (name || 'A tech') + ' is on the way to ' + (existing.ticket_number || siteLabel), ticketId, 'ticket_en_route');
+        notifyTicketStakeholders(existing, (name || 'A tech') + ' is on the way to ' + (existing.ticket_number || siteLabel), ticketId, 'ticket_en_route');
       }
     });
   }).then(function() {
@@ -453,9 +584,7 @@ function mjDeclineJob(ticketId) {
       declined_by: name || '',
       declined_reason: reason || ''
     }).then(function() {
-      if (t.entered_by) {
-        createNotification(t.entered_by, (name||'A tech') + ' declined ' + (t.ticket_number||siteLabel) + (reason ? ' — ' + reason : ''), ticketId, 'ticket_declined');
-      }
+      notifyTicketStakeholders(t, (name||'A tech') + ' declined ' + (t.ticket_number||siteLabel) + (reason ? ' — ' + reason : ''), ticketId, 'ticket_declined');
     });
   }).then(function() {
     mjRenderJobs();

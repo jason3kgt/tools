@@ -798,6 +798,7 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
       <option value="unit_photo">Unit</option>
       <option value="data_plate_photo">Data Plate</option>
       <option value="site_photo">Site</option>
+      <option value="ticket_photo">Ticket</option>
     </select>
   </div>
   <button class="btn btn-nv" style="width:100%;margin-bottom:12px" onclick="openAddHubPhoto()">📷 Add Photo</button>
@@ -1334,10 +1335,28 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
       </select>
     </div>
     <div class="fg"><label>Dispatcher Notes</label><textarea id="tk-notes" placeholder="Internal notes — shown to the assigned tech, not the customer"></textarea></div>
+    <div class="fg" id="tk-photos-fg" style="display:none">
+      <label>Photos</label>
+      <div id="tk-photos-wrap" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"></div>
+      <button type="button" class="btn-outline" onclick="document.getElementById('tk-photo-input').click()">📷 Add Photo</button>
+    </div>
+    <div class="fg" id="tk-photos-hint" style="display:none"><span style="font-size:11px;color:var(--mu)">Save the ticket, then reopen it to attach photos.</span></div>
     <div class="fg"><label>Entered By</label><select id="tk-by"><option value="">— Select —</option></select></div>
     <button class="btn btn-nv" onclick="saveTicket()">Save Ticket</button>
     <button class="btn btn-outline" onclick="closeModal('ticket-modal')" style="margin-top:6px">Cancel</button>
     <button class="btn btn-red" id="tk-delete-btn" style="display:none" onclick="deleteTicket()">Delete Ticket</button>
+  </div>
+</div>
+<input type="file" id="tk-photo-input" accept="image/*" multiple style="display:none">
+
+<div class="modal-overlay" id="warranty-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🛡️ Equipment Warranty</div>
+    <div class="fg"><label>Expiration Date</label><input type="date" id="wm-date"></div>
+    <div class="fg"><label>Notes <span style="font-size:9px;font-weight:400;color:var(--mu);text-transform:none">(optional — e.g. compound terms like "5yr compressor, 1yr parts/labor")</span></label><textarea id="wm-notes" placeholder="e.g. 5yr compressor, 1yr parts/labor"></textarea></div>
+    <button class="btn btn-nv" onclick="saveEquipWarranty()">Save</button>
+    <button class="btn btn-outline" onclick="closeModal('warranty-modal')" style="margin-top:6px">Cancel</button>
   </div>
 </div>
 
@@ -2397,6 +2416,23 @@ function renderDetailTab(f) {
     return;
   }
 
+  // Equipment warranty-expiration badge for a unit row on the Units tab —
+  // green while still covered, muted grey once it's passed, nothing at all
+  // if never set. `warranty_expiration`/`warranty_notes` are new equipment
+  // columns (see the SQL note in the delivery — this needed an actual
+  // schema change, unlike almost everything else built today, since there
+  // was no existing field to repurpose for it).
+  function ntdWarrantyBadgeHTML(e) {
+    if (!e.warranty_expiration) return '';
+    var exp = new Date(e.warranty_expiration + 'T00:00:00');
+    if (isNaN(exp.getTime())) return '';
+    var active = exp >= new Date();
+    return '<div class="rec-meta" style="color:'+(active?'var(--gn)':'var(--mu)')+';font-weight:600">' +
+      (active ? '🛡️ Under warranty until ' : '🛡️ Warranty expired ') + esc(e.warranty_expiration) +
+      (e.warranty_notes ? ' — ' + esc(e.warranty_notes) : '') +
+    '</div>';
+  }
+
   if (currentDetailTab === 'equipment') {
     Promise.all([
       ntdStore.equipment.list(function(e){ return e.facility_id === fid; }),
@@ -2532,6 +2568,8 @@ function renderDetailTab(f) {
             (e.pm_covered ? '<div class="rec-meta" style="color:var(--nv);font-weight:600">PM Covered' + (e.pm_frequency?' · '+esc(e.pm_frequency):'') + '</div>' : '') +
             (e.repl_cost ? '<div class="rec-meta">Est. replacement: $'+Math.round(e.repl_cost).toLocaleString()+(e.repl_year?' · Year '+e.repl_year:'')+'</div>' : '') +
             (e.notes ? '<div class="rec-meta" style="margin-top:3px">'+esc(e.notes)+'</div>' : '') +
+            ntdWarrantyBadgeHTML(e) +
+            '<div class="rec-meta"><span class="ntd-edit-warranty" data-id="'+esc(e.id)+'" data-exp="'+esc(e.warranty_expiration||'')+'" data-notes="'+esc(e.warranty_notes||'')+'" style="cursor:pointer;color:var(--st);font-weight:600;font-size:11px">🛡️ '+(e.warranty_expiration?'Edit':'Set')+' Warranty</span></div>' +
             histHtml +
             photoHtml +
           '</div></div>';
@@ -3154,7 +3192,7 @@ function ntdRenderSitePlans(facilityId) {
 
 // ── PHOTO HUB (central, cross-facility) ────────────────────────────────────
 var NTD_PH_TYPE_LABELS = {
-  facility_photo: 'Facility', unit_photo: 'Unit', data_plate_photo: 'Data Plate', site_photo: 'Site'
+  facility_photo: 'Facility', unit_photo: 'Unit', data_plate_photo: 'Data Plate', site_photo: 'Site', ticket_photo: 'Ticket'
 };
 
 function compressImage(file,maxDim,quality){
@@ -4812,6 +4850,38 @@ function ntdMarkWarrantyPartOrdered(recordId) {
     if (currentFacilityId) ntdStore.facilities.get(currentFacilityId).then(renderDetailTab);
   }).catch(function(err) {
     showToast('Error: ' + (err.message || 'could not update'));
+  });
+}
+
+// ── EQUIPMENT WARRANTY (per-unit, set/edited from the Units tab) ───────────
+// Distinct from a service call's warranty-PART tracking above — this is
+// whether the UNIT ITSELF is still under its original install/manufacturer
+// warranty, so anyone (not just whoever's staring at a ticket) can see it at
+// a glance. There's no field-tool capture UI for this yet (equipment rows
+// are otherwise only ever written by the field tools/submittal publishing) —
+// deliberately scoped to just this one entry point for now rather than
+// threading a new field through every tool that touches equipment.
+var _wmEquipId = null;
+function openEquipWarranty(equipId, expiration, notes) {
+  _wmEquipId = equipId;
+  document.getElementById('wm-date').value = expiration || '';
+  document.getElementById('wm-notes').value = notes || '';
+  openModal('warranty-modal');
+}
+function saveEquipWarranty() {
+  if (!_wmEquipId) return;
+  var exp = document.getElementById('wm-date').value;
+  var notes = document.getElementById('wm-notes').value.trim();
+  ntdStore.equipment.upsert({
+    id: _wmEquipId,
+    warranty_expiration: exp || null,
+    warranty_notes: notes
+  }).then(function() {
+    closeModal('warranty-modal');
+    showToast('✓ Warranty saved');
+    if (currentFacilityId) ntdStore.facilities.get(currentFacilityId).then(renderDetailTab);
+  }).catch(function(err) {
+    showToast('Error: ' + (err.message || 'could not save — has the warranty_expiration column been added yet?'));
   });
 }
 
@@ -7102,6 +7172,8 @@ function openAddTicket() {
   ntdPopulateStaffSelect('tk-by');
   document.getElementById('tk-by').value = getCurrentUser() || '';
   document.getElementById('tk-delete-btn').style.display = 'none';
+  document.getElementById('tk-photos-fg').style.display = 'none';
+  document.getElementById('tk-photos-hint').style.display = 'block';
   openModal('ticket-modal');
 }
 
@@ -7140,11 +7212,70 @@ function openEditTicket(id) {
     document.getElementById('tk-notes').value = t.dispatcher_notes || '';
     ntdSetStaffSelectValue('tk-by', t.entered_by || getCurrentUser() || '');
     document.getElementById('tk-delete-btn').style.display = 'block';
+    document.getElementById('tk-photos-fg').style.display = 'block';
+    document.getElementById('tk-photos-hint').style.display = 'none';
+    tkRenderTicketPhotos(id);
     openModal('ticket-modal');
   }).catch(function(err) {
     showToast(err.message || 'Could not load ticket');
   });
 }
+
+// ── TICKET PHOTOS (dispatcher-attached, on the ticket itself) ──────────────
+// Separate from a tech's own before/after job photos captured at completion
+// time in service-call.html — these are reference photos (e.g. a picture a
+// customer texted in of the problem) attached when a ticket is scheduled or
+// edited, and are also where my-jobs.html's quick job-card photo button
+// writes to. Both share form_type 'ticket_photo' + job_id = the ticket's id
+// via the shared ntdStore.photos.upload() helper. Only available once a
+// ticket has an id (i.e. already saved once) — see the tk-photos-hint copy.
+function tkRenderTicketPhotos(ticketId) {
+  var wrap = document.getElementById('tk-photos-wrap');
+  if (!wrap) return;
+  wrap.innerHTML = '<div style="font-size:11px;color:var(--mu)">Loading…</div>';
+  ntdStore.documents.list(function(d){ return d.job_id === ticketId && d.form_type === 'ticket_photo'; }).then(function(docs) {
+    if (!docs.length) { wrap.innerHTML = '<div style="font-size:11px;color:var(--mu)">No photos yet.</div>'; return; }
+    wrap.innerHTML = docs.map(function(d) {
+      return '<a href="'+esc(d.file_url)+'" target="_blank" rel="noopener" style="display:block;width:56px;height:56px;border-radius:8px;overflow:hidden;border:1.5px solid var(--bd);flex-shrink:0">' +
+        '<img src="'+esc(d.file_url)+'" alt="Ticket photo" style="width:100%;height:100%;object-fit:cover;display:block"></a>';
+    }).join('');
+  }).catch(function() {
+    wrap.innerHTML = '<div style="font-size:11px;color:var(--mu)">Could not load photos.</div>';
+  });
+}
+document.getElementById('tk-photo-input').addEventListener('change', function() {
+  var files = Array.prototype.slice.call(this.files || []);
+  this.value = '';
+  if (!files.length || !editingTicketId) return;
+  var ticketId = editingTicketId;
+  var ticketNum = document.getElementById('ticket-modal-title').textContent || '';
+  var facIdSnapshot = ticketPickedFacilityId || null;
+  var siteNameSnapshot = document.getElementById('tk-site').value.trim();
+  var facNamePromise = facIdSnapshot
+    ? ntdStore.facilities.get(facIdSnapshot).then(function(f){ return f ? f.name : siteNameSnapshot; }).catch(function(){ return siteNameSnapshot; })
+    : Promise.resolve(siteNameSnapshot);
+  facNamePromise.then(function(facName) {
+    return Promise.all(files.map(function(file) {
+      return compressImage(file, 1600, 0.75).then(function(result) {
+        return ntdStore.photos.upload({
+          blob: result.blob,
+          facilityId: facIdSnapshot,
+          facilityName: facName || '',
+          jobId: ticketId,
+          formType: 'ticket_photo',
+          description: 'Ticket photo — ' + ticketNum,
+          tech: getCurrentUser() || ''
+        });
+      });
+    }));
+  }).then(function() {
+    showToast('✓ Photo' + (files.length > 1 ? 's' : '') + ' added');
+    tkRenderTicketPhotos(ticketId);
+  }).catch(function(err) {
+    showToast('Photo upload failed: ' + (err.message || 'please try again'));
+    tkRenderTicketPhotos(ticketId);
+  });
+});
 
 function saveTicket() {
   var site = document.getElementById('tk-site').value.trim();
@@ -7300,6 +7431,13 @@ document.addEventListener('click', function(e) {
   var orderedBtn = e.target.closest('.ntd-mark-warranty-ordered');
   if (orderedBtn) {
     ntdMarkWarrantyPartOrdered(orderedBtn.getAttribute('data-id'));
+    return;
+  }
+  // Set/edit a unit's own warranty expiration — checked before .ntd-goto for
+  // the same reason as the buttons above.
+  var warrantyEditBtn = e.target.closest('.ntd-edit-warranty');
+  if (warrantyEditBtn) {
+    openEquipWarranty(warrantyEditBtn.getAttribute('data-id'), warrantyEditBtn.getAttribute('data-exp'), warrantyEditBtn.getAttribute('data-notes'));
     return;
   }
   // Resolve/reopen a follow-up — checked before .ntd-goto below so tapping
