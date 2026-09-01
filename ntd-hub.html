@@ -513,6 +513,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .status-chip.pto{background:#E8F0FA;color:var(--nv)}
 .status-chip.sick{background:#FDEDEC;color:var(--rd)}
 .status-chip.ooo{background:#F0F0F0;color:var(--mu)}
+.status-chip.training{background:#F3EBFA;color:var(--pu)}
 .cal-job-row{display:flex;align-items:flex-start;gap:8px;padding:6px 0;cursor:pointer}
 .cal-job-dot{width:7px;height:7px;border-radius:50%;background:var(--or);margin-top:6px;flex-shrink:0}
 .cal-job-dot.pending{background:var(--am)}
@@ -1174,6 +1175,7 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
         <option value="pto">PTO</option>
         <option value="sick">Sick</option>
         <option value="ooo">Out of Office</option>
+        <option value="training">Training</option>
       </select>
     </div>
     <div class="fg"><label>Date</label><input type="date" id="cm-date"></div>
@@ -5786,7 +5788,7 @@ function renderCalendarWeek() {
       { key:'all',      label:'All',           accent:'var(--nv)' },
       { key:'requests', label:'Jobs & Requests',accent:'var(--or)' },
       { key:'pm',       label:'PM Due',        accent:'var(--rd)' },
-      { key:'status',   label:'Out / PTO',     accent:'var(--st)' }
+      { key:'status',   label:'Out / PTO / Training', accent:'var(--st)' }
     ];
     filterEl.innerHTML = filters.map(function(f) {
       return '<button class="cal-filter-chip'+(calTypeFilter===f.key?' on':'')+'" style="--accent:'+f.accent+'" onclick="setCalTypeFilter(\''+f.key+'\')"><span class="dot" style="background:'+(calTypeFilter===f.key?'#fff':f.accent)+'"></span>'+f.label+'</button>';
@@ -5828,7 +5830,7 @@ function renderCalendarWeek() {
     function renderDayCard(d, slim) {
       var iso = fmtDateISO(d);
       var dayEntries = (all||[]).filter(function(e){ return e.date === iso; });
-      var statusEntries = calTypeFilter==='all'||calTypeFilter==='status' ? dayEntries.filter(function(e){ return e.entry_type==='pto'||e.entry_type==='sick'||e.entry_type==='ooo'; }) : [];
+      var statusEntries = calTypeFilter==='all'||calTypeFilter==='status' ? dayEntries.filter(function(e){ return e.entry_type==='pto'||e.entry_type==='sick'||e.entry_type==='ooo'||e.entry_type==='training'; }) : [];
       var jobEntries = calTypeFilter==='all'||calTypeFilter==='requests' ? dayEntries.filter(function(e){ return e.entry_type==='job'||e.entry_type==='site_visit'||e.entry_type==='site_inspection'||e.entry_type==='job_walk'; }) : [];
       var pmVisitEntries = calTypeFilter==='all'||calTypeFilter==='pm' ? dayEntries.filter(function(e){ return e.entry_type==='pm_visit'; }) : [];
       var pmEntries = calTypeFilter==='all'||calTypeFilter==='pm' ? (pmByDate[iso] || []) : [];
@@ -5853,7 +5855,7 @@ function renderCalendarWeek() {
         out += '<div class="cal-section-lbl">Out Today</div><div class="chip-row">';
         statusEntries.forEach(function(e) {
           out += '<span class="status-chip '+e.entry_type+'" onclick="openEditCalEntry(\''+e.id+'\')">'+
-            (e.entry_type==='pto'?'🏖️':e.entry_type==='sick'?'🤒':'🚫')+' '+esc(e.title)+'</span>';
+            (e.entry_type==='pto'?'🏖️':e.entry_type==='sick'?'🤒':e.entry_type==='training'?'🎓':'🚫')+' '+esc(e.title)+'</span>';
         });
         out += '</div>';
       }
@@ -5912,7 +5914,7 @@ function renderCalendarWeek() {
 
     function dayHasVisibleEntries(iso) {
       var has = false;
-      if (calTypeFilter==='all'||calTypeFilter==='status') has = has || (all||[]).some(function(e){ return e.date===iso && (e.entry_type==='pto'||e.entry_type==='sick'||e.entry_type==='ooo'); });
+      if (calTypeFilter==='all'||calTypeFilter==='status') has = has || (all||[]).some(function(e){ return e.date===iso && (e.entry_type==='pto'||e.entry_type==='sick'||e.entry_type==='ooo'||e.entry_type==='training'); });
       if (calTypeFilter==='all'||calTypeFilter==='requests') has = has || (all||[]).some(function(e){ return e.date===iso && (e.entry_type==='job'||e.entry_type==='site_visit'||e.entry_type==='site_inspection'||e.entry_type==='job_walk'); });
       if (calTypeFilter==='all'||calTypeFilter==='pm') has = has || !!(pmByDate[iso] && pmByDate[iso].length) || (all||[]).some(function(e){ return e.date===iso && e.entry_type==='pm_visit'; });
       return has;
@@ -6438,6 +6440,9 @@ function newTicketNumber() {
 // ── ASSIGNED TECH(S) — multi-select chips ────────────────────────────────
 var _tkTechSelected = [];
 var _tkLeadTech = '';
+var _tkOutByTech = {};
+var TK_OUT_LABELS = { pto:'PTO', sick:'Sick', ooo:'Out of Office', training:'Training' };
+
 function tkRenderTechChips() {
   var wrap = document.getElementById('tk-tech-chips');
   if (!wrap) return;
@@ -6445,25 +6450,33 @@ function tkRenderTechChips() {
   wrap.innerHTML = techs.map(function(t) {
     var active = _tkTechSelected.indexOf(t) > -1;
     var busy = _tkWorkloadByTech[t];
-    var busyBadge = (busy && busy.length)
-      ? ' <span title="Already booked '+esc(busy.join(', '))+'" style="color:'+(active?'#FFE0B3':'var(--am)')+'">&#9888; '+busy.length+'</span>'
-      : '';
-    return '<span onclick="tkToggleTech(\''+t.replace(/'/g,"\\'")+'\')" style="cursor:pointer;padding:6px 12px;border-radius:16px;font-size:12px;font-weight:600;border:1.5px solid '+(active?'var(--nv)':(busy&&busy.length?'var(--am)':'var(--bd)'))+';background:'+(active?'var(--nv)':'#fff')+';color:'+(active?'#fff':'var(--tx)')+'">'+esc(t)+busyBadge+(active?' &times;':'')+'</span>';
+    var outLabel = _tkOutByTech[t];
+    var badge = outLabel
+      ? ' <span title="Marked '+esc(outLabel)+' on this date — check the calendar before assigning" style="color:'+(active?'#FFD6D6':'var(--rd)')+'">&#128683; '+esc(outLabel)+'</span>'
+      : (busy && busy.length)
+        ? ' <span title="Already booked '+esc(busy.join(', '))+'" style="color:'+(active?'#FFE0B3':'var(--am)')+'">&#9888; '+busy.length+'</span>'
+        : '';
+    var borderClr = active ? 'var(--nv)' : (outLabel ? 'var(--rd)' : (busy&&busy.length?'var(--am)':'var(--bd)'));
+    return '<span onclick="tkToggleTech(\''+t.replace(/'/g,"\\'")+'\')" style="cursor:pointer;padding:6px 12px;border-radius:16px;font-size:12px;font-weight:600;border:1.5px solid '+borderClr+';background:'+(active?'var(--nv)':'#fff')+';color:'+(active?'#fff':'var(--tx)')+'">'+esc(t)+badge+(active?' &times;':'')+'</span>';
   }).join('');
   tkRenderLeadSelect();
 }
 
 // Looks up who else is already booked (via other open, non-canceled tickets)
+// AND who's marked out (PTO/Sick/Out of Office/Training on the team calendar)
 // on the currently selected Scheduled Date, so dispatch can see a conflict
 // before assigning a tech, not after. Re-run whenever the date changes.
 function tkRefreshWorkload() {
   var date = (document.getElementById('tk-date')||{}).value;
-  if (!date || !ntdStore.service_tickets) { _tkWorkloadByTech = {}; tkRenderTechChips(); return; }
+  if (!date || !ntdStore.service_tickets) { _tkWorkloadByTech = {}; _tkOutByTech = {}; tkRenderTechChips(); return; }
   Promise.all([
     ticketLoadFacilitiesCache(),
     ntdStore.service_tickets.list(function(t) {
       return t.scheduled_date === date && t.status !== 'canceled' && t.id !== editingTicketId;
-    })
+    }),
+    ntdStore.team_calendar ? ntdStore.team_calendar.list(function(e) {
+      return e.date === date && (e.entry_type==='pto'||e.entry_type==='sick'||e.entry_type==='ooo'||e.entry_type==='training');
+    }) : Promise.resolve([])
   ]).then(function(res) {
     var facMap = {};
     (res[0]||[]).forEach(function(f){ facMap[f.id] = f.name; });
@@ -6476,8 +6489,19 @@ function tkRefreshWorkload() {
         _tkWorkloadByTech[name].push(label);
       });
     });
+    // Match calendar "Out" entries to the tech roster by name — the calendar's
+    // Name field is free text, so match case-insensitively against the known
+    // field tech list rather than requiring an exact-cased match.
+    _tkOutByTech = {};
+    var techs = (typeof window.NTD_FIELD_TECHS !== 'undefined') ? window.NTD_FIELD_TECHS : [];
+    (res[2]||[]).forEach(function(e) {
+      var nameLc = (e.title||'').trim().toLowerCase();
+      if (!nameLc) return;
+      var match = techs.filter(function(t){ return t.toLowerCase() === nameLc; })[0];
+      if (match) _tkOutByTech[match] = TK_OUT_LABELS[e.entry_type] || 'Out';
+    });
     tkRenderTechChips();
-  }).catch(function(){ _tkWorkloadByTech = {}; tkRenderTechChips(); });
+  }).catch(function(){ _tkWorkloadByTech = {}; _tkOutByTech = {}; tkRenderTechChips(); });
 }
 
 // Populates the optional Project select once a facility is picked — only
