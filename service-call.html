@@ -147,6 +147,8 @@ textarea{resize:vertical;min-height:70px}
 .ticket-banner{background:#EEF3FB;border:1.5px solid var(--nv);border-radius:12px;padding:12px 14px;margin-bottom:12px}
 .ticket-banner-title{font-size:13px;font-weight:700;color:var(--nv)}
 .ticket-banner-sub{font-size:11px;color:var(--mu);margin-top:3px;line-height:1.5}
+.ticket-banner-dispatch-notes{background:#FFF4EC;border:1.5px solid var(--or);border-radius:8px;padding:8px 10px;margin-top:8px;font-size:12px;color:var(--tx);line-height:1.5;white-space:pre-wrap}
+.ticket-banner-dispatch-notes b{color:var(--or);display:block;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
 .site-hint{font-size:10.5px;color:var(--mu);margin-top:4px}
 .site-hint.matched{color:var(--gn);font-weight:600}
 .site-hint.new{color:var(--am);font-weight:600}
@@ -154,6 +156,7 @@ textarea{resize:vertical;min-height:70px}
 .part-row input[type=text]:first-child{flex:1}
 .part-row input[type=text]:nth-child(2){width:64px;text-align:center}
 .part-row .rmv{background:none;border:none;color:var(--rd);font-size:18px;font-weight:700;cursor:pointer;padding:0 4px;font-family:inherit}
+.part-warranty-lbl{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--mu);white-space:nowrap;flex-shrink:0}
 .eq-check-row{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--of)}
 .eq-check-row:last-child{border-bottom:none}
 .eq-check-row input[type=checkbox]{width:18px;height:18px;flex-shrink:0}
@@ -304,9 +307,10 @@ textarea{resize:vertical;min-height:70px}
       <option value="needs_follow_up">Needs Follow-Up</option>
       <option value="needs_parts">Needs Parts</option>
       <option value="needs_quote">Needs Quote</option>
+      <option value="needs_warranty_part">Needs Warranty Part</option>
     </select>
   </div>
-  <div class="fg" id="sc-followup-fg" style="display:none"><label>Follow-Up Note</label><textarea id="sc-followup-note" placeholder="What's needed next"></textarea></div>
+  <div class="fg" id="sc-followup-fg" style="display:none"><label id="sc-followup-lbl">Follow-Up Note</label><textarea id="sc-followup-note" placeholder="What's needed next"></textarea></div>
 </div></div>
 
 <div class="card"><div class="ch"><span class="cn">9</span><h2>Customer Sign-Off</h2></div><div class="cb">
@@ -357,12 +361,13 @@ function scRenderParts() {
     return '<div class="part-row">' +
       '<input type="text" placeholder="Part / description" value="'+esc(p.description)+'" oninput="scUpdatePart('+p.id+',\'description\',this.value)">' +
       '<input type="text" placeholder="Qty" value="'+esc(p.qty)+'" oninput="scUpdatePart('+p.id+',\'qty\',this.value)">' +
+      '<label class="part-warranty-lbl"><input type="checkbox" '+(p.warranty?'checked':'')+' onchange="scUpdatePart('+p.id+',\'warranty\',this.checked)"> Warranty</label>' +
       '<button type="button" class="rmv" onclick="scRemovePart('+p.id+')">&times;</button>' +
     '</div>';
   }).join('');
 }
 function scAddPart() {
-  parts.push({ id: partUid++, description: '', qty: '' });
+  parts.push({ id: partUid++, description: '', qty: '', warranty: false });
   scRenderParts();
 }
 function scUpdatePart(id, field, val) {
@@ -378,6 +383,10 @@ function scRemovePart(id) {
 function scToggleFollowup() {
   var val = gv('sc-resolution');
   document.getElementById('sc-followup-fg').style.display = (val === 'resolved') ? 'none' : 'block';
+  var lbl = document.getElementById('sc-followup-lbl');
+  var note = document.getElementById('sc-followup-note');
+  if (lbl) lbl.textContent = (val === 'needs_warranty_part') ? 'Warranty Part Needed — describe it' : 'Follow-Up Note';
+  if (note) note.placeholder = (val === 'needs_warranty_part') ? 'Part name/number, and mark it in the Parts list below so it\'s tracked' : "What's needed next";
 }
 
 // ── FACILITY LOOKUP + EQUIPMENT ─────────────────────────────────────────
@@ -459,7 +468,7 @@ function scRenderSiteHistory(facility, jobs, pmRecs, startups, serviceRecs, docs
   jobs.forEach(function(j){ if (j.type !== 'project') visits.push({ ts:j.ts||0, label: j.type==='survey'?'Equipment Survey':j.type==='startup_job'?'Startup Job':(j.type||'Visit'), tech:j.tech||'' }); });
   pmRecs.forEach(function(p){ visits.push({ ts:p.ts||0, label:'PM Visit', tech:p.tech||'' }); });
   startups.forEach(function(s){ visits.push({ ts:s.ts||0, label:'Startup', tech:s.tech||'' }); });
-  var resLabels = { resolved:'Resolved', follow_up:'Follow-up needed', parts_ordered:'Parts ordered', quote_needed:'Quote needed' };
+  var resLabels = { resolved:'Resolved', needs_follow_up:'Follow-up needed', needs_parts:'Parts needed', needs_quote:'Quote needed', needs_warranty_part:'Warranty part needed', warranty_part_ordered:'Warranty part ordered' };
   serviceRecs.forEach(function(r){
     var lbl = 'Service Call' + (r.problem_reported ? ' — ' + r.problem_reported.slice(0,60) : '');
     if (r.resolution_status && r.resolution_status !== 'resolved') lbl += ' (' + (resLabels[r.resolution_status] || r.resolution_status) + ')';
@@ -776,6 +785,7 @@ function scLoadTicket() {
     banner.innerHTML = '<div class="ticket-banner">' +
       '<div class="ticket-banner-title">Working ticket ' + esc(t.ticket_number || '') + '</div>' +
       '<div class="ticket-banner-sub">Submitting this form will mark the ticket complete.</div>' +
+      (t.dispatcher_notes ? '<div class="ticket-banner-dispatch-notes"><b>Notes from Dispatch</b>' + esc(t.dispatcher_notes) + '</div>' : '') +
     '</div>';
     if (t.facility_id) {
       ntdStore.facilities.get(t.facility_id).then(function(f) {
@@ -872,7 +882,7 @@ function scDownloadPDF() {
       section('Parts Used');
       parts.forEach(function(p) {
         if (!p.description) return;
-        line(p.qty ? ('Qty '+p.qty) : 'Part', p.description);
+        line(p.qty ? ('Qty '+p.qty) : 'Part', p.description + (p.warranty ? ' [WARRANTY]' : ''));
       });
       y += 6; checkPage();
     }
@@ -901,7 +911,7 @@ function scDownloadPDF() {
     }
 
     section('Resolution');
-    var resLabels = {resolved:'Resolved', needs_follow_up:'Needs Follow-Up', needs_parts:'Needs Parts', needs_quote:'Needs Quote'};
+    var resLabels = {resolved:'Resolved', needs_follow_up:'Needs Follow-Up', needs_parts:'Needs Parts', needs_quote:'Needs Quote', needs_warranty_part:'Needs Warranty Part'};
     line('Status', resLabels[gv('sc-resolution')] || 'Resolved');
     line('Follow-Up', gv('sc-followup-note'));
     y += 6; checkPage();
@@ -994,7 +1004,8 @@ function scSubmitToStore(pdfBlob) {
           linked_record_id: saved && saved.id,
           resolution_summary: gv('sc-work') || gv('sc-diagnosis') || '',
           follow_up_needed: res !== 'resolved',
-          follow_up_note: gv('sc-followup-note')
+          follow_up_note: gv('sc-followup-note'),
+          followup_reason: res
         });
       }
 

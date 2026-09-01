@@ -852,23 +852,53 @@ var ntdStore = {
     if (!ticketId || !this.service_tickets) return Promise.resolve(null);
     var serviceTickets = this.service_tickets;
     var notifications = this.notifications;
+    var jobs = this.jobs;
+    // followup_reason is messaging-only — not a real service_tickets column,
+    // so it's pulled out here before the patch is upserted rather than sent
+    // to the table (which would 400 on an unknown column). Lets a caller
+    // (currently just service-call.html) flag *why* a ticket needs follow-up
+    // — e.g. a warranty part — so the notification itself can say so, instead
+    // of the recipient only finding out once they open the dashboard.
+    patch = Object.assign({}, patch || {});
+    var followupReason = patch.followup_reason || '';
+    delete patch.followup_reason;
     return serviceTickets.get(ticketId).then(function(existing) {
-      var record = Object.assign({ id: ticketId, status: 'complete' }, patch || {});
+      var record = Object.assign({ id: ticketId, status: 'complete' }, patch);
       return serviceTickets.upsert(record).then(function(saved) {
-        if (existing && existing.entered_by && notifications) {
+        if (existing && notifications) {
           var siteLabel = existing.site_name_raw || existing.ticket_number || 'a job';
           var techLabel = (existing.assigned_techs && existing.assigned_techs.length) ? existing.assigned_techs.join(', ') : 'A tech';
           var isFollowUp = record.status === 'needs_follow_up';
+          var followupTag = followupReason === 'needs_warranty_part' ? ' (⚠ warranty part needed)' : (isFollowUp ? ' (needs follow-up)' : '');
           var msg = techLabel + ' ' + (isFollowUp ? 'finished at ' : 'completed ') + (existing.ticket_number || siteLabel) +
             (record.resolution_summary ? ' — ' + record.resolution_summary : '') +
-            (isFollowUp ? ' (needs follow-up)' : '');
-          notifications.upsert({
-            recipient_name: existing.entered_by,
-            message: msg,
-            related_id: ticketId,
-            type: 'ticket_completed',
-            read: false
-          }).catch(function(){});
+            followupTag;
+          // Notify whoever entered the ticket AND, if it's tied to a Project,
+          // that project's assigned PM — a PM should hear about their own
+          // project's service calls even when they weren't the one who
+          // happened to create the ticket. Deduped by name so the same
+          // person never gets notified twice.
+          var recipients = {};
+          if (existing.entered_by) recipients[existing.entered_by] = true;
+          var fire = function() {
+            Object.keys(recipients).forEach(function(name) {
+              notifications.upsert({
+                recipient_name: name,
+                message: msg,
+                related_id: ticketId,
+                type: 'ticket_completed',
+                read: false
+              }).catch(function(){});
+            });
+          };
+          if (existing.project_id && jobs) {
+            jobs.get(existing.project_id).then(function(proj) {
+              if (proj && proj.assigned_pm) recipients[proj.assigned_pm] = true;
+              fire();
+            }).catch(function(){ fire(); });
+          } else {
+            fire();
+          }
         }
         return saved;
       });

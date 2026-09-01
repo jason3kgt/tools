@@ -1210,7 +1210,7 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
         </select>
       </div>
     </div>
-    <div class="fg"><label>Entered By</label><input type="text" id="cm-by" placeholder="Your name"></div>
+    <div class="fg"><label>Entered By</label><select id="cm-by"><option value="">— Select —</option></select></div>
     <button class="btn btn-or" id="cm-notify-btn" style="display:none" onclick="notifyRequester()">📱 Notify Requester</button>
     <button class="btn btn-nv" onclick="saveCalEntry()">Save Entry</button>
     <button class="btn btn-outline" onclick="closeModal('cal-modal')" style="margin-top:6px">Cancel</button>
@@ -1333,8 +1333,8 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
         <option value="canceled">Canceled</option>
       </select>
     </div>
-    <div class="fg"><label>Dispatcher Notes</label><textarea id="tk-notes" placeholder="Internal notes — not shown to the customer"></textarea></div>
-    <div class="fg"><label>Entered By</label><input type="text" id="tk-by" placeholder="Your name"></div>
+    <div class="fg"><label>Dispatcher Notes</label><textarea id="tk-notes" placeholder="Internal notes — shown to the assigned tech, not the customer"></textarea></div>
+    <div class="fg"><label>Entered By</label><select id="tk-by"><option value="">— Select —</option></select></div>
     <button class="btn btn-nv" onclick="saveTicket()">Save Ticket</button>
     <button class="btn btn-outline" onclick="closeModal('ticket-modal')" style="margin-top:6px">Cancel</button>
     <button class="btn btn-red" id="tk-delete-btn" style="display:none" onclick="deleteTicket()">Delete Ticket</button>
@@ -1373,7 +1373,7 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
     </div>
     <div class="fg"><label>Date Needed *</label><input type="date" id="rm-date"></div>
     <div class="fg"><label>What's needed *</label><textarea id="rm-note" placeholder="e.g. RTU-3 down, no cooling — need tech ASAP"></textarea></div>
-    <div class="fg"><label>Requested By</label><input type="text" id="rm-by" placeholder="Your name"></div>
+    <div class="fg"><label>Requested By</label><select id="rm-by"><option value="">— Select —</option></select></div>
     <div class="fg"><label>Your Phone or Email <span style="font-size:9px;font-weight:400;color:var(--mu);text-transform:none">(optional — for dispatch's reference)</span></label><input type="text" id="rm-contact" placeholder="e.g. (945) 555-0100 or you@ntdmechanical.com"></div>
     <button class="btn btn-nv" onclick="saveTechRequest()">Submit Request</button>
     <button class="btn btn-outline" onclick="closeModal('req-modal')" style="margin-top:6px">Cancel</button>
@@ -1479,6 +1479,39 @@ var editingCalOriginalStatus = null;
 
 // ── USER IDENTITY (Tier 1 — device-local, no password) ─────────────────────
 var STAFF_NAMES = ['Amy Carreon','Billy Davis','Blake Orite','Cary Reese','Evyn Fairman','Jaidon Lacewell','Jason Ezell','Julie Shindoll','Kyle Mackey','Landon Cantrell','Liz Parker','Mari Torres','Toby Sharp','Valeria Ramirez','Yesenia Garcia'];
+
+// "Entered By" / "Requested By" fields used to be free-typed, which meant a
+// typo silently broke the notification that's supposed to follow — nobody
+// gets told a job's done because the name on the ticket doesn't match
+// anyone's identity. Populate those selects from the same known-staff list
+// the "Who are you?" picker uses, so the value is always something
+// createNotification() can actually match against. Idempotent — safe to
+// call every time a modal opens.
+function ntdPopulateStaffSelect(selectId) {
+  var sel = document.getElementById(selectId);
+  if (!sel || sel.options.length > 1) return;
+  STAFF_NAMES.forEach(function(n) {
+    var o = document.createElement('option'); o.value = n; o.textContent = n; sel.appendChild(o);
+  });
+}
+// Populates the select, then sets it to `value` — adding `value` as a
+// one-off extra option first if it's an old free-typed name that predates
+// this being a picker and doesn't match anyone on the current staff list.
+// Without this, opening and re-saving an old entry would silently blank out
+// (or swap in a random default for) whoever was actually entered before.
+function ntdSetStaffSelectValue(selectId, value) {
+  ntdPopulateStaffSelect(selectId);
+  var sel = document.getElementById(selectId);
+  if (!sel) return;
+  if (value && STAFF_NAMES.indexOf(value) === -1) {
+    var exists = Array.prototype.some.call(sel.options, function(o){ return o.value === value; });
+    if (!exists) {
+      var o = document.createElement('option'); o.value = value; o.textContent = value + ' (from before this was a picker)';
+      sel.appendChild(o);
+    }
+  }
+  sel.value = value || '';
+}
 
 // ── COMPANY DIRECTORY ────────────────────────────────────────────────────
 // Hardcoded from the company phone list (2026_06_22_NTD_Phone_List.xlsx) —
@@ -1709,9 +1742,10 @@ function renderFacilityListClassic() {
       ntdStore.startup_records.list(),
       ntdStore.pm_records.list(),
       ntdStore.pm_quotes.list(),
-      ntdStore.equipment.list()
+      ntdStore.equipment.list(),
+      ntdStore.service_records ? ntdStore.service_records.list() : Promise.resolve([])
     ]).then(function(results) {
-      var startups = results[0], pmRecs = results[1], pmQuotes = results[2], equip = results[3];
+      var startups = results[0], pmRecs = results[1], pmQuotes = results[2], equip = results[3], serviceRecs = results[4] || [];
       var html = '<div class="card" style="padding:0;overflow:hidden">';
       var TAG_CAP = 2;
       var _lastLetter = null;
@@ -1730,7 +1764,7 @@ function renderFacilityListClassic() {
         var hasStart = startups.some(function(r){ return r.facility_id === f.id; });
         var hasQuote = pmQuotes.some(function(r){ return r.facility_id === f.id; });
         var eqCount  = equip.filter(function(e){ return e.facility_id === f.id; }).length;
-        var followups = getOpenFollowupItems(startups, pmRecs).filter(function(it){ return it.facility_id === f.id; }).length;
+        var followups = getOpenFollowupItems(startups, pmRecs, serviceRecs).filter(function(it){ return it.facility_id === f.id; }).length;
         // PM schedule status
         var _pmStatus = null;
         if (f.pm_contract && f.contract && f.contract.frequency) {
@@ -1822,10 +1856,11 @@ function loadFacWheelData() {
     ntdStore.startup_records.list(),
     ntdStore.pm_records.list(),
     ntdStore.pm_quotes.list(),
-    ntdStore.equipment.list()
+    ntdStore.equipment.list(),
+    ntdStore.service_records ? ntdStore.service_records.list() : Promise.resolve([])
   ]).then(function(results) {
-    var facilitiesRaw = results[0], startups = results[1], pmRecs = results[2], pmQuotes = results[3], equip = results[4];
-    var followupItems = getOpenFollowupItems(startups, pmRecs);
+    var facilitiesRaw = results[0], startups = results[1], pmRecs = results[2], pmQuotes = results[3], equip = results[4], serviceRecs = results[5] || [];
+    var followupItems = getOpenFollowupItems(startups, pmRecs, serviceRecs);
     facWheelAll = facilitiesRaw.slice().sort(function(a,b){ return (a.name||'').localeCompare(b.name||''); }).map(function(f) {
       var initials = (f.name||'?').split(' ').map(function(w){ return w[0]; }).join('').substring(0,2).toUpperCase();
       var hasPM = pmRecs.some(function(r){ return r.facility_id === f.id; });
@@ -2120,15 +2155,17 @@ function renderDetailTab(f) {
       ntdStore.service_quotes.list(function(r){ return r.facility_id === fid; }),
       ntdStore.jobs.list(function(j){ return j.facility_id === fid; }),
       ntdStore.equipment.list(function(e){ return e.facility_id === fid; }),
-      ntdStore.documents ? ntdStore.documents.list(function(d){ return d.facility_id === fid; }) : Promise.resolve([])
+      ntdStore.documents ? ntdStore.documents.list(function(d){ return d.facility_id === fid; }) : Promise.resolve([]),
+      ntdStore.service_records ? ntdStore.service_records.list(function(r){ return r.facility_id === fid; }) : Promise.resolve([])
     ]).then(function(results) {
-      var startups  = results[0];
-      var pmRecs    = results[1];
-      var pmQuotes  = results[2];
-      var svcQuotes = results[3];
-      var jobs      = results[4];
-      var equip     = results[5];
-      var docs      = results[6] || [];
+      var startups   = results[0];
+      var pmRecs     = results[1];
+      var pmQuotes   = results[2];
+      var svcQuotes  = results[3];
+      var jobs       = results[4];
+      var equip      = results[5];
+      var docs       = results[6] || [];
+      var serviceRecs = results[7] || [];
 
       // Build docMap FIRST so it's available for all record merging below
       // Normalize dates to MM/DD/YYYY for consistent matching
@@ -2276,7 +2313,7 @@ function renderDetailTab(f) {
       });
 
       // Collect open follow-ups (Startup Checklist + PM Checklist)
-      var openFollowups = getOpenFollowupItems(startups, pmRecs).filter(function(it){ return it.facility_id === fid; });
+      var openFollowups = getOpenFollowupItems(startups, pmRecs, serviceRecs).filter(function(it){ return it.facility_id === fid; });
 
       // Add standalone document entries only for types that don't have a matching data record
       // PM visits, startups, asset surveys get their PDF link merged into the data record below
@@ -2730,7 +2767,7 @@ function renderDetailTab(f) {
       var recByTicketId = {};
       recs.forEach(function(r){ if (r.ticket_id) recByTicketId[r.ticket_id] = true; });
 
-      var resStatusLabels = { resolved:'Resolved', follow_up:'Follow-up needed', parts_ordered:'Parts ordered', quote_needed:'Quote needed' };
+      var resStatusLabels = { resolved:'Resolved', needs_follow_up:'Follow-up needed', needs_parts:'Parts needed', needs_quote:'Quote needed', needs_warranty_part:'Warranty part needed', warranty_part_ordered:'Warranty part ordered' };
 
       var html = filterHtml;
 
@@ -4616,13 +4653,15 @@ function ntdResolveFollowup(recordId, resolved) {
 // link the two — completing this ticket later auto-resolves the follow-up.
 var _tkPendingFollowup = null;
 function openTicketFromFollowup(recordId, tag, source, facilityId) {
-  var table = source === 'pm' ? 'pm_records' : 'startup_records';
+  var table = source === 'pm' ? 'pm_records' : source === 'service' ? 'service_records' : 'startup_records';
   ntdStore[table].get(recordId).then(function(r) {
     if (!r) return;
     var followupText = '', tech = r.tech || '';
     if (source === 'pm') {
       var u = (r.units || []).filter(function(x){ return x.tag === tag; })[0];
       followupText = u ? (u.followup || '') : '';
+    } else if (source === 'service') {
+      followupText = r.follow_up_note || '';
     } else {
       followupText = r.followup || '';
     }
@@ -4631,7 +4670,7 @@ function openTicketFromFollowup(recordId, tag, source, facilityId) {
     document.getElementById('tk-type').value = 'service_call';
     document.getElementById('tk-priority').value = 'routine';
     document.getElementById('tk-problem').value = (tag ? tag + ' — ' : '') + followupText;
-    document.getElementById('tk-notes').value = 'Created from a ' + (source==='pm' ? 'PM Visit' : 'Startup') + ' follow-up' + (tech ? ' (' + tech + ')' : '') + '.';
+    document.getElementById('tk-notes').value = 'Created from a ' + (source==='pm' ? 'PM Visit' : source==='service' ? 'Service Call' : 'Startup') + ' follow-up' + (tech ? ' (' + tech + ')' : '') + '.';
     if (facilityId) {
       ntdStore.facilities.get(facilityId).then(function(f) {
         if (f) ticketPickFacility(facilityId, f.name);
@@ -4648,13 +4687,15 @@ function openTicketFromFollowup(recordId, tag, source, facilityId) {
 // plain notification to any Hub user without creating a ticket.
 var _tkNotifyContext = null;
 function openFollowupNotifyModal(recordId, tag, source, facilityId) {
-  var table = source === 'pm' ? 'pm_records' : 'startup_records';
+  var table = source === 'pm' ? 'pm_records' : source === 'service' ? 'service_records' : 'startup_records';
   ntdStore[table].get(recordId).then(function(r) {
     if (!r) return;
     var followupText = '';
     if (source === 'pm') {
       var u = (r.units || []).filter(function(x){ return x.tag === tag; })[0];
       followupText = u ? (u.followup || '') : '';
+    } else if (source === 'service') {
+      followupText = r.follow_up_note || '';
     } else {
       followupText = r.followup || '';
     }
@@ -4718,12 +4759,69 @@ function ntdResolvePmFollowup(recordId, tag, resolved) {
   });
 }
 
-// Normalizes follow-ups from BOTH sources — Startup Checklist's one-per-
-// record flag and PM Checklist's one-per-unit flag inside pm_records.units[]
-// — into one consistent shape, so every place that lists/counts open
+// Service Call follow-ups live on service_records.resolution_status (no
+// dedicated followup_resolved flag exists there) — valid values are
+// 'needs_follow_up' / 'needs_parts' / 'needs_quote' / 'needs_warranty_part' /
+// 'warranty_part_ordered' / 'resolved' (must match what service-call.html's
+// #sc-resolution select actually saves — a mismatched label map here was a
+// real pre-existing bug, fixed alongside this build). Resolving flips it to
+// 'resolved'; reopening puts it back to the generic 'needs_follow_up' bucket
+// (a reopened item's more specific prior state — e.g. "needs warranty part"
+// vs "warranty part ordered" — isn't preserved once marked resolved). If the
+// follow-up's originating ticket is still sitting in needs_follow_up,
+// resolving here also marks that ticket complete so the Service Calls tab
+// doesn't show a stale open ticket for something the dashboard just closed out.
+function ntdResolveServiceFollowup(recordId, resolved) {
+  ntdStore.service_records.get(recordId).then(function(r) {
+    if (!r) return;
+    r.resolution_status = resolved ? 'resolved' : 'needs_follow_up';
+    return ntdStore.service_records.upsert(r).then(function() {
+      if (resolved && r.ticket_id) {
+        ntdStore.service_tickets.get(r.ticket_id).then(function(t) {
+          if (t && t.status === 'needs_follow_up') {
+            ntdStore.service_tickets.upsert({ id: t.id, status: 'complete' }).catch(function(){});
+          }
+        }).catch(function(){});
+      }
+    });
+  }).then(function() {
+    showToast(resolved ? '✓ Follow-up resolved' : 'Follow-up reopened');
+    if (currentPage === 'dashboard') renderDashboard();
+    if (currentFacilityId) ntdStore.facilities.get(currentFacilityId).then(renderDetailTab);
+  }).catch(function(err) {
+    showToast('Error: ' + (err.message || 'could not update'));
+  });
+}
+
+// Middle checkpoint between "tech flagged it" and "resolved" — lets office/
+// dispatch mark that the warranty part has actually been ordered, so the
+// dashboard can tell "still needs ordering" apart from "ordered, waiting on
+// it" instead of both looking like one generic open item. Stamps who/when
+// onto the follow-up note (auto, no extra modal to fill out) rather than
+// adding new columns to service_records.
+function ntdMarkWarrantyPartOrdered(recordId) {
+  ntdStore.service_records.get(recordId).then(function(r) {
+    if (!r) return;
+    r.resolution_status = 'warranty_part_ordered';
+    var stamp = '[Ordered' + (getCurrentUser() ? ' by ' + getCurrentUser() : '') + ' on ' + new Date().toLocaleDateString() + ']';
+    r.follow_up_note = (r.follow_up_note || '').trim() ? r.follow_up_note.trim() + ' ' + stamp : stamp;
+    return ntdStore.service_records.upsert(r);
+  }).then(function() {
+    showToast('📦 Marked as ordered');
+    if (currentPage === 'dashboard') renderDashboard();
+    if (currentFacilityId) ntdStore.facilities.get(currentFacilityId).then(renderDetailTab);
+  }).catch(function(err) {
+    showToast('Error: ' + (err.message || 'could not update'));
+  });
+}
+
+// Normalizes follow-ups from all THREE sources — Startup Checklist's one-per-
+// record flag, PM Checklist's one-per-unit flag inside pm_records.units[],
+// and Service Call's resolution_status/follow_up_note on service_records —
+// into one consistent shape, so every place that lists/counts open
 // follow-ups (facility badges, dashboard, facility Timeline, global search)
-// only has to deal with one thing instead of two different data shapes.
-function getFollowupItems(startups, pmRecs) {
+// only has to deal with one thing instead of three different data shapes.
+function getFollowupItems(startups, pmRecs, serviceRecs) {
   var items = [];
   (startups || []).forEach(function(r) {
     if (!r.followup || !r.followup.trim()) return;
@@ -4743,23 +4841,48 @@ function getFollowupItems(startups, pmRecs) {
       });
     });
   });
+  // Service Call follow-ups — a tech flags a visit's resolution_status as
+  // something other than "resolved" (needs_follow_up / needs_parts /
+  // needs_quote / needs_warranty_part / warranty_part_ordered) and leaves a
+  // follow_up_note. There's no dedicated followup_resolved flag on
+  // service_records (would need a schema change); resolution_status IS that
+  // flag — "resolved" means resolved, anything else means still open.
+  // Resolving from here just flips resolution_status back to 'resolved'.
+  (serviceRecs || []).forEach(function(r) {
+    if (!r.follow_up_note || !r.follow_up_note.trim()) return;
+    var unitTags = (r.units_serviced || []).map(function(u){ return u.tag; }).filter(Boolean);
+    items.push({
+      source: 'service', recordId: r.id, tag: unitTags.length ? unitTags.join(', ') : 'Service Call',
+      eqType: '', facility_id: r.facility_id, followup: r.follow_up_note,
+      resolved: r.resolution_status === 'resolved', status: r.resolution_status || '',
+      date: r.date || '', tech: r.tech || '', ts: r.ts || 0, ticketId: r.ticket_id || null
+    });
+  });
   return items;
 }
-function getOpenFollowupItems(startups, pmRecs) {
-  return getFollowupItems(startups, pmRecs).filter(function(it){ return !it.resolved; });
+function getOpenFollowupItems(startups, pmRecs, serviceRecs) {
+  return getFollowupItems(startups, pmRecs, serviceRecs).filter(function(it){ return !it.resolved; });
 }
 // Shared row + resolve-button markup for a normalized follow-up item —
 // used by the dashboard card and the facility Timeline card so both stay
 // visually identical without copy-pasting the button wiring twice.
 function followupItemRow(it, facName) {
+  var isWarrantyPart = it.source === 'service' && (it.status === 'needs_warranty_part' || it.status === 'warranty_part_ordered');
+  var warrantyBadge = isWarrantyPart
+    ? ' <span style="background:#FFF4D6;color:#8A5A00;font-size:9.5px;font-weight:700;padding:1px 6px;border-radius:8px;vertical-align:middle">🛡️ '+(it.status==='warranty_part_ordered'?'Ordered':'Warranty Part')+'</span>'
+    : '';
+  var markOrderedBtn = (it.source === 'service' && it.status === 'needs_warranty_part')
+    ? '<button class="btn-outline ntd-mark-warranty-ordered" data-id="'+it.recordId+'" style="padding:3px 9px;font-size:10px">📦 Mark Ordered</button>'
+    : '';
   return '<div class="followup-item ntd-goto" data-fid="'+it.facility_id+'" style="cursor:pointer">' +
     '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">' +
       '<div>' +
-        '<div style="font-size:13px;font-weight:700;color:var(--tx)">'+esc(it.tag)+(it.eqType?' <span style="font-weight:400;color:var(--mu)">· '+esc(it.eqType)+'</span>':'')+'</div>' +
+        '<div style="font-size:13px;font-weight:700;color:var(--tx)">'+esc(it.tag)+(it.eqType?' <span style="font-weight:400;color:var(--mu)">· '+esc(it.eqType)+'</span>':'')+warrantyBadge+'</div>' +
         (facName ? '<div style="font-size:11px;color:var(--mu)">'+esc(facName)+'</div>' : '') +
-        (it.tech ? '<div style="font-size:11px;color:var(--mu)">'+(it.source==='pm'?'PM Visit':'Startup')+' · '+esc(it.tech)+(it.date?' · '+esc(it.date):'')+'</div>' : '') +
+        (it.tech ? '<div style="font-size:11px;color:var(--mu)">'+(it.source==='pm'?'PM Visit':it.source==='service'?'Service Call':'Startup')+' · '+esc(it.tech)+(it.date?' · '+esc(it.date):'')+'</div>' : '') +
       '</div>' +
-      '<div style="display:flex;gap:6px;flex-shrink:0">' +
+      '<div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">' +
+        markOrderedBtn +
         '<button class="btn-outline ntd-resolve-followup" data-id="'+it.recordId+'" data-tag="'+esc(it.tag)+'" data-source="'+it.source+'" style="padding:3px 9px;font-size:10px">✓ Resolve</button>' +
         '<button class="ntd-send-followup" data-id="'+it.recordId+'" data-tag="'+esc(it.tag)+'" data-source="'+it.source+'" data-fid="'+esc(it.facility_id||'')+'" style="padding:3px 9px;font-size:10px">&#8594; Dispatch</button>' +
         '<button class="ntd-notify-followup" data-id="'+it.recordId+'" data-tag="'+esc(it.tag)+'" data-source="'+it.source+'" data-fid="'+esc(it.facility_id||'')+'" style="padding:3px 9px;font-size:10px">&#9993; Notify</button>' +
@@ -4877,7 +5000,8 @@ function renderDashboard() {
     ntdStore.jobs.list(),
     ntdStore.documents ? ntdStore.documents.list() : Promise.resolve([]),
     ntdStore.team_calendar ? ntdStore.team_calendar.list(function(e){ return e.status === 'pending'; }) : Promise.resolve([]),
-    ntdStore.team_calendar ? ntdStore.team_calendar.list() : Promise.resolve([])
+    ntdStore.team_calendar ? ntdStore.team_calendar.list() : Promise.resolve([]),
+    ntdStore.service_records ? ntdStore.service_records.list() : Promise.resolve([])
   ]).then(function(results) {
     var facilities = results[0];
     var startups   = results[1];
@@ -4888,9 +5012,10 @@ function renderDashboard() {
     var docs       = results[6] || [];
     var pendingReqs = results[7] || [];
     var scheduledPmMap = computeScheduledPmMap(results[8] || []);
+    var serviceRecs = results[9] || [];
 
     // ── Metrics ──
-    var openFollowups = getOpenFollowupItems(startups, pmRecs);
+    var openFollowups = getOpenFollowupItems(startups, pmRecs, serviceRecs);
     var projScope = getProjScope();
     var curUser = getCurrentUser();
     var activeProjectsAll = jobs.filter(function(j){ return j.type==='project' && j.status!=='complete'; });
@@ -5699,6 +5824,7 @@ function openRequestTech(facilityId, projectId) {
   document.getElementById('rm-priority').value = 'routine';
   document.getElementById('rm-date').value = fmtDateISO(new Date());
   document.getElementById('rm-note').value = '';
+  ntdPopulateStaffSelect('rm-by');
   document.getElementById('rm-by').value = getCurrentUser() || '';
   document.getElementById('rm-contact').value = '';
   document.getElementById('req-fac-fg').style.display = 'none';
@@ -6029,6 +6155,7 @@ function openAddCalEntry() {
   document.getElementById('cm-note').value = '';
   document.getElementById('cm-status').value = 'confirmed';
   document.getElementById('cm-tech').value = '';
+  ntdPopulateStaffSelect('cm-by');
   document.getElementById('cm-by').value = getCurrentUser() || '';
   document.getElementById('cm-delete-btn').style.display = 'none';
   document.getElementById('cm-notify-btn').style.display = 'none';
@@ -6071,7 +6198,7 @@ function openEditCalEntry(id) {
     document.getElementById('cm-note').value = e.note || '';
     document.getElementById('cm-status').value = e.status || 'confirmed';
     document.getElementById('cm-tech').value = e.assigned_tech || '';
-    document.getElementById('cm-by').value = e.entered_by || getCurrentUser() || '';
+    ntdSetStaffSelectValue('cm-by', e.entered_by || getCurrentUser() || '');
     document.getElementById('cm-delete-btn').style.display = 'block';
     editingCalRequester = e.requested_by || null;
     editingCalContact = e.requested_by_contact || null;
@@ -6621,6 +6748,8 @@ function tkAutoResolveFollowups(tickets) {
     if (t.status !== 'complete' || !t.source_followup_id) return;
     if (t.source_followup_source === 'pm') {
       ntdResolvePmFollowup(t.source_followup_id, t.source_followup_tag, true);
+    } else if (t.source_followup_source === 'service') {
+      ntdResolveServiceFollowup(t.source_followup_id, true);
     } else {
       ntdResolveFollowup(t.source_followup_id, true);
     }
@@ -6970,6 +7099,7 @@ function openAddTicket() {
   tkRefreshWorkload();
   document.getElementById('tk-status').value = 'new';
   document.getElementById('tk-notes').value = '';
+  ntdPopulateStaffSelect('tk-by');
   document.getElementById('tk-by').value = getCurrentUser() || '';
   document.getElementById('tk-delete-btn').style.display = 'none';
   openModal('ticket-modal');
@@ -7008,7 +7138,7 @@ function openEditTicket(id) {
     tkLoadProjectsForFacility(t.facility_id || null, t.project_id || null);
     document.getElementById('tk-status').value = t.status || 'new';
     document.getElementById('tk-notes').value = t.dispatcher_notes || '';
-    document.getElementById('tk-by').value = t.entered_by || getCurrentUser() || '';
+    ntdSetStaffSelectValue('tk-by', t.entered_by || getCurrentUser() || '');
     document.getElementById('tk-delete-btn').style.display = 'block';
     openModal('ticket-modal');
   }).catch(function(err) {
@@ -7164,6 +7294,14 @@ document.addEventListener('click', function(e) {
 // ── INIT ──────────────────────────────────────────────────────────────────
 // Delegated click handler for ntd-goto elements
 document.addEventListener('click', function(e) {
+  // Mark a warranty-part follow-up as ordered — checked first for the same
+  // reason as the resolve/dispatch/notify buttons below (don't also trigger
+  // .ntd-goto navigation on the row).
+  var orderedBtn = e.target.closest('.ntd-mark-warranty-ordered');
+  if (orderedBtn) {
+    ntdMarkWarrantyPartOrdered(orderedBtn.getAttribute('data-id'));
+    return;
+  }
   // Resolve/reopen a follow-up — checked before .ntd-goto below so tapping
   // the button on a dashboard follow-up row doesn't also navigate away.
   var resolveBtn = e.target.closest('.ntd-resolve-followup');
@@ -7172,6 +7310,8 @@ document.addEventListener('click', function(e) {
     var src = resolveBtn.getAttribute('data-source') || 'startup';
     if (src === 'pm') {
       ntdResolvePmFollowup(resolveBtn.getAttribute('data-id'), resolveBtn.getAttribute('data-tag'), wantResolved);
+    } else if (src === 'service') {
+      ntdResolveServiceFollowup(resolveBtn.getAttribute('data-id'), wantResolved);
     } else {
       ntdResolveFollowup(resolveBtn.getAttribute('data-id'), wantResolved);
     }

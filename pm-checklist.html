@@ -96,6 +96,11 @@ textarea{resize:vertical;min-height:70px}
 .sh-siteplan-btn{display:flex;align-items:center;gap:8px;background:#FFF4EC;border:1.5px solid var(--or);border-radius:10px;padding:9px 12px;font-size:12.5px;font-weight:700;color:var(--or);text-decoration:none;margin-bottom:10px}
 .sh-siteplan-btn span.sp-arrow{margin-left:auto;font-size:11px}
 .onfile-accessory-warn{font-size:10.5px;color:var(--rd);font-weight:700;margin-top:2px}
+.ticket-banner{background:#EEF3FB;border:1.5px solid var(--nv);border-radius:12px;padding:12px 14px;margin-bottom:12px}
+.ticket-banner-title{font-size:13px;font-weight:700;color:var(--nv)}
+.ticket-banner-sub{font-size:11px;color:var(--mu);margin-top:3px;line-height:1.5}
+.ticket-banner-dispatch-notes{background:#FFF4EC;border:1.5px solid var(--or);border-radius:8px;padding:8px 10px;margin-top:8px;font-size:12px;color:var(--tx);line-height:1.5;white-space:pre-wrap}
+.ticket-banner-dispatch-notes b{color:var(--or);display:block;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
 /* Condition key */
 .key-g{background:#E8F5EC;border:2px solid var(--gn);border-radius:10px;padding:10px;text-align:center}
 .key-f{background:#FFF3E0;border:2px solid var(--am);border-radius:10px;padding:10px;text-align:center}
@@ -171,6 +176,7 @@ textarea{resize:vertical;min-height:70px}
 
 <!-- PAGE 0: SITE -->
 <div class="pg on" id="pg0">
+<div id="ticket-banner-area"></div>
 <div id="site-chip-area"></div>
 <div class="card"><div class="ch"><span class="cn">1</span><h2>Site Information</h2></div><div class="cb">
   <button class="load-btn" id="load-site-btn" onclick="openModal()" type="button">📍 Load Site Profile</button>
@@ -640,7 +646,7 @@ function pmRenderSiteHistory(facility, jobs, pmRecs, startups, serviceRecs, docs
   (jobs||[]).forEach(function(j){ if (j.type !== 'project') visits.push({ ts:j.ts||0, label: j.type==='survey'?'Equipment Survey':j.type==='startup_job'?'Startup Job':(j.type||'Visit'), tech:j.tech||'' }); });
   (pmRecs||[]).forEach(function(p){ visits.push({ ts:p.ts||0, label:'PM Visit', tech:p.tech||'' }); });
   (startups||[]).forEach(function(s){ visits.push({ ts:s.ts||0, label:'Startup', tech:s.tech||'' }); });
-  var resLabels = { resolved:'Resolved', follow_up:'Follow-up needed', parts_ordered:'Parts ordered', quote_needed:'Quote needed' };
+  var resLabels = { resolved:'Resolved', needs_follow_up:'Follow-up needed', needs_parts:'Parts needed', needs_quote:'Quote needed', needs_warranty_part:'Warranty part needed', warranty_part_ordered:'Warranty part ordered' };
   (serviceRecs||[]).forEach(function(r){
     var lbl = 'Service Call' + (r.problem_reported ? ' — ' + r.problem_reported.slice(0,60) : '');
     if (r.resolution_status && r.resolution_status !== 'resolved') lbl += ' (' + (resLabels[r.resolution_status] || r.resolution_status) + ')';
@@ -1832,6 +1838,14 @@ function ntdLoadTicketPrefill() {
     if (!t) return;
     if (t.status === 'new' || t.status === 'scheduled' || t.status === 'dispatched' || t.status === 'en_route') {
       ntdStore.service_tickets.upsert({ id: t.id, status: 'on_site' }).catch(function(){});
+    }
+    var banner = document.getElementById('ticket-banner-area');
+    if (banner) {
+      banner.innerHTML = '<div class="ticket-banner">' +
+        '<div class="ticket-banner-title">Working ticket ' + esc2(t.ticket_number || '') + '</div>' +
+        '<div class="ticket-banner-sub">Submitting the Visit Report PDF will mark the ticket complete.</div>' +
+        (t.dispatcher_notes ? '<div class="ticket-banner-dispatch-notes"><b>Notes from Dispatch</b>' + esc2(t.dispatcher_notes) + '</div>' : '') +
+      '</div>';
     }
     if (t.facility_id) {
       ntdStore.facilities.get(t.facility_id).then(function(f) { if (f) sv('sf', f.name); });
