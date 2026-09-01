@@ -7372,8 +7372,20 @@ function ticketFilterFacilities() {
   ticketPickedFacilityId = null;
   document.getElementById('tk-site-hint').style.display = 'none';
   ticketLoadFacilitiesCache().then(function(facilities) {
-    var matches = !q ? facilities.slice(0, 6) :
-      facilities.filter(function(f){ return (f.name||'').toLowerCase().indexOf(q) > -1; }).slice(0, 6);
+    // Alphabetical always, and when there's a query, names that START WITH it
+    // rank above names that merely contain it (e.g. typing "ILS" should put
+    // "ILS Gummies" above "Phillis Distribution") — otherwise this list reads
+    // as an arbitrary handful of sites instead of something searchable.
+    var sorted = (q ? facilities.filter(function(f){ return (f.name||'').toLowerCase().indexOf(q) > -1; }) : facilities.slice())
+      .sort(function(a, b) {
+        var an = (a.name||'').toLowerCase(), bn = (b.name||'').toLowerCase();
+        if (q) {
+          var aStarts = an.indexOf(q) === 0, bStarts = bn.indexOf(q) === 0;
+          if (aStarts !== bStarts) return aStarts ? -1 : 1;
+        }
+        return an < bn ? -1 : (an > bn ? 1 : 0);
+      });
+    var matches = sorted.slice(0, 8);
     if (!matches.length) {
       box.classList.remove('on');
       if (q) document.getElementById('tk-site-hint').style.display = 'block';
