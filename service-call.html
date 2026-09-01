@@ -163,6 +163,8 @@ textarea{resize:vertical;min-height:70px}
 .sh-sub-lbl{font-size:9px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.04em;margin:10px 0 4px}
 .sh-doc-row{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;padding:6px 0;border-bottom:1px solid var(--of);text-decoration:none;color:var(--tx)}
 .sh-doc-row:last-child{border-bottom:none}
+.sh-siteplan-btn{display:flex;align-items:center;gap:8px;background:#FFF4EC;border:1.5px solid var(--or);border-radius:10px;padding:9px 12px;font-size:12.5px;font-weight:700;color:var(--or);text-decoration:none;margin-bottom:10px}
+.sh-siteplan-btn span.sp-arrow{margin-left:auto;font-size:11px}
 .sh-doc-name{flex:1}
 .sh-doc-date{color:var(--mu);font-size:10px;flex-shrink:0}
 .eq-chip-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px}
@@ -184,6 +186,19 @@ textarea{resize:vertical;min-height:70px}
 .job-photo-tagrow select{flex:1;font-size:11px;padding:5px 6px;border:1.5px solid var(--bd);border-radius:6px;background:var(--of)}
 .job-photo-rmv{background:none;border:none;color:var(--rd);font-size:16px;font-weight:700;cursor:pointer;padding:0 2px;font-family:inherit}
 .job-photo-status{font-size:9px;color:var(--mu);padding:0 8px 6px}
+.unit-onfile-info{background:#EEF3FB;border:1.5px solid var(--nv);border-radius:8px;padding:8px 10px;font-size:11px;color:var(--tx);line-height:1.5;margin-bottom:8px}
+.unit-onfile-info b{color:var(--nv)}
+.unit-onfile-warn{color:var(--rd);font-weight:700;display:block;margin-top:2px}
+.unit-history-block{background:var(--of);border:1.5px solid var(--bd);border-radius:8px;padding:8px 10px;font-size:11px;color:var(--tx);line-height:1.5;margin-bottom:8px}
+.unit-history-block .uh-lbl{font-size:9px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
+.unit-history-block .uh-entry{margin-bottom:5px}
+.unit-history-block .uh-entry:last-child{margin-bottom:0}
+.unit-history-block .uh-date{font-weight:700;color:var(--tx)}
+.sh-contact-row{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;padding:6px 0;border-bottom:1px solid var(--of)}
+.sh-contact-row:last-child{border-bottom:none}
+.sh-contact-name{flex:1}
+.sh-contact-role{color:var(--mu);font-size:10px;display:block}
+.sh-contact-phone{color:var(--nv);font-weight:700;text-decoration:none;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -325,6 +340,7 @@ var partUid = 1;
 var pickedFacilityId = null;
 var facilityMatchedName = null;
 var equipmentOnFile = [];
+var facilityServiceRecords = []; // cached past service_records for the matched facility, used for per-unit history lookups
 var serviceUnits = [];
 var jobPhotos = [];
 var jobPhotoUid = 1;
@@ -370,6 +386,7 @@ function scLookupFacility() {
   var hint = document.getElementById('sc-site-hint');
   pickedFacilityId = null;
   equipmentOnFile = [];
+  facilityServiceRecords = [];
   document.getElementById('sc-history-card').style.display = 'none';
   if (!name) { hint.textContent = ''; hint.className = 'site-hint'; scRenderEquipmentChips(); return; }
   if (typeof ntdStore === 'undefined') return;
@@ -410,10 +427,30 @@ function scLoadSiteHistory(facilityId) {
     ntdStore.service_records ? ntdStore.service_records.list(function(r){ return r.facility_id === facilityId; }) : Promise.resolve([]),
     ntdStore.documents.list(function(d){ return d.facility_id === facilityId; })
   ]).then(function(res) {
-    scRenderSiteHistory(res[0], res[1]||[], res[2]||[], res[3]||[], res[4]||[], res[5]||[]);
+    facilityServiceRecords = res[4] || [];
+    scRenderSiteHistory(res[0], res[1]||[], res[2]||[], res[3]||[], facilityServiceRecords, res[5]||[]);
   }).catch(function(err) {
     rw.innerHTML = '<div class="empty">Could not load history — ' + esc(err.message||'connection error') + '</div>';
   });
+}
+
+// Pull Site & GC Contacts off any Project(s) on file for this facility (set
+// from NTD Hub's Projects tab). A facility can have more than one project —
+// merge and dedupe by name+phone so the tech sees one clean list.
+function scContactsFromJobs(jobs) {
+  var seen = {};
+  var out = [];
+  (jobs||[]).forEach(function(j){
+    if (j.type !== 'project' || !j.contacts) return;
+    (j.contacts||[]).forEach(function(c){
+      var key = (c.name||'').toLowerCase() + '|' + (c.phone||'');
+      if (!c.name && !c.phone) return;
+      if (seen[key]) return;
+      seen[key] = true;
+      out.push(c);
+    });
+  });
+  return out;
 }
 
 function scRenderSiteHistory(facility, jobs, pmRecs, startups, serviceRecs, docs) {
@@ -422,12 +459,35 @@ function scRenderSiteHistory(facility, jobs, pmRecs, startups, serviceRecs, docs
   jobs.forEach(function(j){ if (j.type !== 'project') visits.push({ ts:j.ts||0, label: j.type==='survey'?'Equipment Survey':j.type==='startup_job'?'Startup Job':(j.type||'Visit'), tech:j.tech||'' }); });
   pmRecs.forEach(function(p){ visits.push({ ts:p.ts||0, label:'PM Visit', tech:p.tech||'' }); });
   startups.forEach(function(s){ visits.push({ ts:s.ts||0, label:'Startup', tech:s.tech||'' }); });
-  serviceRecs.forEach(function(r){ visits.push({ ts:r.ts||0, label:'Service Call' + (r.problem_reported ? ' — ' + r.problem_reported.slice(0,60) : ''), tech:r.tech||'' }); });
+  var resLabels = { resolved:'Resolved', follow_up:'Follow-up needed', parts_ordered:'Parts ordered', quote_needed:'Quote needed' };
+  serviceRecs.forEach(function(r){
+    var lbl = 'Service Call' + (r.problem_reported ? ' — ' + r.problem_reported.slice(0,60) : '');
+    if (r.resolution_status && r.resolution_status !== 'resolved') lbl += ' (' + (resLabels[r.resolution_status] || r.resolution_status) + ')';
+    visits.push({ ts:r.ts||0, label:lbl, tech:r.tech||'' });
+  });
   visits.sort(function(a,b){ return (b.ts||0) - (a.ts||0); });
 
+  var contacts = scContactsFromJobs(jobs);
+
+  var sitePlans = (docs||[]).filter(function(d){ return d.form_type === 'site_plan' && d.file_url; }).sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
+
   var h = '';
+  if (sitePlans.length) {
+    sitePlans.forEach(function(d) {
+      h += '<a class="sh-siteplan-btn" href="' + esc(d.file_url) + '" target="_blank" rel="noopener">📐 ' + esc(d.description || 'Site Plan') + '<span class="sp-arrow">View →</span></a>';
+    });
+  }
   if (facility && facility.notes) {
     h += '<div class="sh-sub-lbl">Notes on File</div><div class="sh-note">' + esc(facility.notes) + '</div>';
+  }
+  if (contacts.length) {
+    h += '<div class="sh-sub-lbl">Site Contacts</div>';
+    contacts.forEach(function(c) {
+      h += '<div class="sh-contact-row"><span class="sh-contact-name">' + esc(c.name||'') +
+        (c.role ? '<span class="sh-contact-role">' + esc(c.role) + '</span>' : '') + '</span>' +
+        (c.phone ? '<a class="sh-contact-phone" href="tel:' + esc(c.phone.replace(/[^\d+]/g,'')) + '">' + esc(c.phone) + '</a>' : '') +
+        '</div>';
+    });
   }
   if (visits.length) {
     h += '<div class="sh-sub-lbl">Recent Visits</div>';
@@ -436,7 +496,7 @@ function scRenderSiteHistory(facility, jobs, pmRecs, startups, serviceRecs, docs
         '<span class="sh-doc-date">' + (v.ts ? new Date(v.ts).toLocaleDateString() : '') + '</span></div>';
     });
   }
-  var pdfDocs = (docs||[]).filter(function(d){ return d.file_url; }).sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
+  var pdfDocs = (docs||[]).filter(function(d){ return d.file_url && d.form_type !== 'site_plan'; }).sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
   if (pdfDocs.length) {
     h += '<div class="sh-sub-lbl">Documents &amp; Photos</div>';
     pdfDocs.slice(0, 8).forEach(function(d) {
@@ -458,7 +518,11 @@ function scRenderEquipmentChips() {
   wrap.innerHTML = '<div style="font-size:10.5px;color:var(--mu);margin-bottom:6px">Tap a unit on file to add it below, or use "+ Add Unit" for one not listed.</div>' +
     '<div class="eq-chip-row">' +
     equipmentOnFile.map(function(e) {
-      var label = (e.tag || 'Unit') + (e.type ? ' — ' + e.type : '');
+      var bits = [];
+      if (e.type) bits.push(e.type);
+      if (e.tonnage) bits.push(e.tonnage + 'T');
+      var label = (e.tag || 'Unit') + (bits.length ? ' — ' + bits.join(' · ') : '');
+      if (e.notes) label += ' ⚠'; // heads-up that accessory/spec notes exist on file
       return '<button type="button" class="eq-chip" onclick="scAddUnitFromFile(\''+esc(e.id)+'\')">'+esc(label)+'</button>';
     }).join('') + '</div>';
 }
@@ -472,6 +536,11 @@ function scAddUnitFromFile(equipmentId) {
     location: e.area || '',
     model: e.model || '',
     serial: e.serial || '',
+    tonnage: e.tonnage || '',
+    filter_size: e.filter_size || '',
+    belt_size: e.belt_size || '',
+    refrigerant: e.refrigerant || '',
+    accessories: e.notes || '',
     photo: null,
     sourceEquipmentId: e.id
   });
@@ -479,8 +548,24 @@ function scAddUnitFromFile(equipmentId) {
 }
 
 function scAddUnitRow() {
-  serviceUnits.push({ id: unitRowUid++, tag: '', location: '', model: '', serial: '', photo: null, sourceEquipmentId: null });
+  serviceUnits.push({ id: unitRowUid++, tag: '', location: '', model: '', serial: '', tonnage:'', filter_size:'', belt_size:'', refrigerant:'', accessories:'', photo: null, sourceEquipmentId: null });
   scRenderUnitRows();
+}
+
+// Past service_records for this unit, matched by source_equipment_id first
+// (reliable — same equipment table row every time), falling back to a
+// case-insensitive tag match for units added by hand or predating the link.
+function scUnitHistoryFor(u) {
+  if (!facilityServiceRecords.length) return [];
+  var tag = (u.tag||'').trim().toUpperCase();
+  return facilityServiceRecords.filter(function(r) {
+    var units = r.units_serviced || [];
+    return units.some(function(su) {
+      if (u.sourceEquipmentId && su.source_equipment_id === u.sourceEquipmentId) return true;
+      if (tag && (su.tag||'').trim().toUpperCase() === tag) return true;
+      return false;
+    });
+  }).sort(function(a,b){ return (b.ts||0) - (a.ts||0); }).slice(0, 3);
 }
 
 function scUpdateUnitField(id, field, val) {
@@ -500,9 +585,38 @@ function scRenderUnitRows() {
     var photoHtml = u.photo
       ? '<div class="unit-photo-preview"><img src="'+u.photo.dataUrl+'" alt="Data plate"><div class="unit-photo-status">'+(u.photo.backedUp ? '✓ Saved' : 'Saving…')+'<br><button type="button" onclick="scAddUnitPhoto('+u.id+')" style="background:none;border:none;color:var(--nv);font-weight:600;font-size:11px;padding:0;font-family:inherit;cursor:pointer">Retake</button></div></div>'
       : '<button type="button" class="unit-photo-btn" onclick="scAddUnitPhoto('+u.id+')">&#128247; Photo Data Plate</button>';
+
+    // Read-only "on file" spec strip — only for units pulled from the
+    // equipment chip picker, since a hand-added unit has no file to pull from.
+    var onFileHtml = '';
+    var specBits = [];
+    if (u.tonnage) specBits.push(u.tonnage + ' Ton');
+    if (u.filter_size) specBits.push('Filter ' + esc(u.filter_size));
+    if (u.belt_size) specBits.push('Belt ' + esc(u.belt_size));
+    if (u.refrigerant) specBits.push(esc(u.refrigerant));
+    if (specBits.length || u.accessories) {
+      onFileHtml = '<div class="unit-onfile-info">📋 <b>On file:</b> ' + (specBits.join(' · ') || 'see notes below') +
+        (u.accessories ? '<span class="unit-onfile-warn">⚠ ' + esc(u.accessories) + '</span>' : '') +
+        '</div>';
+    }
+
+    // Prior service history for this specific unit, if any past service_records
+    // reference it (matched by source_equipment_id, falling back to tag).
+    var historyHtml = '';
+    var hist = scUnitHistoryFor(u);
+    if (hist.length) {
+      historyHtml = '<div class="unit-history-block"><div class="uh-lbl">Previous Service on This Unit</div>' +
+        hist.map(function(r) {
+          var line = esc(r.diagnosis || r.work_performed || r.problem_reported || 'No details recorded');
+          return '<div class="uh-entry"><span class="uh-date">' + (r.ts ? new Date(r.ts).toLocaleDateString() : '') + (r.tech ? ' — ' + esc(r.tech) : '') + '</span><br>' + line + '</div>';
+        }).join('') + '</div>';
+    }
+
     return '<div class="unit-row">' +
       '<div class="unit-row-hdr"><span class="unit-row-title">Unit</span><button type="button" class="unit-row-rmv" onclick="scRemoveUnitRow('+u.id+')">Remove</button></div>' +
       '<div class="unit-row-body">' +
+        onFileHtml +
+        historyHtml +
         '<div class="r2">' +
           '<div class="fg" style="margin-bottom:8px"><label>Unit #</label><input type="text" value="'+esc(u.tag)+'" placeholder="e.g. RTU-3" oninput="scUpdateUnitField('+u.id+',\'tag\',this.value)"></div>' +
           '<div class="fg" style="margin-bottom:8px"><label>Location</label><input type="text" value="'+esc(u.location)+'" placeholder="e.g. Roof, Zone 2" oninput="scUpdateUnitField('+u.id+',\'location\',this.value)"></div>' +
@@ -824,6 +938,11 @@ function scSubmitToStore(pdfBlob) {
         location: u.location,
         model: u.model,
         serial: u.serial,
+        tonnage: u.tonnage || '',
+        filter_size: u.filter_size || '',
+        belt_size: u.belt_size || '',
+        refrigerant: u.refrigerant || '',
+        accessories: u.accessories || '',
         photo_url: (u.photo && u.photo.url) || null,
         source_equipment_id: u.sourceEquipmentId || null
       };

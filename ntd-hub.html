@@ -187,6 +187,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .rec-icon.or{background:#FEF0EA}
 .rec-icon.am{background:#FFF3E0}
 .rec-icon.pu{background:#F3F0FA}
+.rec-icon.mu{background:var(--of)}
 .rec-body{flex:1;min-width:0}
 .rec-title{font-size:14px;font-weight:700;color:var(--tx)}
 .rec-sub{font-size:11px;color:var(--mu);margin-top:2px;line-height:1.5}
@@ -376,6 +377,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .section-label:first-child{margin-top:0}
 .sp-link{color:var(--st);text-decoration:none;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:4px}
 .sp-link::after{content:"↗";font-size:11px}
+.team-phone{font-size:11px;margin-top:2px}
+.team-phone a{color:var(--nv);font-weight:700;text-decoration:none}
+.phase-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 10px;border:1.5px solid var(--bd);border-radius:8px;margin-bottom:6px}
+.phase-row .phase-del{color:var(--rd);cursor:pointer;font-size:16px;line-height:1;flex-shrink:0;padding:0 2px}
 
 /* ── DASHBOARD SECTION ACCENTS ── */
 .card-acc{border-top:3px solid var(--accent, var(--nv))}
@@ -475,6 +480,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .tstatus-canceled{background:#F1ECE2;color:var(--mu);text-decoration:line-through}
 .tk-badge{font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:8px;display:inline-block;white-space:nowrap}
 .tk-declined-badge{background:#FDEDEC;color:var(--rd)}
+.tk-warranty-badge{background:#FFF4D6;color:#8A5A00}
 
 .tk-table{background:#fff;border-radius:10px;border:1px solid var(--bd);overflow:hidden;overflow-x:auto}
 .tk-row{display:grid;grid-template-columns:22px 1.5fr 90px 1.8fr 90px 110px 90px 34px;gap:8px;padding:11px 14px;align-items:center;border-top:1px solid var(--of);cursor:pointer;min-width:820px}
@@ -705,6 +711,10 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
         <option value="emergency">Emergency</option>
         <option value="same_day">Same Day</option>
         <option value="routine">Routine</option>
+      </select>
+      <select id="tk-filter-billing" onchange="renderTicketsList()">
+        <option value="">All billing types</option>
+        <option value="warranty">Warranty only</option>
       </select>
       <select id="tk-filter-status" style="display:none" onchange="renderTicketsList()">
         <option value="open">Open</option>
@@ -1034,23 +1044,17 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
     <div class="modal-title" id="proj-modal-title">Add Project</div>
     <div class="fg" id="pm-facility-wrap"><label>Facility *</label><select id="pm-facility" onchange="ntdRenderFacilityEquipment(this.value)"></select></div>
     <div id="pm-facility-equipment-section" class="hidden">
-      <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mu);margin:4px 0 6px">Facility Equipment on File</div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mu);margin:4px 0 6px">Facility Equipment on File <span style="font-weight:400;text-transform:none;color:var(--mu)">— units, accessories &amp; filter/belt sizes already on record</span></div>
       <div id="pm-facility-equipment-list" style="margin-bottom:14px"></div>
     </div>
     <div class="fg"><label>Project Name *</label><input type="text" id="pm-name" placeholder="e.g. RTU Replacement Phase 2"></div>
-    <div class="fg">
-      <label>Status</label>
-      <select id="pm-status">
-        <option value="bidding">Bidding</option>
-        <option value="awarded">Awarded</option>
-        <option value="progress">In Progress</option>
-        <option value="complete">Complete</option>
-        <option value="lost">Lost</option>
-      </select>
-    </div>
+    <div class="fg"><label>NTD Job ID</label><input type="text" id="pm-job-id" placeholder="e.g. NTD-2026-042"></div>
+
+    <div class="divider"></div>
+    <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mu);margin-bottom:10px">Team &amp; Contacts</div>
     <div class="r2">
       <div class="fg"><label>Project Manager</label>
-        <select id="pm-pm">
+        <select id="pm-pm" onchange="ntdUpdateTeamPhones()">
           <option value="">— None —</option>
           <option>Evyn Fairman</option>
           <option>Kyle Mackey</option>
@@ -1058,64 +1062,69 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
           <option>Blake Orite</option>
           <option>Valeria Ramirez</option>
         </select>
+        <div id="pm-pm-phone" class="team-phone"></div>
       </div>
       <div class="fg"><label>Assistant PM</label>
-        <select id="pm-apm">
+        <select id="pm-apm" onchange="ntdUpdateTeamPhones()">
           <option value="">— None —</option>
           <option>Julie Shindoll</option>
           <option>Elizabeth Parker</option>
         </select>
+        <div id="pm-apm-phone" class="team-phone"></div>
       </div>
     </div>
     <div class="fg"><label>Superintendent</label>
-      <select id="pm-super">
+      <select id="pm-super" onchange="ntdUpdateTeamPhones()">
         <option value="">— None —</option>
         <option>Victor Lozano</option>
         <option>Daniel Castorena</option>
         <option>Eladio Sanchez</option>
       </select>
+      <div id="pm-super-phone" class="team-phone"></div>
     </div>
-    <div class="r2">
-      <div class="fg"><label>Contract Value</label><input type="text" id="pm-value" placeholder="$0"></div>
-      <div class="fg"><label>NTD Job ID</label><input type="text" id="pm-job-id" placeholder="e.g. NTD-2026-042"></div>
-    </div>
-    <div class="r2">
-      <div class="fg"><label>Equipment PO #</label><input type="text" id="pm-po-equip" placeholder=""></div>
-      <div class="fg"><label>Parts PO #</label><input type="text" id="pm-po-parts" placeholder=""></div>
-    </div>
-    <div class="fg"><label>Combined PO # <span style="font-size:9px;font-weight:400;color:var(--mu);text-transform:none">(if single PO covers both)</span></label><input type="text" id="pm-po" placeholder=""></div>
-    <div class="r2">
-      <div class="fg"><label>Start Date</label><input type="text" id="pm-start" placeholder="MM/DD/YYYY"></div>
-      <div class="fg"><label>Target Completion</label><input type="text" id="pm-end" placeholder="MM/DD/YYYY"></div>
-    </div>
-    <div class="fg"><label>SharePoint / OneDrive URL</label><input type="text" id="pm-sp" placeholder="https://… (link to an external folder, if anything lives outside the Hub)"></div>
-    <div class="fg"><label>Description / Notes</label><textarea id="pm-notes" placeholder="Scope, key contacts, special requirements…"></textarea></div>
     <div class="divider"></div>
-    <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mu);margin-bottom:10px">Agreement / Contract</div>
-    <div class="r2">
-      <div class="fg"><label>Contract Type(s)</label>
-        <div id="pm-agr-type-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px"></div>
-        <div style="display:flex;gap:6px">
-          <input type="text" id="pm-agr-type-custom" placeholder="Add custom type…" style="flex:1;font-size:12px" onkeypress="if(event.key==='Enter'){event.preventDefault();ntdAddCustomAgrType();}">
-          <button type="button" onclick="ntdAddCustomAgrType()" style="padding:0 12px;background:var(--nv);color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">Add</button>
-        </div>
-      </div>
-      <div class="fg"><label>Contract #</label><input type="text" id="pm-agr-num" placeholder="e.g. CTR-2025-042"></div>
+    <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mu);margin-bottom:6px">Site &amp; GC Contacts <span style="font-weight:400;text-transform:none;color:var(--mu)">— anyone Sales/PM/Service might need to call: site contact, GC's PM, GC's site super, property manager…</span></div>
+    <div id="pm-contacts-list" style="margin-bottom:8px"></div>
+    <div id="pm-contact-role-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
+    <div class="r2" style="align-items:flex-end">
+      <div class="fg" style="margin-bottom:0"><label>Role</label><input type="text" id="pm-contact-role" placeholder="e.g. GC Project Manager"></div>
+      <div class="fg" style="margin-bottom:0"><label>Name</label><input type="text" id="pm-contact-person" placeholder="Who"></div>
     </div>
-    <div class="r2">
-      <div class="fg"><label>Signed Date</label><input type="text" id="pm-agr-signed" placeholder="MM/DD/YYYY"></div>
-      <div class="fg"><label>Contract Status</label>
-        <select id="pm-agr-status">
-          <option value="">— None —</option>
-          <option value="draft">Draft</option>
-          <option value="sent">Sent</option>
-          <option value="signed">Signed</option>
-          <option value="complete">Complete</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
-      </div>
+    <div class="fg"><label>Phone</label><input type="text" id="pm-contact-phone-add" placeholder="(945) 555-0100"></div>
+    <button class="btn btn-outline" type="button" onclick="ntdAddContact()" style="margin-top:-4px">+ Add Contact</button>
+
+    <div class="fg" style="margin-top:14px"><label>Description / Notes</label><textarea id="pm-notes" placeholder="Scope, access notes, special requirements…"></textarea></div>
+
+    <div class="divider"></div>
+    <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mu);margin-bottom:6px">Startup / Service Phases <span style="font-weight:400;text-transform:none;color:var(--mu)">— schedule this out in as many dated phases as needed</span></div>
+    <div id="pm-phases-list" style="margin-bottom:8px"></div>
+    <div class="r2" style="align-items:flex-end">
+      <div class="fg" style="margin-bottom:0"><label>Phase / What's Happening</label><input type="text" id="pm-phase-label" placeholder="e.g. Phase 1 — RTUs 1-4 startup"></div>
+      <div class="fg" style="margin-bottom:0"><label>Date</label><input type="date" id="pm-phase-date"></div>
     </div>
+    <button class="btn btn-outline" type="button" onclick="ntdAddPhase()" style="margin-top:8px">+ Add Phase</button>
+
     <div id="pm-docs-section" class="hidden">
+      <div class="divider"></div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mu);margin-bottom:10px">Submittals — Equipment Upload</div>
+      <div id="pm-submittals-list" style="margin-bottom:10px"></div>
+
+      <div class="fg">
+        <label>Paste from the NTD Project Equipment Template</label>
+        <div style="font-size:11px;color:var(--mu);margin-bottom:6px;line-height:1.6">
+          1. Fill out the NTD Project Equipment Template — one row per unit.<br>
+          2. In Excel, select your finished rows (header row is fine to include) and copy (Ctrl/Cmd+C).<br>
+          3. Paste below (Ctrl/Cmd+V).<br>
+          4. Tap <strong>Preview Rows</strong> and check the table looks right — fix anything right there.<br>
+          5. Tap <strong>Publish</strong>. Every unit — including its accessory info — lands on this
+          project's facility right away, visible on the Units tab.
+        </div>
+        <textarea id="pm-submittal-paste" placeholder="Paste copied Excel rows here…" style="font-family:monospace;font-size:11px;min-height:80px"></textarea>
+      </div>
+      <button class="btn btn-outline" onclick="ntdParseSpreadsheetPaste()" type="button">Preview Rows</button>
+      <div id="pm-paste-err" class="banner err hidden"></div>
+      <div id="pm-paste-preview"></div>
+
       <div class="divider"></div>
       <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mu);margin-bottom:10px">Documents</div>
       <div id="pm-docs-list" style="margin-bottom:10px"></div>
@@ -1142,32 +1151,6 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
         <div class="fg"><label>File</label><input type="file" id="pm-doc-file" accept="application/pdf,image/*"></div>
       </div>
       <button class="btn btn-outline" onclick="ntdUploadProjectDoc()" type="button">📎 Upload Document</button>
-
-      <div class="divider"></div>
-      <div style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mu);margin-bottom:10px">Submittals — Startup Jobs</div>
-      <div id="pm-submittals-list" style="margin-bottom:10px"></div>
-
-      <div class="fg"><label>Paste Submittal JSON from Claude</label>
-        <textarea id="pm-submittal-json" placeholder='Paste the JSON Claude extracted from the submittal PDF here…' style="font-family:monospace;font-size:11px;min-height:80px"></textarea>
-      </div>
-      <div id="pm-submittal-err" class="banner err hidden"></div>
-      <button class="btn btn-outline" onclick="ntdPublishProjectSubmittal()" type="button">📋 Publish Submittal as Startup Job</button>
-
-      <div class="divider"></div>
-      <div class="fg">
-        <label>Or paste an equipment list from Excel / a spreadsheet</label>
-        <div style="font-size:11px;color:var(--mu);margin-bottom:6px">
-          Select the cells in Excel, copy, and paste below — the columns come through automatically.
-          Typing it in by hand? Separate each value with a <strong>comma</strong> instead of spaces
-          (e.g. <code>RTU-1, RTU, MODEL-123, SN456, 5, 16x20x1, A38</code>). First row can be column
-          headers (Tag, Type, Model, Serial, Tonnage, Filter Size, Belt Size — any order) — if there's
-          no header row, that order is assumed.
-        </div>
-        <textarea id="pm-submittal-paste" placeholder="Paste copied Excel cells here…" style="font-family:monospace;font-size:11px;min-height:80px"></textarea>
-      </div>
-      <button class="btn btn-outline" onclick="ntdParseSpreadsheetPaste()" type="button">Preview Rows</button>
-      <div id="pm-paste-err" class="banner err hidden"></div>
-      <div id="pm-paste-preview"></div>
     </div>
 
     <button class="btn btn-nv" onclick="saveProject()" style="margin-top:14px">Save Project</button>
@@ -1281,6 +1264,10 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
       <div style="font-size:10.5px;color:var(--mu);margin-top:4px" id="tk-site-hint">No matching facility on file yet — this will be tracked as a new site until it's matched or created.</div>
       <div id="tk-dup-warning" style="display:none;font-size:11px;font-weight:600;color:var(--am);background:#FFF3E0;border:1.5px solid var(--am);border-radius:8px;padding:8px 10px;margin-top:6px"></div>
     </div>
+    <div class="fg">
+      <label>Project <span style="font-weight:400;color:var(--mu)">— optional, only if this call is tied to a specific project on this facility</span></label>
+      <select id="tk-project" disabled><option value="">— Pick a facility first —</option></select>
+    </div>
     <div class="r2">
       <div class="fg"><label>Contact Name</label><input type="text" id="tk-contact-name" placeholder="Who called"></div>
       <div class="fg"><label>Contact Phone</label><input type="text" id="tk-contact-phone" placeholder="(945) 555-0100"></div>
@@ -1301,7 +1288,7 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
     </div>
     <div class="fg"><label>Problem Reported *</label><textarea id="tk-problem" placeholder="e.g. RTU-2 not cooling, tripping breaker"></textarea></div>
     <div class="r2">
-      <div class="fg"><label>Scheduled Date</label><input type="date" id="tk-date"></div>
+      <div class="fg"><label>Scheduled Date</label><input type="date" id="tk-date" onchange="tkRefreshWorkload()"></div>
       <div class="fg"><label>Time Window</label>
         <select id="tk-window">
           <option value="">— Not Set —</option>
@@ -1323,7 +1310,7 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
       </div>
     </div>
     <div class="fg">
-      <label>Assigned Tech(s)</label>
+      <label>Assigned Tech(s) <span style="font-weight:400;color:var(--mu)">— ⚠ means already booked that day, tap the badge for details</span></label>
       <div id="tk-tech-chips" style="display:flex;flex-wrap:wrap;gap:6px"></div>
     </div>
     <div class="fg" id="tk-lead-fg" style="display:none">
@@ -1352,7 +1339,10 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
   </div>
 </div>
 
-<!-- REQUEST TECH MODAL (used from a Project card) -->
+<!-- REQUEST TECH MODAL (used from a Project card) — submits straight into the
+     real Dispatch ticket board (service_tickets), same as a ticket entered
+     from Schedule → Tickets, so it's immediately schedulable and the
+     requester gets an automatic in-app notification when a tech closes it out. -->
 <div class="modal-overlay" id="req-modal">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
@@ -1361,18 +1351,28 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
       <label>Facility</label>
       <div style="font-size:14px;font-weight:700;color:var(--nv);padding:4px 0" id="req-fac-name"></div>
     </div>
-    <div class="fg">
-      <label>Visit Type</label>
-      <select id="rm-type">
-        <option value="job">Job — tech(s) needed on-site</option>
-        <option value="site_visit">Site Visit</option>
-        <option value="site_inspection">Site Inspection</option>
-      </select>
+    <div class="r2">
+      <div class="fg">
+        <label>Visit Type</label>
+        <select id="rm-type">
+          <option value="job">Job — tech(s) needed on-site</option>
+          <option value="site_visit">Site Visit</option>
+          <option value="site_inspection">Site Inspection</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Priority</label>
+        <select id="rm-priority">
+          <option value="routine">Routine</option>
+          <option value="same_day">Same Day</option>
+          <option value="emergency">Emergency</option>
+        </select>
+      </div>
     </div>
     <div class="fg"><label>Date Needed *</label><input type="date" id="rm-date"></div>
     <div class="fg"><label>What's needed *</label><textarea id="rm-note" placeholder="e.g. RTU-3 down, no cooling — need tech ASAP"></textarea></div>
     <div class="fg"><label>Requested By</label><input type="text" id="rm-by" placeholder="Your name"></div>
-    <div class="fg"><label>Your Phone or Email <span style="font-size:9px;font-weight:400;color:var(--mu);text-transform:none">(so ops can notify you when confirmed)</span></label><input type="text" id="rm-contact" placeholder="e.g. (945) 555-0100 or you@ntdmechanical.com"></div>
+    <div class="fg"><label>Your Phone or Email <span style="font-size:9px;font-weight:400;color:var(--mu);text-transform:none">(optional — for dispatch's reference)</span></label><input type="text" id="rm-contact" placeholder="e.g. (945) 555-0100 or you@ntdmechanical.com"></div>
     <button class="btn btn-nv" onclick="saveTechRequest()">Submit Request</button>
     <button class="btn btn-outline" onclick="closeModal('req-modal')" style="margin-top:6px">Cancel</button>
   </div>
@@ -1429,7 +1429,8 @@ var NTD_ICONS = {
   check:     '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
   dollar:    '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
   camera:    '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>',
-  fileText:  '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>'
+  fileText:  '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
+  phone:     '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>'
 };
 function ntdIcon(name, size) {
   var s = size || 18;
@@ -1462,11 +1463,14 @@ var calTypeFilter = 'all';
 var calFacilitiesCache = null;
 var isTvMode = false;
 var requestingFacilityId = null;
+var requestingProjectId = null;
+var currentServiceCallsProjectFilter = '';
 
 // ── SERVICE TICKETS STATE ───────────────────────────────────────────────────
 var editingTicketId = null;
 var ticketFacilitiesCache = null;
 var ticketPickedFacilityId = null;
+var _tkWorkloadByTech = {}; // techName -> [ "site (time window)", ... ] for the currently selected tk-date
 var editingCalRequester = null;
 var editingCalContact = null;
 var editingCalOriginalStatus = null;
@@ -1631,9 +1635,22 @@ function goPage(page) {
   }
 }
 
+function ntdGotoProjectServiceCalls(facilityId, projectId) {
+  currentServiceCallsProjectFilter = projectId || '';
+  goDetail(facilityId, 'servicecalls');
+}
+function ntdSetServiceCallsProjectFilter(projectId) {
+  currentServiceCallsProjectFilter = projectId || '';
+  ntdStore.facilities.get(currentFacilityId).then(renderDetailTab);
+}
 function goDetail(facilityId, tab) {
   currentFacilityId = facilityId;
   currentDetailTab = tab || 'timeline';
+  // Only ntdGotoProjectServiceCalls sets a project filter before calling
+  // here (and it always passes tab==='servicecalls') — any other entry into
+  // Detail should start unfiltered, so a stale filter from a previous visit
+  // doesn't silently hide everything on a different facility/project.
+  if (currentDetailTab !== 'servicecalls') currentServiceCallsProjectFilter = '';
   pushRecentFac(facilityId);
   if (getUserRole() === 'field' && (currentDetailTab === 'projects' || currentDetailTab === 'quotes')) {
     currentDetailTab = 'timeline';
@@ -2034,12 +2051,12 @@ function renderDetail() {
       '</div>';
 
     // Tabs
-    var tabs = ['timeline','equipment','startups','pm','quotes','projects','photos','notes'];
+    var tabs = ['timeline','equipment','startups','pm','servicecalls','quotes','projects','photos','notes'];
     if (getUserRole() === 'field') {
       tabs = tabs.filter(function(t){ return t !== 'quotes' && t !== 'projects'; });
     }
-    var tabIcons = {timeline:'clock',equipment:'wrench',startups:'check',pm:'clipboard',quotes:'dollar',projects:'folder',photos:'camera',notes:'fileText'};
-    var tabLabels = {timeline:'Timeline',equipment:'Units',startups:'Startups',pm:'PM',quotes:'Quotes',projects:'Projects',photos:'Photos',notes:'Notes'};
+    var tabIcons = {timeline:'clock',equipment:'wrench',startups:'check',pm:'clipboard',servicecalls:'phone',quotes:'dollar',projects:'folder',photos:'camera',notes:'fileText'};
+    var tabLabels = {timeline:'Timeline',equipment:'Units',startups:'Startups',pm:'PM',servicecalls:'Service Calls',quotes:'Quotes',projects:'Projects',photos:'Photos',notes:'Notes'};
     var tabsHtml = tabs.map(function(t) {
       return '<button class="sec-tab'+(t===currentDetailTab?' on':'')+'" onclick="switchDetailTab(\''+t+'\')">'+ntdIcon(tabIcons[t],13)+' '+tabLabels[t]+'</button>';
     }).join('');
@@ -2080,6 +2097,7 @@ function unpinNote() {
 
 function switchDetailTab(tab) {
   currentDetailTab = tab;
+  if (tab === 'servicecalls') currentServiceCallsProjectFilter = ''; // tab-bar click always starts unfiltered; ntdGotoProjectServiceCalls sets the filter itself and doesn't go through here
   document.querySelectorAll('.sec-tab').forEach(function(t){ t.classList.remove('on'); });
   document.querySelectorAll('.sec-tab').forEach(function(b){
     if(b.getAttribute('onclick') && b.getAttribute('onclick').indexOf("'"+tab+"'") > -1) b.classList.add('on');
@@ -2207,15 +2225,16 @@ function renderDetailTab(f) {
 
       // Projects
       jobs.filter(function(j){ return j.type === 'project'; }).forEach(function(p) {
-        var statusLabel = {bidding:'Bidding',awarded:'Awarded',progress:'In Progress',complete:'Complete',lost:'Lost'}[p.status] || '';
+        var firstPhase = (Array.isArray(p.phases) && p.phases.length)
+          ? p.phases.slice().sort(function(a,b){ return (a.date||'~').localeCompare(b.date||'~'); })[0] : null;
         events.push({
           ts:    p.ts || 0,
           icon:  '📁',
           color: 'pu',
           title: 'Project — ' + esc(p.name || 'Project'),
-          sub:   [statusLabel, p.value || ''].filter(Boolean).join(' · '),
+          sub:   [p.status === 'complete' ? 'Complete' : 'Active', p.assigned_pm || ''].filter(Boolean).join(' · '),
           meta:  p.notes ? esc(p.notes) : '',
-          date:  p.start_date || ''
+          date:  firstPhase ? firstPhase.date : ''
         });
       });
 
@@ -2656,6 +2675,132 @@ function renderDetailTab(f) {
     });
   }
 
+  else if (currentDetailTab === 'servicecalls') {
+    Promise.all([
+      ntdStore.service_tickets ? ntdStore.service_tickets.list(function(t){ return t.facility_id === fid; }) : Promise.resolve([]),
+      ntdStore.service_records ? ntdStore.service_records.list(function(r){ return r.facility_id === fid; }) : Promise.resolve([]),
+      ntdStore.jobs.list(function(j){ return j.facility_id === fid && j.type === 'project'; })
+    ]).then(function(results) {
+      var allTickets = results[0] || [];
+      var allRecs = results[1] || [];
+      var projects = results[2] || [];
+
+      var projectById = {};
+      projects.forEach(function(p){ projectById[p.id] = p.name || 'Project'; });
+      var ticketById = {};
+      allTickets.forEach(function(t){ ticketById[t.id] = t; });
+
+      // Project filter — only relevant when this facility actually has more
+      // than one thing on file to tell apart; a site with 0-1 projects just
+      // sees everything, no dropdown clutter.
+      var filterHtml = '';
+      var activeFilter = currentServiceCallsProjectFilter || '';
+      if (projects.length) {
+        filterHtml = '<div class="fg" style="margin-bottom:14px"><label>Filter by Project</label>' +
+          '<select id="sc-tab-project-filter" onchange="ntdSetServiceCallsProjectFilter(this.value)">' +
+          '<option value="">All Projects &amp; General Service</option>' +
+          projects.map(function(p){ return '<option value="'+esc(p.id)+'"'+(p.id===activeFilter?' selected':'')+'>'+esc(p.name||'Project')+'</option>'; }).join('') +
+          '</select></div>';
+      } else {
+        activeFilter = ''; // nothing to filter by — ignore any stale filter state
+      }
+
+      var tickets = activeFilter ? allTickets.filter(function(t){ return t.project_id === activeFilter; }) : allTickets;
+      // A service_record has no project_id of its own — it inherits one from
+      // the ticket it closed out, if any. Standalone records (no ticket_id,
+      // filled out directly in the field) can't be attributed to a project
+      // and only show up in the unfiltered "All" view.
+      var recs = activeFilter ? allRecs.filter(function(r){
+        var t = r.ticket_id ? ticketById[r.ticket_id] : null;
+        return t && t.project_id === activeFilter;
+      }) : allRecs;
+
+      function projTag(projectId) {
+        return projectId && projectById[projectId] ? ' · <span style="color:var(--st)">'+esc(projectById[projectId])+'</span>' : '';
+      }
+
+      if (!tickets.length && !recs.length) {
+        content.innerHTML = filterHtml + emptyState('🛠️', activeFilter ? 'No service calls for this project' : 'No service calls yet',
+          activeFilter ? 'Nothing on file tied to this project yet.' : 'Service and warranty call history for this site will appear here once a ticket is dispatched or a technician submits a Service Call form.');
+        return;
+      }
+
+      var recByTicketId = {};
+      recs.forEach(function(r){ if (r.ticket_id) recByTicketId[r.ticket_id] = true; });
+
+      var resStatusLabels = { resolved:'Resolved', follow_up:'Follow-up needed', parts_ordered:'Parts ordered', quote_needed:'Quote needed' };
+
+      var html = filterHtml;
+
+      // ── Open / In Progress tickets — need attention, tap to open in Dispatch ──
+      var openTix = tickets.filter(function(t){ return TICKET_OPEN_STATUSES[t.status]; })
+        .sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
+      if (openTix.length) {
+        html += '<div class="section-label">Open / In Progress</div>';
+        html += '<div class="card"><div class="card-body">';
+        openTix.forEach(function(t) {
+          var meta = [];
+          if (t.scheduled_date) meta.push(esc(t.scheduled_date) + (t.time_window ? ' · ' + esc(t.time_window) : ''));
+          if (t.assigned_techs && t.assigned_techs.length) meta.push(esc(t.assigned_techs.join(', ')));
+          html += '<div class="rec-row" style="cursor:pointer" onclick="openEditTicket(\''+t.id+'\')">' +
+            '<div class="rec-icon am">🛠️</div>' +
+            '<div class="rec-body">' +
+              '<div class="rec-title">'+esc(t.ticket_number||'Ticket')+' <span class="tk-badge tstatus-'+esc(t.status||'new')+'" style="margin-left:4px">'+esc(TICKET_STATUS_LABELS[t.status]||'New')+'</span>'+tkWarrantyBadgeHTML(t.billing_type)+(activeFilter?'':projTag(t.project_id))+'</div>' +
+              (t.problem_description ? '<div class="rec-sub">'+esc(t.problem_description)+'</div>' : '') +
+              (meta.length ? '<div class="rec-meta">'+meta.join(' · ')+'</div>' : '') +
+            '</div></div>';
+        });
+        html += '</div></div>';
+      }
+
+      // ── Completed Service Calls — full detail from the tech's submitted form ──
+      var completedRecs = recs.slice().sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
+      if (completedRecs.length) {
+        html += '<div class="section-label">Completed Service Calls</div>';
+        html += '<div class="card"><div class="card-body">';
+        completedRecs.forEach(function(r) {
+          var unitTags = (r.units_serviced||[]).map(function(u){ return u.tag; }).filter(Boolean);
+          var statusColor = r.resolution_status === 'resolved' || !r.resolution_status ? 'gn' : 'am';
+          var recProjectId = r.ticket_id && ticketById[r.ticket_id] ? ticketById[r.ticket_id].project_id : null;
+          var recBillingType = r.billing_type || (r.ticket_id && ticketById[r.ticket_id] ? ticketById[r.ticket_id].billing_type : null);
+          html += '<div class="rec-row">' +
+            '<div class="rec-icon '+(recBillingType==='warranty'?'mu':statusColor)+'">'+(recBillingType==='warranty'?'🛡️':(statusColor==='gn'?'✅':'⚠️'))+'</div>' +
+            '<div class="rec-body">' +
+              '<div class="rec-title">'+esc(r.problem_reported || 'Service Call')+tkWarrantyBadgeHTML(recBillingType)+(activeFilter?'':projTag(recProjectId))+'</div>' +
+              '<div class="rec-sub">'+(r.date?esc(r.date):'')+(r.tech?' · '+esc(r.tech):'')+(unitTags.length?' · '+esc(unitTags.join(', ')):'')+'</div>' +
+              (r.diagnosis ? '<div class="rec-meta"><b>Diagnosis:</b> '+esc(r.diagnosis)+'</div>' : '') +
+              (r.work_performed ? '<div class="rec-meta"><b>Work Done:</b> '+esc(r.work_performed)+'</div>' : '') +
+              (r.resolution_status ? '<div class="rec-meta" style="color:var(--'+statusColor+')">'+esc(resStatusLabels[r.resolution_status]||r.resolution_status)+(r.follow_up_note?': '+esc(r.follow_up_note):'')+'</div>' : '') +
+              (r.pdf_url ? '<div style="margin-top:6px"><a href="'+esc(r.pdf_url)+'" target="_blank" style="color:var(--st);font-weight:600;text-decoration:none;font-size:11px">📥 View PDF</a></div>' : '') +
+            '</div></div>';
+        });
+        html += '</div></div>';
+      }
+
+      // ── Closed tickets with no matching service_records form on file ──
+      var orphanTix = tickets.filter(function(t){
+        return !TICKET_OPEN_STATUSES[t.status] && !recByTicketId[t.id];
+      }).sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
+      if (orphanTix.length) {
+        html += '<div class="section-label">Closed Tickets — No Form on File</div>';
+        html += '<div class="card"><div class="card-body">';
+        orphanTix.forEach(function(t) {
+          html += '<div class="rec-row" style="cursor:pointer" onclick="openEditTicket(\''+t.id+'\')">' +
+            '<div class="rec-icon mu">🛠️</div>' +
+            '<div class="rec-body">' +
+              '<div class="rec-title">'+esc(t.ticket_number||'Ticket')+' <span class="tk-badge tstatus-'+esc(t.status||'new')+'" style="margin-left:4px">'+esc(TICKET_STATUS_LABELS[t.status]||'')+'</span>'+tkWarrantyBadgeHTML(t.billing_type)+(activeFilter?'':projTag(t.project_id))+'</div>' +
+              (t.problem_description ? '<div class="rec-sub">'+esc(t.problem_description)+'</div>' : '') +
+            '</div></div>';
+        });
+        html += '</div></div>';
+      }
+
+      content.innerHTML = html;
+    }).catch(function(err) {
+      content.innerHTML = emptyState('⚠️','Could not load service calls', esc(err.message||'connection error'));
+    });
+  }
+
   else if (currentDetailTab === 'quotes') {
     Promise.all([
       ntdStore.pm_quotes.list(function(r){ return r.facility_id === fid; }),
@@ -2723,51 +2868,22 @@ function renderDetailTab(f) {
   }
 
   else if (currentDetailTab === 'projects') {
-    ntdStore.jobs.list(function(j){ return j.facility_id === fid && j.type === 'project'; }).then(function(projs) {
+    Promise.all([
+      ntdStore.jobs.list(function(j){ return j.facility_id === fid && (j.type === 'project' || j.type === 'startup_job'); }),
+      ntdStore.service_tickets ? ntdStore.service_tickets.list(function(t){ return t.facility_id === fid && t.project_id; }) : Promise.resolve([])
+    ]).then(function(results) {
+      var rows = results[0];
+      var tickets = results[1] || [];
+      var projs = rows.filter(function(j){ return j.type === 'project'; });
+      var submittalCount = {};
+      rows.filter(function(j){ return j.type === 'startup_job' && j.project_id; }).forEach(function(j){ submittalCount[j.project_id] = (submittalCount[j.project_id]||0) + 1; });
+      var ticketCount = {};
+      tickets.forEach(function(t){ ticketCount[t.project_id] = (ticketCount[t.project_id]||0) + 1; });
       var addBtn = '<button class="btn btn-nv" onclick="openAddProject(\''+fid+'\')" style="margin-bottom:14px">+ Add Project</button>';
-      if (!projs.length) { content.innerHTML = addBtn + emptyState('📁','No projects yet','Add a project to track bids, contracts, and SharePoint documents for this facility.'); return; }
+      if (!projs.length) { content.innerHTML = addBtn + emptyState('📁','No projects yet','Add a project to coordinate startups, service and warranty work for this facility with the PM/Service department.'); return; }
       var html = addBtn;
-      var statusClass = {bidding:'status-bidding',awarded:'status-awarded',progress:'status-progress',complete:'status-complete',lost:'status-lost'};
-      var statusLabel = {bidding:'Bidding',awarded:'Awarded',progress:'In Progress',complete:'Complete',lost:'Lost'};
-      var statusColor = {bidding:'var(--am)',awarded:'var(--gn)',progress:'var(--st)',complete:'var(--bd2)',lost:'var(--rd)'};
       projs.sort(function(a,b){return (b.ts||0)-(a.ts||0);}).forEach(function(p) {
-        html += '<div class="card" style="border-left:4px solid '+(statusColor[p.status]||'var(--am)')+'">' +
-          '<div class="card-body">' +
-            '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">' +
-              '<div style="font-size:15px;font-weight:700;color:var(--nv);flex:1">'+esc(p.name||'Project')+(p.assigned_pm?' <span style="font-size:12px;font-weight:600;color:var(--mu)">— '+esc(p.assigned_pm)+'</span>':'')+'</div>' +
-              '<span class="status-badge '+(statusClass[p.status]||'status-bidding')+'">'+(statusLabel[p.status]||'Bidding')+'</span>' +
-            '</div>' +
-            (p.job_id ? '<div style="font-size:11px;color:var(--nv);font-weight:700;margin-bottom:3px">Job #'+esc(p.job_id)+'</div>' : '') +
-            (p.apm || p.superintendent ? '<div style="font-size:11px;color:var(--mu);margin-bottom:3px">' +
-              (p.apm ? 'APM: '+esc(p.apm) : '') + (p.apm && p.superintendent ? ' &middot; ' : '') + (p.superintendent ? 'Superintendent: '+esc(p.superintendent) : '') +
-              '</div>' : '') +
-            (p.wo_number ? '<div style="font-size:11px;color:var(--mu);margin-bottom:2px">Combined PO: '+esc(p.wo_number)+'</div>' : '') +
-            (p.po_equip ? '<div style="font-size:11px;color:var(--mu);margin-bottom:2px">Equipment PO: '+esc(p.po_equip)+'</div>' : '') +
-            (p.po_parts ? '<div style="font-size:11px;color:var(--mu);margin-bottom:4px">Parts PO: '+esc(p.po_parts)+'</div>' : '') +
-            (p.value ? '<div style="font-size:13px;font-weight:700;color:var(--gn);margin-bottom:4px;font-family:var(--font-mono)">'+esc(p.value)+'</div>' : '') +
-            (p.start_date||p.end_date ? '<div style="font-size:11px;color:var(--mu);margin-bottom:8px;font-family:var(--font-mono)">'+(p.start_date?'Start: '+esc(p.start_date):'')+(p.start_date&&p.end_date?' · ':'')+(p.end_date?'Target: '+esc(p.end_date):'')+'</div>' : '') +
-            (p.sp_url ? '<a href="'+esc(p.sp_url)+'" target="_blank" class="sp-link" style="margin-bottom:8px;display:inline-flex">SharePoint Folder</a>' : '') +
-            (p.notes ? '<div style="font-size:12px;color:var(--mu);line-height:1.5;margin-top:6px;padding-top:8px;border-top:1px solid var(--bd)">'+esc(p.notes)+'</div>' : '') +
-            (p.agr_type || p.agr_num ? (function(){
-                var agrStatusClass = {draft:'status-bidding',sent:'status-bidding',signed:'status-awarded',complete:'status-complete',cancelled:'status-lost'};
-                var agrStatusLabel = {draft:'Draft',sent:'Sent',signed:'Signed',complete:'Complete',cancelled:'Cancelled'};
-                return '<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--bd);display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
-                  '<span style="font-size:10px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.05em">Agreement</span>' +
-                  (p.agr_type ? p.agr_type.split(',').map(function(t){return t.trim();}).filter(Boolean).map(function(t){ return '<span style="font-size:11px;color:var(--tx);background:var(--of);padding:2px 8px;border-radius:10px">'+esc(t)+'</span>'; }).join('') : '') +
-                  (p.agr_num ? '<span style="font-size:11px;color:var(--tx);font-weight:600">#'+esc(p.agr_num)+'</span>' : '') +
-                  (p.agr_status ? '<span class="status-badge '+(agrStatusClass[p.agr_status]||'status-bidding')+'">'+(agrStatusLabel[p.agr_status]||p.agr_status)+'</span>' : '') +
-                  (p.agr_url ? (p.agr_url.split('\n').map(function(u){ return u.trim(); }).filter(Boolean).map(function(u,i,arr){
-                      return '<a href="'+esc(u)+'" target="_blank" class="sp-link" style="font-size:11px">'+(arr.length>1?'Document '+(i+1):'Document')+'</a>';
-                    }).join('')) : '') +
-                '</div>';
-              })() : '') +
-            '<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">' +
-              '<button class="btn btn-or btn-sm" onclick="openRequestTech(\''+fid+'\')">🔧 Request Tech</button>' +
-              '<button class="btn btn-outline btn-sm" onclick="openEditProject(\''+p.id+'\',\''+fid+'\',true)">📎 Documents</button>' +
-              '<button class="btn btn-outline btn-sm" onclick="openEditProject(\''+p.id+'\',\''+fid+'\')">✏️ Edit</button>' +
-              '<button class="btn btn-red btn-sm" onclick="deleteProject(\''+p.id+'\')">Delete</button>' +
-            '</div>' +
-          '</div></div>';
+        html += ntdProjectCardHTML(p, fid, submittalCount[p.id]||0, ticketCount[p.id]||0);
       });
       content.innerHTML = html;
     });
@@ -2775,13 +2891,24 @@ function renderDetailTab(f) {
 
 
   else if (currentDetailTab === 'photos') {
-    content.innerHTML = '<div class="card"><div class="card-body">' +
+    content.innerHTML =
+      '<div class="card"><div class="card-body">' +
+      '<div class="section-label" style="margin-top:0">📐 Site Plan / Unit Location Map</div>' +
+      '<div style="font-size:11px;color:var(--mu);margin-bottom:10px;line-height:1.5">Upload a roof layout, floor plan, or unit-location diagram once — it then shows up automatically on the site-history screen in every field tool, before a tech even walks in.</div>' +
+      '<div id="fac-siteplan-list" style="margin-bottom:12px"></div>' +
+      '<div class="fg"><label>Label (optional)</label><input type="text" id="fac-siteplan-label" placeholder="e.g. Roof Unit Layout, Building B Floor Plan"></div>' +
+      '<div class="fg"><label>File (PDF or image)</label><input type="file" id="fac-siteplan-file" accept="image/*,.pdf"></div>' +
+      '<button class="btn btn-or" onclick="ntdUploadSitePlan(\''+fid+'\')" type="button">📐 Upload Site Plan</button>' +
+      '</div></div>' +
+      '<div class="card"><div class="card-body">' +
+      '<div class="section-label" style="margin-top:0">General Site Photos</div>' +
       '<div class="fg"><label>Label (optional)</label><input type="text" id="fac-photo-label" placeholder="e.g. General Site Photo, Roof Access, Damage — 7/16"></div>' +
       '<div class="fg"><label>Photo</label><input type="file" id="fac-photo-file" accept="image/*"></div>' +
       '<button class="btn btn-nv" onclick="ntdUploadFacilityPhoto(\''+fid+'\')" type="button">📷 Upload Photo</button>' +
       '<div class="divider"></div>' +
       '<div id="fac-photos-grid"></div>' +
       '</div></div>';
+    ntdRenderSitePlans(fid);
     ntdRenderFacilityPhotos(fid);
   }
 
@@ -2934,6 +3061,55 @@ function ntdUploadFacilityPhoto(facilityId) {
     ntdRenderFacilityPhotos(facilityId);
   }).catch(function(err) {
     alert('Upload failed: ' + (err.message || 'see console for details'));
+  });
+}
+
+// ── SITE PLAN / UNIT LOCATION MAP (facility-level, surfaced to field tools) ─
+// Stored as an ordinary `documents` row (form_type: 'site_plan') so it rides
+// the same upload/storage path as everything else — no new table needed.
+// A facility can have more than one (e.g. a roof layout + a floor plan);
+// all of them get pulled into the Site History card in every field tool.
+function ntdUploadSitePlan(facilityId) {
+  var fileEl = document.getElementById('fac-siteplan-file');
+  var labelEl = document.getElementById('fac-siteplan-label');
+  if (!fileEl.files || !fileEl.files[0]) { alert('Choose a file first.'); return; }
+  var file = fileEl.files[0];
+  var ext = (file.name.split('.').pop() || 'pdf').toLowerCase();
+  var label = labelEl.value.trim() || 'Site Plan';
+  ntdStore.uploadFile({
+    blob: file,
+    facilityId: facilityId,
+    formType: 'site_plan',
+    mimeType: file.type || 'application/octet-stream',
+    ext: ext,
+    description: label
+  }).then(function(doc) {
+    if (!doc) { alert('Upload failed — check your connection and try again.'); return; }
+    fileEl.value = '';
+    labelEl.value = '';
+    showToast('✓ Site plan uploaded');
+    ntdRenderSitePlans(facilityId);
+  }).catch(function(err) {
+    alert('Upload failed: ' + (err.message || 'see console for details'));
+  });
+}
+
+function ntdRenderSitePlans(facilityId) {
+  var wrap = document.getElementById('fac-siteplan-list');
+  if (!wrap) return;
+  wrap.innerHTML = '<div style="font-size:11px;color:var(--mu)">Loading…</div>';
+  ntdStore.documents.list(function(d){ return d.facility_id === facilityId && d.form_type === 'site_plan'; }).then(function(plans) {
+    plans = (plans||[]).sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
+    if (!plans.length) { wrap.innerHTML = '<div style="font-size:11px;color:var(--mu);font-style:italic">No site plan on file yet — add one below so techs see it before dispatch.</div>'; return; }
+    wrap.innerHTML = plans.map(function(d) {
+      var isImg = /\.(png|jpe?g|gif|webp)$/i.test((d.file_path||d.file_url||'').split('?')[0]);
+      return '<a href="'+esc(d.file_url)+'" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border:1.5px solid var(--bd);border-radius:8px;margin-bottom:6px;text-decoration:none;color:var(--tx)">' +
+        (isImg ? '<img src="'+esc(d.file_url)+'" style="width:44px;height:44px;object-fit:cover;border-radius:6px;flex-shrink:0">' : '<span style="font-size:22px">📐</span>') +
+        '<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:12.5px">'+esc(d.description||'Site Plan')+'</div>' +
+        (d.date ? '<div style="font-size:10.5px;color:var(--mu)">'+esc(d.date)+'</div>' : '') + '</div>' +
+        '<span style="font-size:10.5px;color:var(--st);font-weight:700">View →</span>' +
+        '</a>';
+    }).join('');
   });
 }
 
@@ -3453,19 +3629,12 @@ function ntdToggleSubmittalHidden(jobId, hideIt, projectId) {
   });
 }
 
-function ntdShowPasteErr(msg) {
-  var el = document.getElementById('pm-submittal-err');
-  el.textContent = msg;
-  el.classList.remove('hidden');
-}
-function ntdHidePasteErr() {
-  document.getElementById('pm-submittal-err').classList.add('hidden');
-}
-
-// Shared by both the JSON-paste and spreadsheet-paste publish paths.
+// Publishes a parsed equipment list (from the spreadsheet-paste box) as a new
+// startup_job + equipment records on this project's facility.
 // `data` shape: {job_name, equipment_type, manufacturer, project_number, units:[...]}
 // each unit may also include `options` — free text for per-unit special requirements
-// (e.g. "Economizer", "Powered Exhaust") that a tech needs to know before starting the unit.
+// (e.g. accessory info folded in by the NTD Project Equipment Template's Notes
+// column) that a tech needs to know before starting the unit.
 function ntdPublishSubmittalData(data) {
   var units = data.units || [];
   return ntdStore.facilities.get(editingProjectFacilityId).then(function(fac) {
@@ -3508,25 +3677,7 @@ function ntdPublishSubmittalData(data) {
   });
 }
 
-function ntdPublishProjectSubmittal() {
-  var raw = document.getElementById('pm-submittal-json').value.trim();
-  if (!raw) { ntdShowPasteErr('Paste the submittal JSON first.'); return; }
-  var data;
-  try { data = JSON.parse(raw); }
-  catch (e) { ntdShowPasteErr('Invalid JSON — check for missing commas or brackets. Error: ' + e.message); return; }
-  ntdHidePasteErr();
-  if (!editingProjectId || !editingProjectFacilityId) { ntdShowPasteErr('Save the project before publishing a submittal.'); return; }
-
-  ntdPublishSubmittalData(data).then(function(count) {
-    showToast('✓ Submittal published — ' + count + ' unit(s)');
-    document.getElementById('pm-submittal-json').value = '';
-    ntdRenderProjectSubmittals(editingProjectId, editingProjectFacilityId);
-  }).catch(function(err) {
-    ntdShowPasteErr('Publish failed: ' + (err.message || 'see console for details'));
-  });
-}
-
-// ── SPREADSHEET PASTE (no AI needed — parses tab-separated Excel paste) ────
+// ── SPREADSHEET PASTE (parses tab-separated Excel paste — the only submittal path) ─
 var _pasteRows = [];
 var PASTE_COLUMN_ALIASES = {
   tag:         ['tag','unit tag','unit','unit #','unit id'],
@@ -3776,44 +3927,163 @@ function ntdPmImportPublish() {
   });
 }
 
-// ── CONTRACT TYPE CHIPS (multi-select + custom) ────────────────────────────
-var AGR_TYPE_PRESETS = ['Construction / Install', 'Service Agreement', 'Maintenance', 'Other'];
-var _agrTypeSelected = [];
+// ── TEAM CONTACT LOOKUP (pulls phone/ext from the company directory) ───────
+function ntdDirLookup(name) {
+  if (!name) return null;
+  var base = name.replace(/\s*\(.*?\)\s*/g, '').trim(); // strip "(Senior PM)" etc.
+  return NTD_DIRECTORY.filter(function(p){ return p.name === base; })[0] || null;
+}
+function ntdTeamPhoneHTML(name) {
+  var d = ntdDirLookup(name);
+  if (!d) return '';
+  return '<a href="'+telHref(d.phone)+'">📞 '+esc(d.phone)+(d.ext?' · Ext '+esc(d.ext):'')+'</a>';
+}
+function ntdUpdateTeamPhones() {
+  var pmEl = document.getElementById('pm-pm-phone');
+  var apmEl = document.getElementById('pm-apm-phone');
+  var superEl = document.getElementById('pm-super-phone');
+  if (pmEl) pmEl.innerHTML = ntdTeamPhoneHTML(document.getElementById('pm-pm').value);
+  if (apmEl) apmEl.innerHTML = ntdTeamPhoneHTML(document.getElementById('pm-apm').value);
+  if (superEl) superEl.innerHTML = ntdTeamPhoneHTML(document.getElementById('pm-super').value);
+}
 
-function ntdRenderAgrTypeChips() {
-  var allTypes = AGR_TYPE_PRESETS.slice();
-  _agrTypeSelected.forEach(function(t){ if (allTypes.indexOf(t) === -1) allTypes.push(t); });
-  var wrap = document.getElementById('pm-agr-type-chips');
+// ── STARTUP / SERVICE PHASES (dated, repeatable schedule entries) ──────────
+var _startupPhases = [];
+function ntdPhaseDateLabel(iso) {
+  if (!iso) return '';
+  var parts = iso.split('-');
+  if (parts.length !== 3) return iso;
+  return parts[1] + '/' + parts[2] + '/' + parts[0];
+}
+function ntdRenderPhases() {
+  var wrap = document.getElementById('pm-phases-list');
   if (!wrap) return;
-  wrap.innerHTML = allTypes.map(function(t) {
-    var active = _agrTypeSelected.indexOf(t) > -1;
-    return '<span onclick="ntdToggleAgrType(\''+t.replace(/'/g,"\\'")+'\')" style="cursor:pointer;padding:6px 12px;border-radius:16px;font-size:12px;font-weight:600;border:1.5px solid '+(active?'var(--nv)':'var(--bd)')+';background:'+(active?'var(--nv)':'#fff')+';color:'+(active?'#fff':'var(--tx)')+'">'+esc(t)+(active?' &times;':'')+'</span>';
+  if (!_startupPhases.length) { wrap.innerHTML = '<div style="font-size:11px;color:var(--mu);font-style:italic">No phases scheduled yet.</div>'; return; }
+  var sorted = _startupPhases.map(function(p, i){ return {p:p, i:i}; }).sort(function(a,b){ return (a.p.date||'').localeCompare(b.p.date||''); });
+  wrap.innerHTML = sorted.map(function(row) {
+    var p = row.p;
+    return '<div class="phase-row">' +
+      '<div style="min-width:0">' +
+        '<div style="font-size:12px;font-weight:600;color:var(--tx)">'+esc(p.label||'Phase')+'</div>' +
+        (p.date ? '<div style="font-size:11px;color:var(--nv);font-weight:700;font-family:var(--font-mono)">'+esc(ntdPhaseDateLabel(p.date))+'</div>' : '<div style="font-size:11px;color:var(--mu);font-style:italic">No date set</div>') +
+      '</div>' +
+      '<span class="phase-del" onclick="ntdRemovePhase('+row.i+')" title="Remove">&times;</span>' +
+    '</div>';
   }).join('');
 }
-function ntdToggleAgrType(t) {
-  var idx = _agrTypeSelected.indexOf(t);
-  if (idx > -1) _agrTypeSelected.splice(idx, 1);
-  else _agrTypeSelected.push(t);
-  ntdRenderAgrTypeChips();
+function ntdAddPhase() {
+  var labelEl = document.getElementById('pm-phase-label');
+  var dateEl = document.getElementById('pm-phase-date');
+  var label = labelEl.value.trim();
+  var date = dateEl.value;
+  if (!label && !date) { alert('Give the phase a name or a date.'); return; }
+  _startupPhases.push({ label: label || 'Phase', date: date || '' });
+  labelEl.value = '';
+  dateEl.value = '';
+  ntdRenderPhases();
 }
-function ntdAddCustomAgrType() {
-  var el = document.getElementById('pm-agr-type-custom');
-  var v = el.value.trim();
-  if (!v) return;
-  if (_agrTypeSelected.indexOf(v) === -1) _agrTypeSelected.push(v);
-  el.value = '';
-  ntdRenderAgrTypeChips();
+function ntdRemovePhase(idx) {
+  _startupPhases.splice(idx, 1);
+  ntdRenderPhases();
+}
+
+// ── SITE / GC CONTACTS (repeatable role+name+phone entries) ────────────────
+var _projectContacts = [];
+var CONTACT_ROLE_PRESETS = ['Site Contact', 'GC Project Manager', 'GC Superintendent', 'Property Manager', 'Facilities Manager'];
+function ntdRenderContactRoleChips() {
+  var wrap = document.getElementById('pm-contact-role-chips');
+  if (!wrap) return;
+  wrap.innerHTML = CONTACT_ROLE_PRESETS.map(function(r) {
+    return '<span onclick="document.getElementById(\'pm-contact-role\').value=\''+r.replace(/'/g,"\\'")+'\'" style="cursor:pointer;padding:5px 10px;border-radius:14px;font-size:11px;font-weight:600;border:1.5px solid var(--bd);background:#fff;color:var(--tx)">'+esc(r)+'</span>';
+  }).join('');
+}
+function ntdRenderContacts() {
+  var wrap = document.getElementById('pm-contacts-list');
+  if (!wrap) return;
+  if (!_projectContacts.length) { wrap.innerHTML = '<div style="font-size:11px;color:var(--mu);font-style:italic">No contacts added yet.</div>'; return; }
+  wrap.innerHTML = _projectContacts.map(function(c, i) {
+    return '<div class="phase-row">' +
+      '<div style="min-width:0">' +
+        (c.role ? '<div style="font-size:10px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.04em">'+esc(c.role)+'</div>' : '') +
+        '<div style="font-size:12px;font-weight:600;color:var(--tx)">'+esc(c.name||'—')+
+          (c.phone ? ' <a href="'+telHref(c.phone)+'" style="color:var(--nv);font-weight:700;text-decoration:none">📞 '+esc(c.phone)+'</a>' : '') +
+        '</div>' +
+      '</div>' +
+      '<span class="phase-del" onclick="ntdRemoveContact('+i+')" title="Remove">&times;</span>' +
+    '</div>';
+  }).join('');
+}
+function ntdAddContact() {
+  var roleEl = document.getElementById('pm-contact-role');
+  var nameEl = document.getElementById('pm-contact-person');
+  var phoneEl = document.getElementById('pm-contact-phone-add');
+  var role = roleEl.value.trim();
+  var name = nameEl.value.trim();
+  var phone = phoneEl.value.trim();
+  if (!name && !phone) { alert('Give the contact a name or a phone number.'); return; }
+  _projectContacts.push({ role: role, name: name, phone: phone });
+  roleEl.value = ''; nameEl.value = ''; phoneEl.value = '';
+  ntdRenderContacts();
+}
+function ntdRemoveContact(idx) {
+  _projectContacts.splice(idx, 1);
+  ntdRenderContacts();
+}
+
+// ── PROJECT CARD (shared by the facility Projects tab and the global Projects list) ─
+function ntdTeamLine(label, name) {
+  if (!name) return '';
+  var d = ntdDirLookup(name);
+  return '<div style="font-size:11px;color:var(--mu);margin-bottom:2px">' + esc(label) + ': ' + esc(name) +
+    (d ? ' <a href="'+telHref(d.phone)+'" style="color:var(--nv);font-weight:700;text-decoration:none">📞 '+esc(d.phone)+'</a>' : '') +
+    '</div>';
+}
+function ntdProjectCardHTML(p, fid, submittalCount, ticketCount) {
+  var isComplete = p.status === 'complete';
+  var accent = isComplete ? 'var(--bd2)' : 'var(--st)';
+  var phases = (Array.isArray(p.phases) ? p.phases.slice() : []).sort(function(a,b){ return (a.date||'~').localeCompare(b.date||'~'); });
+  var phasesToShow = phases.slice(0, 3);
+  var html = '<div class="card" style="border-left:4px solid '+accent+'">' +
+    '<div class="card-body">' +
+      '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">' +
+        '<div style="font-size:15px;font-weight:700;color:var(--nv);flex:1">'+esc(p.name||'Project')+(p.assigned_pm?' <span style="font-size:12px;font-weight:600;color:var(--mu)">— '+esc(p.assigned_pm)+'</span>':'')+'</div>' +
+        '<span class="status-badge '+(isComplete?'status-complete':'status-progress')+'" style="cursor:pointer" onclick="ntdToggleProjectStatus(\''+p.id+'\',\''+(p.status||'')+'\')" title="Tap to toggle">'+(isComplete?'✓ Complete':'Active')+'</span>' +
+      '</div>' +
+      (p.job_id ? '<div style="font-size:11px;color:var(--nv);font-weight:700;margin-bottom:3px">Job #'+esc(p.job_id)+'</div>' : '') +
+      ntdTeamLine('APM', p.apm) +
+      ntdTeamLine('Superintendent', p.superintendent) +
+      (Array.isArray(p.contacts) && p.contacts.length ? '<div style="margin:4px 0 2px">' + p.contacts.map(function(c) {
+          return '<div style="font-size:11px;color:var(--tx);margin-bottom:1px">👤 '+(c.role?esc(c.role)+': ':'')+esc(c.name||'—')+
+            (c.phone ? ' <a href="'+telHref(c.phone)+'" style="color:var(--nv);font-weight:700;text-decoration:none">📞 '+esc(c.phone)+'</a>' : '') +
+          '</div>';
+        }).join('') + '</div>' : '') +
+      (phasesToShow.length ? '<div style="margin-top:6px">' + phasesToShow.map(function(ph) {
+          return '<div style="font-size:11px;color:var(--tx);margin-bottom:2px">🗓 '+esc(ph.label||'Phase')+(ph.date?' · <strong style="font-family:var(--font-mono)">'+esc(ntdPhaseDateLabel(ph.date))+'</strong>':'')+'</div>';
+        }).join('') + (phases.length > 3 ? '<div style="font-size:10.5px;color:var(--mu)">+'+(phases.length-3)+' more phase(s)</div>' : '') + '</div>' : '') +
+      (submittalCount ? '<div style="font-size:11px;color:var(--st);font-weight:600;margin-top:6px">📋 '+submittalCount+' submittal'+(submittalCount===1?'':'s')+' on file</div>' : '') +
+      (ticketCount ? '<div style="font-size:11px;color:var(--am);font-weight:600;margin-top:4px;cursor:pointer" onclick="ntdGotoProjectServiceCalls(\''+fid+'\',\''+p.id+'\')">🛠️ '+ticketCount+' service call'+(ticketCount===1?'':'s')+' on file — view →</div>' : '') +
+      (p.notes ? '<div style="font-size:12px;color:var(--mu);line-height:1.5;margin-top:6px;padding-top:8px;border-top:1px solid var(--bd)">'+esc(p.notes)+'</div>' : '') +
+      '<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">' +
+        '<button class="btn btn-or btn-sm" onclick="openRequestTech(\''+fid+'\',\''+p.id+'\')">🔧 Request Tech</button>' +
+        '<button class="btn btn-outline btn-sm" onclick="openEditProject(\''+p.id+'\',\''+fid+'\',true)">📎 Submittals/Docs</button>' +
+        '<button class="btn btn-outline btn-sm" onclick="openEditProject(\''+p.id+'\',\''+fid+'\')">✏️ Edit</button>' +
+        '<button class="btn btn-red btn-sm" onclick="deleteProject(\''+p.id+'\')">Delete</button>' +
+      '</div>' +
+    '</div></div>';
+  return html;
 }
 
 function openAddProject(facilityId) {
   editingProjectId = null;
   editingProjectFacilityId = facilityId;
   document.getElementById('proj-modal-title').textContent = 'Add Project';
-  ['pm-name','pm-value','pm-job-id','pm-po-equip','pm-po-parts','pm-po','pm-start','pm-end','pm-sp','pm-notes','pm-agr-num','pm-agr-signed','pm-pm','pm-apm','pm-super'].forEach(function(id){ document.getElementById(id).value=''; });
-  _agrTypeSelected = [];
-  ntdRenderAgrTypeChips();
-  document.getElementById('pm-agr-status').value = '';
-  document.getElementById('pm-status').value = 'bidding';
+  ['pm-name','pm-job-id','pm-notes','pm-pm','pm-apm','pm-super','pm-phase-label','pm-phase-date','pm-contact-role','pm-contact-person','pm-contact-phone-add'].forEach(function(id){ document.getElementById(id).value=''; });
+  _startupPhases = [];
+  ntdRenderPhases();
+  _projectContacts = [];
+  ntdRenderContacts();
+  ntdRenderContactRoleChips();
+  ntdUpdateTeamPhones();
   document.getElementById('pm-docs-section').classList.add('hidden');
   ntdPopulateFacilityPicker(facilityId);
   ntdRenderFacilityEquipment(facilityId);
@@ -3847,33 +4117,30 @@ function openEditProject(id, facilityId, scrollToDocs) {
   ntdStore.jobs.get(id).then(function(p) {
     document.getElementById('proj-modal-title').textContent = 'Edit Project';
     document.getElementById('pm-name').value   = p.name       || '';
-    document.getElementById('pm-status').value = p.status     || 'bidding';
-    document.getElementById('pm-value').value  = p.value      || '';
-    document.getElementById('pm-po').value     = p.wo_number  || '';
-    document.getElementById('pm-start').value  = p.start_date || '';
-    document.getElementById('pm-end').value    = p.end_date   || '';
-    document.getElementById('pm-sp').value     = p.sp_url     || '';
     document.getElementById('pm-notes').value      = p.notes       || '';
     document.getElementById('pm-job-id').value    = p.job_id      || '';
     document.getElementById('pm-pm').value    = p.assigned_pm || '';
     document.getElementById('pm-apm').value   = p.apm          || '';
     document.getElementById('pm-super').value = p.superintendent || '';
-    document.getElementById('pm-po-equip').value  = p.po_equip    || '';
-    document.getElementById('pm-po-parts').value  = p.po_parts    || '';
-    document.getElementById('pm-agr-num').value    = p.agr_num    || '';
-    document.getElementById('pm-agr-signed').value = p.agr_signed || '';
-    document.getElementById('pm-agr-status').value = p.agr_status || '';
-    _agrTypeSelected = (p.agr_type||'').split(',').map(function(t){return t.trim();}).filter(Boolean);
-    ntdRenderAgrTypeChips();
+    ntdUpdateTeamPhones();
+    _startupPhases = Array.isArray(p.phases) ? p.phases.slice() : [];
+    ntdRenderPhases();
+    document.getElementById('pm-phase-label').value = '';
+    document.getElementById('pm-phase-date').value = '';
+    _projectContacts = Array.isArray(p.contacts) ? p.contacts.slice() : [];
+    ntdRenderContacts();
+    ntdRenderContactRoleChips();
+    document.getElementById('pm-contact-role').value = '';
+    document.getElementById('pm-contact-person').value = '';
+    document.getElementById('pm-contact-phone-add').value = '';
     editingProjectFacilityId = p.facility_id || facilityId;
     ntdPopulateFacilityPicker(editingProjectFacilityId);
     ntdRenderFacilityEquipment(editingProjectFacilityId);
     document.getElementById('pm-docs-section').classList.remove('hidden');
-    document.getElementById('pm-submittal-json').value = '';
     document.getElementById('pm-submittal-paste').value = '';
     document.getElementById('pm-paste-preview').innerHTML = '';
     _pasteRows = [];
-    ntdHidePasteErr();
+    ntdHidePasteRowErr();
     ntdRenderProjectDocs(id);
     ntdRenderProjectSubmittals(id, editingProjectFacilityId);
     openModal('proj-modal');
@@ -3895,24 +4162,18 @@ function saveProject() {
     facility_id: facilityId,
     type:        'project',
     name:        name,
-    status:      document.getElementById('pm-status').value,
-    value:       document.getElementById('pm-value').value.trim(),
-    wo_number:   document.getElementById('pm-po').value.trim(),
     job_id:      document.getElementById('pm-job-id').value.trim(),
     assigned_pm: document.getElementById('pm-pm').value.trim(),
     apm:         document.getElementById('pm-apm').value.trim(),
     superintendent: document.getElementById('pm-super').value.trim(),
-    po_equip:    document.getElementById('pm-po-equip').value.trim(),
-    po_parts:    document.getElementById('pm-po-parts').value.trim(),
-    start_date:  document.getElementById('pm-start').value.trim(),
-    end_date:    document.getElementById('pm-end').value.trim(),
-    sp_url:      document.getElementById('pm-sp').value.trim(),
     notes:       document.getElementById('pm-notes').value.trim(),
-    agr_type:    _agrTypeSelected.join(','),
-    agr_num:     document.getElementById('pm-agr-num').value.trim(),
-    agr_signed:  document.getElementById('pm-agr-signed').value.trim(),
-    agr_status:  document.getElementById('pm-agr-status').value
+    phases:      _startupPhases,
+    contacts:    _projectContacts
   };
+  // New projects start Active; editing an existing project leaves its status
+  // alone here — ntdToggleProjectStatus() (Active/Complete button on the
+  // card) is the only thing that changes it after creation.
+  if (!editingProjectId) data.status = 'progress';
   if (editingProjectId) data.id = editingProjectId;
   ntdStore.jobs.upsert(data).then(function() {
     closeModal('proj-modal');
@@ -3922,6 +4183,20 @@ function saveProject() {
   }).catch(function(err) {
     console.error('saveProject failed:', err);
     showToast('Save failed: ' + (err.message || 'see console for details'));
+  });
+}
+
+// Simple two-state toggle (Active / Complete) used on project cards — replaces
+// the old 5-stage sales-pipeline status dropdown, which no longer fits how
+// Sales and PM/Service coordinate on startups, service and warranty work.
+function ntdToggleProjectStatus(id, currentStatus) {
+  var next = currentStatus === 'complete' ? 'progress' : 'complete';
+  ntdStore.jobs.upsert({ id: id, status: next }).then(function() {
+    showToast(next === 'complete' ? 'Marked complete' : 'Reopened');
+    if (currentDetailTab === 'projects') ntdStore.facilities.get(currentFacilityId).then(renderDetailTab);
+    renderProjectList();
+  }).catch(function(err) {
+    showToast('Update failed: ' + (err.message || 'see console for details'));
   });
 }
 
@@ -4025,13 +4300,18 @@ function renderProjectList() {
       '<button class="scope-btn'+(scope==='all'?' on':'')+'" onclick="setProjScope(\'all\')">All</button>' +
       '<button class="scope-btn'+(scope==='mine'?' on':'')+'" onclick="setProjScope(\'mine\')">Mine</button>';
   }
-  ntdStore.jobs.list(function(j){ return j.type === 'project'; }).then(function(projs) {
+  ntdStore.jobs.list(function(j){ return j.type === 'project' || j.type === 'startup_job'; }).then(function(rows) {
+    var projs = rows.filter(function(j){ return j.type === 'project'; });
+    var submittalCount = {};
+    rows.filter(function(j){ return j.type === 'startup_job' && j.project_id; }).forEach(function(j){ submittalCount[j.project_id] = (submittalCount[j.project_id]||0) + 1; });
     if (scope === 'mine') projs = projs.filter(function(p){ return ntdIsMyProject(p, curUser); });
     var filtered = projs.filter(function(p) {
       if (!q) return true;
+      var contactHay = (Array.isArray(p.contacts) ? p.contacts.map(function(c){ return (c.role||'')+' '+(c.name||''); }).join(' ') : '');
       return (p.name||'').toLowerCase().indexOf(q) > -1 ||
              (p.notes||'').toLowerCase().indexOf(q) > -1 ||
-             (p.status||'').toLowerCase().indexOf(q) > -1;
+             (p.assigned_pm||'').toLowerCase().indexOf(q) > -1 ||
+             contactHay.toLowerCase().indexOf(q) > -1;
     }).sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
 
     if (!filtered.length) {
@@ -4044,21 +4324,23 @@ function renderProjectList() {
     ntdStore.facilities.list().then(function(facs) {
       var facMap = {};
       facs.forEach(function(f){ facMap[f.id] = f.name; });
-      var statusClass = {bidding:'status-bidding',awarded:'status-awarded',progress:'status-progress',complete:'status-complete',lost:'status-lost'};
-      var statusLabel = {bidding:'Bidding',awarded:'Awarded',progress:'In Progress',complete:'Complete',lost:'Lost'};
-      var statusColor = {bidding:'var(--am)',awarded:'var(--gn)',progress:'var(--st)',complete:'var(--bd2)',lost:'var(--rd)'};
       var html = '';
       filtered.forEach(function(p, idx) {
         var _delay = Math.min(idx, 14) * 0.025;
-        html += '<div class="card ntd-goto ntd-row-in" data-fid="'+p.facility_id+'" data-tab="projects" style="cursor:pointer;border-left:4px solid '+(statusColor[p.status]||'var(--am)')+';animation-delay:'+_delay+'s">' +
+        var isComplete = p.status === 'complete';
+        var phases = (Array.isArray(p.phases) ? p.phases.slice() : []).sort(function(a,b){ return (a.date||'~').localeCompare(b.date||'~'); });
+        var nextPhase = phases[0];
+        html += '<div class="card ntd-goto ntd-row-in" data-fid="'+p.facility_id+'" data-tab="projects" style="cursor:pointer;border-left:4px solid '+(isComplete?'var(--bd2)':'var(--st)')+';animation-delay:'+_delay+'s">' +
           '<div class="card-body">' +
             '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px">' +
               '<div style="font-size:15px;font-weight:700;color:var(--nv);flex:1">'+esc(p.name||'Project')+(p.assigned_pm?' <span style="font-size:12px;font-weight:600;color:var(--mu)">— '+esc(p.assigned_pm)+'</span>':'')+'</div>' +
-              '<span class="status-badge '+(statusClass[p.status]||'status-bidding')+'">'+(statusLabel[p.status]||'Bidding')+'</span>' +
+              '<span class="status-badge '+(isComplete?'status-complete':'status-progress')+'">'+(isComplete?'✓ Complete':'Active')+'</span>' +
             '</div>' +
-            '<div style="font-size:12px;color:var(--mu)">'+esc(facMap[p.facility_id]||'Unknown facility')+(p.value?' · <strong style="color:var(--gn)">'+esc(p.value)+'</strong>':'')+'</div>' +
+            '<div style="font-size:12px;color:var(--mu)">'+esc(facMap[p.facility_id]||'Unknown facility')+'</div>' +
             (p.job_id ? '<div style="font-size:11px;color:var(--nv);font-weight:700;margin-top:2px">Job #'+esc(p.job_id)+'</div>' : '') +
-            (p.start_date||p.end_date ? '<div style="font-size:11px;color:var(--mu);margin-top:4px">'+(p.start_date?esc(p.start_date):'')+(p.start_date&&p.end_date?' → ':'')+(p.end_date?esc(p.end_date):'')+'</div>' : '') +
+            (Array.isArray(p.contacts) && p.contacts.length ? '<div style="font-size:11px;color:var(--tx);margin-top:3px">👤 '+esc((p.contacts[0].role?p.contacts[0].role+': ':'')+(p.contacts[0].name||''))+(p.contacts.length>1?' <span style="color:var(--mu)">(+'+(p.contacts.length-1)+' more)</span>':'')+'</div>' : '') +
+            (nextPhase ? '<div style="font-size:11px;color:var(--tx);margin-top:3px">🗓 '+esc(nextPhase.label||'Phase')+(nextPhase.date?' · <strong style="font-family:var(--font-mono)">'+esc(ntdPhaseDateLabel(nextPhase.date))+'</strong>':'')+(phases.length>1?' <span style="color:var(--mu)">(+'+(phases.length-1)+' more)</span>':'')+'</div>' : '') +
+            (submittalCount[p.id] ? '<div style="font-size:11px;color:var(--st);font-weight:600;margin-top:3px">📋 '+submittalCount[p.id]+' submittal'+(submittalCount[p.id]===1?'':'s')+'</div>' : '') +
           '</div></div>';
       });
       wrap.innerHTML = html;
@@ -4609,7 +4891,7 @@ function renderDashboard() {
     var openFollowups = getOpenFollowupItems(startups, pmRecs);
     var projScope = getProjScope();
     var curUser = getCurrentUser();
-    var activeProjectsAll = jobs.filter(function(j){ return j.type==='project' && (j.status==='bidding'||j.status==='awarded'||j.status==='progress'); });
+    var activeProjectsAll = jobs.filter(function(j){ return j.type==='project' && j.status!=='complete'; });
     var activeProjects = projScope === 'mine' ? activeProjectsAll.filter(function(p){ return ntdIsMyProject(p, curUser); }) : activeProjectsAll;
     var recentQuotes = pmQuotes.concat(svcQuotes).sort(function(a,b){ return (b.ts||0)-(a.ts||0); }).slice(0,5);
 
@@ -4725,7 +5007,6 @@ function renderDashboard() {
 
     // ── Active Projects (horizontal strip) ──
     if (activeProjectsAll.length && prefs.activeProjects) {
-      var statusLabel = {bidding:'Bidding',awarded:'Awarded',progress:'In Progress'};
       html += '<div class="section-label" style="--accent:var(--pu);justify-content:space-between">' +
         '<span>'+ntdIcon('folder',12)+' Active Projects</span>' +
         '<span class="scope-toggle">' +
@@ -4742,7 +5023,7 @@ function renderDashboard() {
           '<div class="activity-card-icon">📁</div>' +
           '<div class="activity-card-title">'+esc(p.name||'Project')+'</div>' +
           '<div class="activity-card-sub">'+esc(facMap[p.facility_id]||'')+'</div>' +
-          '<span class="status-badge '+(({bidding:'status-bidding',awarded:'status-awarded',progress:'status-progress'})[p.status]||'status-bidding')+'" style="margin-top:8px;display:inline-block">'+((statusLabel[p.status]||p.status))+'</span>' +
+          '<span class="status-badge status-progress" style="margin-top:8px;display:inline-block">Active</span>' +
         '</div>';
       });
       html += '</div>';
@@ -5151,7 +5432,8 @@ function runGlobalSearch() {
 
       // Search projects
       var projHits = jobs.filter(function(j) {
-        return j.type === 'project' && matches(q, j.name, j.status, j.notes, j.wo_number, j.value);
+        var contactHay = Array.isArray(j.contacts) ? j.contacts.map(function(c){ return (c.role||'')+' '+(c.name||''); }).join(' ') : '';
+        return j.type === 'project' && matches(q, j.name, j.notes, j.assigned_pm, contactHay, j.job_id);
       });
       if (projHits.length) groups.push({
         label: '📁 Projects',
@@ -5159,7 +5441,7 @@ function runGlobalSearch() {
           icon: '📁', color: 'pu',
           title: p.name || 'Project',
           sub: facMap[p.facility_id] || 'Unknown facility',
-          meta: [p.status || '', p.value || ''].filter(Boolean).join(' · '),
+          meta: [p.status === 'complete' ? 'Complete' : 'Active', p.assigned_pm || ''].filter(Boolean).join(' · '),
           facility_id: p.facility_id,
           tab: 'projects'
         };})
@@ -5336,7 +5618,7 @@ function renderRequestsList() {
     if (!pending.length) {
       wrap.innerHTML = scope === 'mine'
         ? emptyState('✅','Nothing here', 'You haven\'t submitted any tech requests that are still pending.')
-        : emptyState('✅','No pending requests','Tech requests submitted from a Project will show up here for confirmation.');
+        : emptyState('✅','No pending requests','A PM\'s "Request a Tech" now goes straight to the Tickets board (New column) instead of landing here — check Tickets for anything needing dispatch. This tab still catches any older manual calendar entries left in Pending status.');
       return;
     }
 
@@ -5398,9 +5680,21 @@ function renderPmDueList() {
 }
 
 // ── REQUEST TECH (from a Project card) ──────────────────────────────────────
-function openRequestTech(facilityId) {
+// Was writing to team_calendar (a "pending request" holding area completely
+// disconnected from the real dispatch pipeline — a confirmed calendar entry
+// never showed up in a tech's My Jobs, never got a ?ticket= deep link, and
+// closing it out only fired a manual mailto/sms popup for ops to remember to
+// send). Now it writes straight into service_tickets, same table the office
+// Dispatch board reads and writes — so a PM's request is immediately visible
+// on the board, assignable to a tech, reaches that tech's My Jobs the moment
+// it's assigned, and — since completeTicket() already notifies whoever is in
+// entered_by — the requesting PM gets a real in-app notification the moment
+// a tech closes it out, automatically, with zero extra steps for dispatch.
+function openRequestTech(facilityId, projectId) {
   requestingFacilityId = facilityId;
+  requestingProjectId = projectId || null;
   document.getElementById('rm-type').value = 'job';
+  document.getElementById('rm-priority').value = 'routine';
   document.getElementById('rm-date').value = fmtDateISO(new Date());
   document.getElementById('rm-note').value = '';
   document.getElementById('rm-by').value = getCurrentUser() || '';
@@ -5416,6 +5710,8 @@ function openRequestTech(facilityId) {
   openModal('req-modal');
 }
 
+var RM_TYPE_TAG = { site_visit: 'Site Visit', site_inspection: 'Site Inspection' }; // 'job' needs no tag — it's the default ask
+
 function saveTechRequest() {
   var date = document.getElementById('rm-date').value;
   var note = document.getElementById('rm-note').value.trim();
@@ -5423,22 +5719,31 @@ function saveTechRequest() {
   if (!note) { showToast('Please describe what\'s needed'); return; }
   if (!requestingFacilityId) { showToast('Missing facility — please try again'); return; }
 
+  var visitTag = RM_TYPE_TAG[document.getElementById('rm-type').value] || '';
+  var requestedBy = document.getElementById('rm-by').value.trim();
+  var requesterContact = document.getElementById('rm-contact').value.trim();
+
   ntdStore.facilities.get(requestingFacilityId).then(function(f) {
     var record = {
-      entry_type: document.getElementById('rm-type').value,
-      date: date,
-      title: (f && f.name) || 'Facility',
-      note: note,
+      ticket_type: 'service_call',
+      priority: document.getElementById('rm-priority').value,
       facility_id: requestingFacilityId,
-      status: 'pending',
-      requested_by: document.getElementById('rm-by').value.trim(),
-      requested_by_contact: document.getElementById('rm-contact').value.trim()
+      site_name_raw: '',
+      project_id: requestingProjectId || null,
+      problem_description: (visitTag ? '[' + visitTag + '] ' : '') + note,
+      scheduled_date: date,
+      status: 'new',
+      assigned_techs: [],
+      entered_by: requestedBy,
+      dispatcher_notes: 'Submitted from Project card' + (requesterContact ? ' — requester reachable at ' + requesterContact : ''),
+      ticket_number: newTicketNumber()
     };
-    return ntdStore.team_calendar.upsert(record);
+    return ntdStore.service_tickets.upsert(record);
   }).then(function() {
     closeModal('req-modal');
-    showToast('Request submitted — ops will confirm');
+    showToast('Sent to Dispatch — it\'s on the ticket board now');
     refreshSchedReqBadge();
+    requestingProjectId = null;
   }).catch(function(err) {
     showToast('Error: ' + (err.message||'could not submit request'));
   });
@@ -6082,6 +6387,16 @@ function notifItemClick(notifId, relatedId) {
       });
       return;
     }
+    // Ticket-related notifications carry a service_tickets id, not a
+    // team_calendar id — route those into the ticket edit modal instead of
+    // trying (and silently failing) to open a nonexistent calendar entry.
+    var TICKET_NOTIF_TYPES = { ticket_completed:1, ticket_en_route:1, ticket_assigned:1 };
+    if (n && TICKET_NOTIF_TYPES[n.type] && relatedId) {
+      currentScheduleView = 'tickets';
+      goPage('schedule');
+      setTimeout(function(){ openEditTicket(relatedId); }, 200);
+      return;
+    }
     if (relatedId) {
       currentScheduleView = 'calendar';
       goPage('schedule');
@@ -6093,6 +6408,10 @@ function notifItemClick(notifId, relatedId) {
 // ── SERVICE TICKETS (DISPATCH BOARD) ────────────────────────────────────────
 var TICKET_TYPE_LABELS = {service_call:'Service Call', pm_visit:'PM Visit', startup:'Startup', survey:'Equipment Survey'};
 var TICKET_PRIORITY_LABELS = {emergency:'Emergency', same_day:'Same Day', routine:'Routine'};
+var BILLING_TYPE_LABELS = {standard:'Standard', 't&m':'T&M', contract_pm:'Contract PM', quoted:'Quoted', warranty:'Warranty', quote_pending:'Quote Pending'};
+function tkWarrantyBadgeHTML(billingType) {
+  return billingType === 'warranty' ? ' <span class="tk-badge tk-warranty-badge">Warranty</span>' : '';
+}
 var TICKET_STATUS_LABELS = {
   new:'New', scheduled:'Scheduled', dispatched:'Dispatched', en_route:'En Route',
   on_site:'On Site', complete:'Complete', needs_follow_up:'Needs Follow-Up',
@@ -6125,9 +6444,64 @@ function tkRenderTechChips() {
   var techs = (typeof window.NTD_FIELD_TECHS !== 'undefined') ? window.NTD_FIELD_TECHS : [];
   wrap.innerHTML = techs.map(function(t) {
     var active = _tkTechSelected.indexOf(t) > -1;
-    return '<span onclick="tkToggleTech(\''+t.replace(/'/g,"\\'")+'\')" style="cursor:pointer;padding:6px 12px;border-radius:16px;font-size:12px;font-weight:600;border:1.5px solid '+(active?'var(--nv)':'var(--bd)')+';background:'+(active?'var(--nv)':'#fff')+';color:'+(active?'#fff':'var(--tx)')+'">'+esc(t)+(active?' &times;':'')+'</span>';
+    var busy = _tkWorkloadByTech[t];
+    var busyBadge = (busy && busy.length)
+      ? ' <span title="Already booked '+esc(busy.join(', '))+'" style="color:'+(active?'#FFE0B3':'var(--am)')+'">&#9888; '+busy.length+'</span>'
+      : '';
+    return '<span onclick="tkToggleTech(\''+t.replace(/'/g,"\\'")+'\')" style="cursor:pointer;padding:6px 12px;border-radius:16px;font-size:12px;font-weight:600;border:1.5px solid '+(active?'var(--nv)':(busy&&busy.length?'var(--am)':'var(--bd)'))+';background:'+(active?'var(--nv)':'#fff')+';color:'+(active?'#fff':'var(--tx)')+'">'+esc(t)+busyBadge+(active?' &times;':'')+'</span>';
   }).join('');
   tkRenderLeadSelect();
+}
+
+// Looks up who else is already booked (via other open, non-canceled tickets)
+// on the currently selected Scheduled Date, so dispatch can see a conflict
+// before assigning a tech, not after. Re-run whenever the date changes.
+function tkRefreshWorkload() {
+  var date = (document.getElementById('tk-date')||{}).value;
+  if (!date || !ntdStore.service_tickets) { _tkWorkloadByTech = {}; tkRenderTechChips(); return; }
+  Promise.all([
+    ticketLoadFacilitiesCache(),
+    ntdStore.service_tickets.list(function(t) {
+      return t.scheduled_date === date && t.status !== 'canceled' && t.id !== editingTicketId;
+    })
+  ]).then(function(res) {
+    var facMap = {};
+    (res[0]||[]).forEach(function(f){ facMap[f.id] = f.name; });
+    _tkWorkloadByTech = {};
+    (res[1]||[]).forEach(function(t) {
+      var label = (t.facility_id ? (facMap[t.facility_id] || 'a site') : (t.site_name_raw || 'a site')) +
+        (t.time_window ? ' (' + t.time_window + ')' : '');
+      (t.assigned_techs||[]).forEach(function(name) {
+        if (!_tkWorkloadByTech[name]) _tkWorkloadByTech[name] = [];
+        _tkWorkloadByTech[name].push(label);
+      });
+    });
+    tkRenderTechChips();
+  }).catch(function(){ _tkWorkloadByTech = {}; tkRenderTechChips(); });
+}
+
+// Populates the optional Project select once a facility is picked — only
+// facilities with Projects on file will have anything to choose beyond
+// "No specific project."
+function tkLoadProjectsForFacility(facilityId, selectedProjectId) {
+  var sel = document.getElementById('tk-project');
+  if (!sel) return;
+  if (!facilityId) {
+    sel.innerHTML = '<option value="">— Pick a facility first —</option>';
+    sel.disabled = true;
+    return;
+  }
+  sel.disabled = false;
+  sel.innerHTML = '<option value="">— No specific project —</option>';
+  ntdStore.jobs.list(function(j){ return j.facility_id === facilityId && j.type === 'project'; }).then(function(rows) {
+    (rows||[]).forEach(function(p) {
+      var opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.name || 'Project';
+      if (p.id === selectedProjectId) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  }).catch(function(){});
 }
 function tkToggleTech(name) {
   var idx = _tkTechSelected.indexOf(name);
@@ -6178,9 +6552,11 @@ function tkBuildFilterPredicate(facMap) {
   var q = (document.getElementById('tk-search').value || '').trim().toLowerCase();
   var techF = document.getElementById('tk-filter-tech').value;
   var prF = document.getElementById('tk-filter-priority').value;
+  var billF = (document.getElementById('tk-filter-billing')||{}).value || '';
   return function(t) {
     if (techF && (t.assigned_techs||[]).indexOf(techF) === -1) return false;
     if (prF && t.priority !== prF) return false;
+    if (billF === 'warranty' && t.billing_type !== 'warranty') return false;
     if (q) {
       var siteName = (t.facility_id && facMap[t.facility_id]) || t.site_name_raw || '';
       var hay = [siteName, t.ticket_number, t.contact_name, t.problem_description].join(' ').toLowerCase();
@@ -6438,6 +6814,7 @@ function tkTicketCardHTML(t, data) {
   return '<div class="ticket-card" style="border-left-color:'+(PRIORITY_BORDER[t.priority]||'var(--mu)')+'" onclick="openEditTicket(\''+esc(t.id)+'\')">' +
     '<div class="ticket-fac">'+esc(siteName)+'</div>' +
     '<div class="ticket-num">'+esc(t.ticket_number||'')+' · '+esc(TICKET_TYPE_LABELS[t.ticket_type]||'Service Call')+
+      tkWarrantyBadgeHTML(t.billing_type) +
       (t.is_declined ? ' · <span class="tk-badge tk-declined-badge" title="'+esc((t.declined_by?t.declined_by+' — ':'')+(t.declined_reason||''))+'">Declined</span>' : '') +
     '</div>' +
     (t.problem_description ? '<div class="ticket-desc">'+esc(t.problem_description)+'</div>' : '') +
@@ -6521,7 +6898,7 @@ function tkRenderTable(data) {
       '<span class="tk-dot" style="background:'+(PRIORITY_BORDER[t.priority]||'var(--mu)')+'"></span>' +
       '<div><div class="tk-row-site">'+esc(siteName)+'</div><div class="tk-row-num">'+esc(t.ticket_number||'')+'</div></div>' +
       '<span class="tk-badge tpriority-'+esc(t.priority||'routine')+'">'+esc(TICKET_PRIORITY_LABELS[t.priority]||'Routine')+'</span>' +
-      '<span class="tk-row-desc">'+esc(t.problem_description||'')+'</span>' +
+      '<span class="tk-row-desc">'+esc(t.problem_description||'')+tkWarrantyBadgeHTML(t.billing_type)+'</span>' +
       tkAvatarHTML(t.assigned_techs) +
       '<span class="tk-badge tstatus-'+esc(t.status||'new')+'">'+esc(TICKET_STATUS_LABELS[t.status]||'New')+'</span>' +
       '<span class="tk-row-date">'+esc(dateStr)+'</span>' +
@@ -6562,9 +6939,11 @@ function openAddTicket() {
   document.getElementById('tk-problem').value = '';
   document.getElementById('tk-date').value = fmtDateISO(new Date());
   document.getElementById('tk-window').value = '';
+  tkLoadProjectsForFacility(null, null);
   _tkTechSelected = [];
   _tkLeadTech = '';
   tkRenderTechChips();
+  tkRefreshWorkload();
   document.getElementById('tk-status').value = 'new';
   document.getElementById('tk-notes').value = '';
   document.getElementById('tk-by').value = getCurrentUser() || '';
@@ -6601,6 +6980,8 @@ function openEditTicket(id) {
     _tkTechSelected = (t.assigned_techs || []).slice();
     _tkLeadTech = t.lead_tech || (t.assigned_techs && t.assigned_techs[0]) || '';
     tkRenderTechChips();
+    tkRefreshWorkload();
+    tkLoadProjectsForFacility(t.facility_id || null, t.project_id || null);
     document.getElementById('tk-status').value = t.status || 'new';
     document.getElementById('tk-notes').value = t.dispatcher_notes || '';
     document.getElementById('tk-by').value = t.entered_by || getCurrentUser() || '';
@@ -6623,6 +7004,7 @@ function saveTicket() {
     priority: document.getElementById('tk-priority').value,
     facility_id: ticketPickedFacilityId || null,
     site_name_raw: ticketPickedFacilityId ? '' : site,
+    project_id: (document.getElementById('tk-project') || {}).value || null,
     contact_name: document.getElementById('tk-contact-name').value.trim(),
     contact_phone: document.getElementById('tk-contact-phone').value.trim(),
     po_number: document.getElementById('tk-po').value.trim(),
@@ -6725,6 +7107,7 @@ function ticketPickFacility(id, name) {
   document.getElementById('tk-site-suggest').classList.remove('on');
   document.getElementById('tk-site-hint').style.display = 'none';
   ticketCheckDuplicate(id);
+  tkLoadProjectsForFacility(id, null);
 }
 
 // Warns (doesn't block) if this site already has an open ticket — dispatchers

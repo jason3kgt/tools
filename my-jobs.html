@@ -412,7 +412,18 @@ function mjRenderJobs() {
 
 function mjSetStatus(ticketId, status) {
   if (typeof ntdStore === 'undefined') return;
-  ntdStore.service_tickets.upsert({ id: ticketId, status: status }).then(function() {
+  var name = mjGetTech();
+  var notifyEnRoute = (status === 'en_route')
+    ? ntdStore.service_tickets.get(ticketId)
+    : Promise.resolve(null);
+  notifyEnRoute.then(function(existing) {
+    return ntdStore.service_tickets.upsert({ id: ticketId, status: status }).then(function() {
+      if (existing && existing.entered_by) {
+        var siteLabel = existing.site_name_raw || existing.ticket_number || 'a job';
+        createNotification(existing.entered_by, (name || 'A tech') + ' is on the way to ' + (existing.ticket_number || siteLabel), ticketId, 'ticket_en_route');
+      }
+    });
+  }).then(function() {
     mjRenderJobs();
   }).catch(function(err) {
     alert('Could not update status: ' + (err.message || ''));

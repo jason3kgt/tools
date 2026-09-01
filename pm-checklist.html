@@ -86,6 +86,16 @@ textarea{resize:vertical;min-height:70px}
 /* Site chip */
 .site-chip{display:flex;align-items:center;gap:8px;background:#E8F0FA;border:1.5px solid var(--nv);border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:12px;font-weight:600;color:var(--nv)}
 .site-chip .clr{background:none;border:none;color:var(--rd);font-size:15px;cursor:pointer;font-weight:700;margin-left:auto;padding:0;font-family:inherit}
+.sh-sub-lbl{font-size:9px;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.04em;margin:10px 0 4px}
+.sh-doc-row{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;padding:6px 0;border-bottom:1px solid var(--of);text-decoration:none;color:var(--tx)}
+.sh-doc-row:last-child{border-bottom:none}
+.sh-contact-row{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;padding:6px 0;border-bottom:1px solid var(--of)}
+.sh-contact-row:last-child{border-bottom:none}
+.sh-contact-role{font-size:10px;color:var(--mu);margin-left:5px}
+.sh-contact-phone{color:var(--nv);font-weight:700;text-decoration:none}
+.sh-siteplan-btn{display:flex;align-items:center;gap:8px;background:#FFF4EC;border:1.5px solid var(--or);border-radius:10px;padding:9px 12px;font-size:12.5px;font-weight:700;color:var(--or);text-decoration:none;margin-bottom:10px}
+.sh-siteplan-btn span.sp-arrow{margin-left:auto;font-size:11px}
+.onfile-accessory-warn{font-size:10.5px;color:var(--rd);font-weight:700;margin-top:2px}
 /* Condition key */
 .key-g{background:#E8F5EC;border:2px solid var(--gn);border-radius:10px;padding:10px;text-align:center}
 .key-f{background:#FFF3E0;border:2px solid var(--am);border-radius:10px;padding:10px;text-align:center}
@@ -179,6 +189,7 @@ textarea{resize:vertical;min-height:70px}
 </div></div>
 
 <div id="visit-banner-area"></div>
+<div class="card" id="pm-history-card" style="display:none"><div class="ch"><span class="cn">i</span><h2>Site History</h2></div><div class="cb" id="pm-history-body"></div></div>
 </div>
 
 <!-- PAGE 1: EQUIPMENT -->
@@ -550,10 +561,16 @@ function loadFromHub(facilityId) {
   if (rw) rw.innerHTML = '<div class="empty">Loading equipment\u2026</div>';
   Promise.all([
     ntdStore.facilities.get ? ntdStore.facilities.get(facilityId) : ntdStore.facilities.list(function(f){return f.id===facilityId;}).then(function(r){return r[0];}),
-    ntdStore.equipment.list(function(e){ return e.facility_id === facilityId; })
+    ntdStore.equipment.list(function(e){ return e.facility_id === facilityId; }),
+    ntdStore.jobs.list(function(j){ return j.facility_id === facilityId; }),
+    ntdStore.pm_records ? ntdStore.pm_records.list(function(p){ return p.facility_id === facilityId; }) : Promise.resolve([]),
+    ntdStore.startup_records ? ntdStore.startup_records.list(function(s){ return s.facility_id === facilityId; }) : Promise.resolve([]),
+    ntdStore.service_records ? ntdStore.service_records.list(function(r){ return r.facility_id === facilityId; }) : Promise.resolve([]),
+    ntdStore.documents.list(function(d){ return d.facility_id === facilityId; })
   ]).then(function(res) {
     var fac = res[0];
     var allEquip = res[1] || [];
+    pmRenderSiteHistory(fac, res[2]||[], res[3]||[], res[4]||[], res[5]||[], res[6]||[]);
     var covered = allEquip.filter(function(e){ return e.pm_covered; });
     if (!covered.length) {
       if (rw) rw.innerHTML = '<div class="empty">This site is in NTD Hub, but has no units marked as PM-covered yet (set from the PM Quote tab in Asset Survey). Try a Known Site or JSON URL instead.</div>';
@@ -584,7 +601,8 @@ function loadFromHub(facilityId) {
           filter_size: fq.size,
           belt_qty: '',
           belt_size: e.belt_size || '',
-          area: e.area || ''
+          area: e.area || '',
+          accessories: e.notes || ''
         };
       })
     };
@@ -593,6 +611,73 @@ function loadFromHub(facilityId) {
   }).catch(function(err) {
     if (rw) rw.innerHTML = '<div class="empty">Load failed \u2014 ' + esc2(err.message||'connection error') + '</div>';
   });
+}
+
+// Pull Site & GC Contacts off any Project(s) on file for this facility (set
+// from NTD Hub's Projects tab). Mirrors the same logic in service-call.html.
+function pmContactsFromJobs(jobs) {
+  var seen = {};
+  var out = [];
+  (jobs||[]).forEach(function(j){
+    if (j.type !== 'project' || !j.contacts) return;
+    (j.contacts||[]).forEach(function(c){
+      var key = (c.name||'').toLowerCase() + '|' + (c.phone||'');
+      if (!c.name && !c.phone) return;
+      if (seen[key]) return;
+      seen[key] = true;
+      out.push(c);
+    });
+  });
+  return out;
+}
+
+function pmRenderSiteHistory(facility, jobs, pmRecs, startups, serviceRecs, docs) {
+  var card = document.getElementById('pm-history-card');
+  var wrap = document.getElementById('pm-history-body');
+  if (!card || !wrap) return;
+
+  var visits = [];
+  (jobs||[]).forEach(function(j){ if (j.type !== 'project') visits.push({ ts:j.ts||0, label: j.type==='survey'?'Equipment Survey':j.type==='startup_job'?'Startup Job':(j.type||'Visit'), tech:j.tech||'' }); });
+  (pmRecs||[]).forEach(function(p){ visits.push({ ts:p.ts||0, label:'PM Visit', tech:p.tech||'' }); });
+  (startups||[]).forEach(function(s){ visits.push({ ts:s.ts||0, label:'Startup', tech:s.tech||'' }); });
+  var resLabels = { resolved:'Resolved', follow_up:'Follow-up needed', parts_ordered:'Parts ordered', quote_needed:'Quote needed' };
+  (serviceRecs||[]).forEach(function(r){
+    var lbl = 'Service Call' + (r.problem_reported ? ' — ' + r.problem_reported.slice(0,60) : '');
+    if (r.resolution_status && r.resolution_status !== 'resolved') lbl += ' (' + (resLabels[r.resolution_status] || r.resolution_status) + ')';
+    visits.push({ ts:r.ts||0, label:lbl, tech:r.tech||'' });
+  });
+  visits.sort(function(a,b){ return (b.ts||0) - (a.ts||0); });
+
+  var contacts = pmContactsFromJobs(jobs);
+  var sitePlans = (docs||[]).filter(function(d){ return d.form_type === 'site_plan' && d.file_url; }).sort(function(a,b){ return (b.ts||0)-(a.ts||0); });
+
+  var h = '';
+  sitePlans.forEach(function(d) {
+    h += '<a class="sh-siteplan-btn" href="' + esc2(d.file_url) + '" target="_blank" rel="noopener">📐 ' + esc2(d.description || 'Site Plan') + '<span class="sp-arrow">View →</span></a>';
+  });
+  if (facility && facility.notes) {
+    h += '<div class="sh-sub-lbl">Notes on File</div><div class="sh-note" style="background:var(--of);border:1.5px solid var(--bd);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--tx);line-height:1.5;margin-bottom:10px;white-space:pre-wrap">' + esc2(facility.notes) + '</div>';
+  }
+  if (contacts.length) {
+    h += '<div class="sh-sub-lbl">Site Contacts</div>';
+    contacts.forEach(function(c) {
+      h += '<div class="sh-contact-row"><span><b>' + esc2(c.name||'') +
+        (c.role ? '<span class="sh-contact-role">' + esc2(c.role) + '</span>' : '') + '</b></span>' +
+        (c.phone ? '<a class="sh-contact-phone" href="tel:' + esc2(c.phone.replace(/[^\d+]/g,'')) + '">' + esc2(c.phone) + '</a>' : '') +
+        '</div>';
+    });
+  }
+  if (visits.length) {
+    h += '<div class="sh-sub-lbl">Recent Visits</div>';
+    visits.slice(0, 6).forEach(function(v) {
+      h += '<div class="sh-doc-row"><span>' + esc2(v.label) + (v.tech ? ' — ' + esc2(v.tech) : '') + '</span>' +
+        '<span style="color:var(--mu);font-size:11px">' + (v.ts ? new Date(v.ts).toLocaleDateString() : '') + '</span></div>';
+    });
+  }
+
+  if (!h) { card.style.display = 'none'; wrap.innerHTML = ''; return; }
+  card.style.display = 'block';
+  wrap.innerHTML = h;
 }
 
 // Best-effort split of a combined "2x 16x20x1" string back into qty + size.
@@ -708,6 +793,8 @@ function clearSite() {
   sitePhotos = [];
   renderEqs();
   renderSitePhotos();
+  var hc = document.getElementById('pm-history-card');
+  if (hc) hc.style.display = 'none';
 }
 
 function renderVisitBanner(data, visit) {
@@ -779,6 +866,7 @@ function loadEquipmentFromProfile(data, visit) {
       phase: u.phase || '',
       area: u.area || '',
       notes: '',
+      accessoriesOnFile: u.accessories || '',
       ov: '',
       wscore: 0,
       serviceType: serviceType,
@@ -858,7 +946,9 @@ function eqH(eq, idx) {
   h += '<div class="eh">';
   h += '<div class="en">' + (idx+1) + '</div>';
   h += '<div style="flex:1"><div class="et">' + (eq.tag || 'Unit ' + eq.id) + freqLabel + '</div>';
-  h += '<div class="esub">' + (eq.type || '') + (eq.phase ? ' \u2014 ' + eq.phase : '') + (eq.area ? ' \u2014 ' + eq.area : '') + '</div></div>';
+  h += '<div class="esub">' + (eq.type || '') + (eq.phase ? ' \u2014 ' + eq.phase : '') + (eq.area ? ' \u2014 ' + eq.area : '') + '</div>';
+  if (eq.accessoriesOnFile) h += '<div class="onfile-accessory-warn">\u26a0 On file: ' + esc2(eq.accessoriesOnFile) + '</div>';
+  h += '</div>';
   h += '<div class="bdg" id="bdg-' + eq.id + '">Not scored</div>';
   h += '</div>';
   h += '<div class="eb">';
