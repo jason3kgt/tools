@@ -266,7 +266,7 @@ function notifyTicketStakeholders(existing, message, relatedId, type) {
   return fire();
 }
 
-var TICKET_TYPE_LABELS = {service_call:'Service Call', pm_visit:'PM Visit', startup:'Startup', survey:'Equipment Survey'};
+var TICKET_TYPE_LABELS = {service_call:'Service Call', warranty:'Warranty', pm_visit:'PM Visit', startup:'Startup', survey:'Equipment Survey'};
 var TICKET_PRIORITY_LABELS = {emergency:'Emergency', same_day:'Same Day', routine:'Routine'};
 var TICKET_STATUS_LABELS = {
   new:'New', scheduled:'Scheduled', dispatched:'Dispatched', en_route:'En Route',
@@ -275,6 +275,7 @@ var TICKET_STATUS_LABELS = {
 };
 var TICKET_TOOL_MAP = {
   service_call:'service-call.html',
+  warranty:'service-call.html',
   pm_visit:'pm-checklist.html',
   startup:'startup-checklist.html',
   survey:'equipment-survey.html'
