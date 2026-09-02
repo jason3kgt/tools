@@ -277,6 +277,21 @@ window.NTD_FIELD_TECHS = [
   'Nicholas Hosack','Raul Lopez','Scott Adkins','Tristan Black'
 ];
 
+// ── SERVICE TICKET LABEL MAPS ───────────────────────────────────────────────
+// Single source of truth for how a ticket's type/priority/status/open-ness
+// display and are treated — used by both ntd-hub.html and my-jobs.html.
+// These used to be copy-pasted, byte-identical, into both files; that's
+// exactly the pattern that let the resolution-status labels silently drift
+// out of sync for months elsewhere in this project. Edit once, here.
+window.NTD_TICKET_TYPE_LABELS = {service_call:'Service Call', warranty:'Warranty', pm_visit:'PM Visit', startup:'Startup', survey:'Equipment Survey'};
+window.NTD_TICKET_PRIORITY_LABELS = {emergency:'Emergency', same_day:'Same Day', routine:'Routine'};
+window.NTD_TICKET_STATUS_LABELS = {
+  new:'New', scheduled:'Scheduled', dispatched:'Dispatched', en_route:'En Route',
+  on_site:'On Site', complete:'Complete', needs_follow_up:'Needs Follow-Up',
+  invoiced:'Invoiced', canceled:'Canceled'
+};
+window.NTD_TICKET_OPEN_STATUSES = {new:1, scheduled:1, dispatched:1, en_route:1, on_site:1, needs_follow_up:1};
+
 // ── FACILITY MATCHING ──────────────────────────────────────────────────────
 // Single source of truth for "which facility is this?" — used by every tool
 // instead of each one rolling its own match logic. Normalizes common naming
@@ -521,7 +536,7 @@ var _exportImport = {
 // in each tool) AND the central Photo Hub page in ntd-hub.html. Both paths
 // funnel through here so every photo gets a `documents` row and is browsable
 // by facility, without changing how/when the underlying file gets uploaded.
-var NTD_PHOTO_FORM_TYPES = ['facility_photo','unit_photo','data_plate_photo','site_photo','ticket_photo'];
+var NTD_PHOTO_FORM_TYPES = ['facility_photo','unit_photo','data_plate_photo','site_photo','ticket_photo','startup_photo'];
 
 function _photoSignedUrl(path) {
   return fetch(SUPABASE_URL + '/storage/v1/object/sign/ntd-files/' + path, {

@@ -322,7 +322,7 @@ textarea{resize:vertical;min-height:70px}
   <div class="fg"><label>Date</label><input type="text" id="sc-sigdate" placeholder="MM/DD/YYYY"></div>
 </div></div>
 
-<button class="dlb" onclick="scDownloadPDF()">&#8681; Download Service Call PDF</button>
+<button class="dlb" id="sc-download-btn" onclick="scDownloadPDF()">&#8681; Download Service Call PDF</button>
 </div>
 <script>
 // ES5 helpers
@@ -821,11 +821,25 @@ function loadJsPDF(cb) {
   document.head.appendChild(s);
 }
 
+// Guards against an accidental double-tap (slow connection, impatient tap)
+// creating two service_records for the same call. Not a permanent lock —
+// clears as soon as the save finishes (success or failure) so a tech can
+// still fix something and download/submit again if they genuinely need to.
+var _scSubmitBusy = false;
 function scDownloadPDF() {
   var site = gv('sc-site');
   var problem = gv('sc-problem');
   if (!site) { alert('Please enter a Facility / Site Name.'); return; }
   if (!problem) { alert('Please describe the problem reported.'); return; }
+  if (_scSubmitBusy) return;
+  _scSubmitBusy = true;
+  var _scBtn = document.getElementById('sc-download-btn');
+  var _scBtnText = _scBtn ? _scBtn.innerHTML : '';
+  if (_scBtn) { _scBtn.innerHTML = '⏳ Saving…'; _scBtn.disabled = true; }
+  function _scUnlock() {
+    _scSubmitBusy = false;
+    if (_scBtn) { _scBtn.innerHTML = _scBtnText; _scBtn.disabled = false; }
+  }
 
   loadJsPDF(function() {
     var jsPDF = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
@@ -928,21 +942,21 @@ function scDownloadPDF() {
     window.open(burl, '_blank');
     setTimeout(function(){ URL.revokeObjectURL(burl); }, 60000);
 
-    scSubmitToStore(blob);
+    scSubmitToStore(blob).then(_scUnlock, _scUnlock);
   });
 }
 
 // ── SUBMIT TO SUPABASE ───────────────────────────────────────────────────
 function scSubmitToStore(pdfBlob) {
-  if (typeof ntdStore === 'undefined') return;
+  if (typeof ntdStore === 'undefined') return Promise.resolve();
   var site = gv('sc-site');
-  if (!site) return;
+  if (!site) return Promise.resolve();
 
   var resolveFacility = pickedFacilityId
     ? Promise.resolve({ id: pickedFacilityId })
     : ntdStore.matchFacility.resolveOrCreate(site, {});
 
-  resolveFacility.then(function(fac) {
+  return resolveFacility.then(function(fac) {
     var facilityId = fac.id;
     var servicedUnitsForSave = serviceUnits.map(function(u) {
       return {

@@ -799,6 +799,7 @@ body.tv-mode .cal-day-slim .cal-day-date{font-size:9px;white-space:nowrap}
       <option value="data_plate_photo">Data Plate</option>
       <option value="site_photo">Site</option>
       <option value="ticket_photo">Ticket</option>
+      <option value="startup_photo">Startup</option>
     </select>
   </div>
   <button class="btn btn-nv" style="width:100%;margin-bottom:12px" onclick="openAddHubPhoto()">📷 Add Photo</button>
@@ -3205,7 +3206,7 @@ function ntdRenderSitePlans(facilityId) {
 
 // ── PHOTO HUB (central, cross-facility) ────────────────────────────────────
 var NTD_PH_TYPE_LABELS = {
-  facility_photo: 'Facility', unit_photo: 'Unit', data_plate_photo: 'Data Plate', site_photo: 'Site', ticket_photo: 'Ticket'
+  facility_photo: 'Facility', unit_photo: 'Unit', data_plate_photo: 'Data Plate', site_photo: 'Site', ticket_photo: 'Ticket', startup_photo: 'Startup'
 };
 
 function compressImage(file,maxDim,quality){
@@ -6621,18 +6622,16 @@ function notifItemClick(notifId, relatedId) {
 }
 
 // ── SERVICE TICKETS (DISPATCH BOARD) ────────────────────────────────────────
-var TICKET_TYPE_LABELS = {service_call:'Service Call', warranty:'Warranty', pm_visit:'PM Visit', startup:'Startup', survey:'Equipment Survey'};
-var TICKET_PRIORITY_LABELS = {emergency:'Emergency', same_day:'Same Day', routine:'Routine'};
+// Shared with my-jobs.html — single source of truth lives in ntdStore.js
+// (window.NTD_TICKET_*) so the two files can't drift out of sync again.
+var TICKET_TYPE_LABELS = window.NTD_TICKET_TYPE_LABELS;
+var TICKET_PRIORITY_LABELS = window.NTD_TICKET_PRIORITY_LABELS;
 var BILLING_TYPE_LABELS = {standard:'Standard', 't&m':'T&M', contract_pm:'Contract PM', quoted:'Quoted', warranty:'Warranty', quote_pending:'Quote Pending'};
 function tkWarrantyBadgeHTML(billingType) {
   return billingType === 'warranty' ? ' <span class="tk-badge tk-warranty-badge">Warranty</span>' : '';
 }
-var TICKET_STATUS_LABELS = {
-  new:'New', scheduled:'Scheduled', dispatched:'Dispatched', en_route:'En Route',
-  on_site:'On Site', complete:'Complete', needs_follow_up:'Needs Follow-Up',
-  invoiced:'Invoiced', canceled:'Canceled'
-};
-var TICKET_OPEN_STATUSES = {new:1, scheduled:1, dispatched:1, en_route:1, on_site:1, needs_follow_up:1};
+var TICKET_STATUS_LABELS = window.NTD_TICKET_STATUS_LABELS;
+var TICKET_OPEN_STATUSES = window.NTD_TICKET_OPEN_STATUSES;
 var TICKET_DISPATCHED_GROUP = {dispatched:1, en_route:1, on_site:1};
 var TICKET_BOARD_COLUMNS = [
   {key:'new', label:'New', match:function(t){ return t.status === 'new'; }},

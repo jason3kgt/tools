@@ -266,13 +266,11 @@ function notifyTicketStakeholders(existing, message, relatedId, type) {
   return fire();
 }
 
-var TICKET_TYPE_LABELS = {service_call:'Service Call', warranty:'Warranty', pm_visit:'PM Visit', startup:'Startup', survey:'Equipment Survey'};
-var TICKET_PRIORITY_LABELS = {emergency:'Emergency', same_day:'Same Day', routine:'Routine'};
-var TICKET_STATUS_LABELS = {
-  new:'New', scheduled:'Scheduled', dispatched:'Dispatched', en_route:'En Route',
-  on_site:'On Site', complete:'Complete', needs_follow_up:'Needs Follow-Up',
-  invoiced:'Invoiced', canceled:'Canceled'
-};
+// Shared with ntd-hub.html — single source of truth lives in ntdStore.js
+// (window.NTD_TICKET_*) so the two files can't drift out of sync again.
+var TICKET_TYPE_LABELS = window.NTD_TICKET_TYPE_LABELS;
+var TICKET_PRIORITY_LABELS = window.NTD_TICKET_PRIORITY_LABELS;
+var TICKET_STATUS_LABELS = window.NTD_TICKET_STATUS_LABELS;
 var TICKET_TOOL_MAP = {
   service_call:'service-call.html',
   warranty:'service-call.html',
@@ -280,7 +278,7 @@ var TICKET_TOOL_MAP = {
   startup:'startup-checklist.html',
   survey:'equipment-survey.html'
 };
-var TICKET_OPEN_STATUSES = {new:1, scheduled:1, dispatched:1, en_route:1, on_site:1, needs_follow_up:1};
+var TICKET_OPEN_STATUSES = window.NTD_TICKET_OPEN_STATUSES;
 
 // ── QUICK TICKET PHOTOS ──────────────────────────────────────────────────
 // Lets a tech snap a photo straight from the job card (e.g. on arrival,

@@ -212,7 +212,7 @@ textarea{resize:vertical;min-height:70px}
   <div id="eql"><div class="empty">Load a site profile on the Site tab, or add units manually below.</div></div>
   <button class="addb" onclick="addEq()" type="button">+ Add Unit Manually</button>
 </div></div>
-<button class="dlb" onclick="dlEquip()" type="button">⬇ Download Equipment Report PDF</button>
+<button class="dlb" id="pm-dl-equip-btn" onclick="dlEquip()" type="button">⬇ Download Equipment Report PDF</button>
 </div>
 
 <!-- PAGE 2: PIPING -->
@@ -245,7 +245,7 @@ textarea{resize:vertical;min-height:70px}
   <div class="photo-grid" id="pg-site"></div>
   <label class="photo-add-btn">&#128247; Add Site Photo<input type="file" accept="image/*" capture="environment" style="display:none" onchange="addSitePhoto(this)"></label>
 </div></div>
-<button class="dlb" onclick="dlSummary()" type="button">⬇ Download Visit Report PDF</button>
+<button class="dlb" id="pm-dl-summary-btn" onclick="dlSummary()" type="button">⬇ Download Visit Report PDF</button>
 </div>
 
 <!-- SITE PICKER MODAL -->
@@ -595,6 +595,8 @@ function loadFromHub(facilityId) {
       city: '',
       site_notes: '',
       contract_start: contractStartISO,
+      crew_size: hasRealContract ? (fac.contract.crew_size || '') : '',
+      est_hours: hasRealContract ? (fac.contract.est_hours || '') : '',
       _source: 'hub',
       equipment: covered.map(function(e){
         var fq = splitFilterSize(e.filter_size);
@@ -608,7 +610,8 @@ function loadFromHub(facilityId) {
           belt_qty: '',
           belt_size: e.belt_size || '',
           area: e.area || '',
-          accessories: e.notes || ''
+          accessories: e.notes || '',
+          warranty_expiration: e.warranty_expiration || ''
         };
       })
     };
@@ -803,6 +806,16 @@ function clearSite() {
   if (hc) hc.style.display = 'none';
 }
 
+function pmStaffingLine(data) {
+  // The office sets this on the facility's PM Contract (Techs/Helpers Needed
+  // + Est. Hours) so dispatch can staff the visit correctly — surface the
+  // same number to the tech actually running it, not just dispatch.
+  if (!data.crew_size && !data.est_hours) return '';
+  var bits = [];
+  if (data.crew_size) bits.push(data.crew_size + ' tech' + (data.crew_size == '1' ? '' : 's'));
+  if (data.est_hours) bits.push('~' + data.est_hours + ' hrs');
+  return '<div class="vb-sub" style="margin-top:4px">📋 Planned staffing: ' + bits.join(' · ') + '</div>';
+}
 function renderVisitBanner(data, visit) {
   var el = document.getElementById('visit-banner-area');
   if (!el) return;
@@ -815,7 +828,8 @@ function renderVisitBanner(data, visit) {
     var parts = Object.keys(byFreq).map(function(f){ return byFreq[f]+' '+f; });
     el.innerHTML = '<div class="vbanner"><div class="vb-title">&#128193; Loaded from NTD Hub</div>'
       + '<div class="vb-sub">' + all.length + ' unit(s) under PM contract: ' + parts.join(', ') + '. '
-      + 'Hub doesn\u2019t track visit scheduling yet, so all covered units are shown \u2014 use the frequency tag on each unit to judge what\u2019s due this visit.</div></div>';
+      + 'Hub doesn\u2019t track visit scheduling yet, so all covered units are shown \u2014 use the frequency tag on each unit to judge what\u2019s due this visit.</div>'
+      + pmStaffingLine(data) + '</div>';
     return;
   }
   if (!visit) return;
@@ -836,7 +850,7 @@ function renderVisitBanner(data, visit) {
   if (quarterly.length) html += '<span class="vb-tag">Q' + visit.quarter + ' Quarterly</span>';
   if (annual.length) html += '<span class="vb-tag ann">Annual Inspection</span>';
   if (!visit.isQuarterMonth) html += '<span class="vb-tag" style="background:var(--mu)">Quarterly units not due this month</span>';
-  html += '</div></div>';
+  html += '</div>' + pmStaffingLine(data) + '</div>';
   el.innerHTML = html;
 }
 
@@ -873,6 +887,7 @@ function loadEquipmentFromProfile(data, visit) {
       area: u.area || '',
       notes: '',
       accessoriesOnFile: u.accessories || '',
+      warranty_expiration: u.warranty_expiration || '',
       ov: '',
       wscore: 0,
       serviceType: serviceType,
@@ -882,6 +897,8 @@ function loadEquipmentFromProfile(data, visit) {
   }
   renderEqs();
 }
+
+function pmTodayISO(){ var d=new Date(); function p(n){return n<10?'0'+n:''+n;} return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
 
 function mapServiceType(u) {
   var freq = (u.frequency || 'quarterly').toLowerCase();
@@ -951,7 +968,8 @@ function eqH(eq, idx) {
   var h = '<div class="er" id="er-' + eq.id + '">';
   h += '<div class="eh">';
   h += '<div class="en">' + (idx+1) + '</div>';
-  h += '<div style="flex:1"><div class="et">' + (eq.tag || 'Unit ' + eq.id) + freqLabel + '</div>';
+  var warrantyFlag = (eq.warranty_expiration && eq.warranty_expiration >= pmTodayISO()) ? ' 🛡️' : '';
+  h += '<div style="flex:1"><div class="et">' + (eq.tag || 'Unit ' + eq.id) + freqLabel + warrantyFlag + '</div>';
   h += '<div class="esub">' + (eq.type || '') + (eq.phase ? ' \u2014 ' + eq.phase : '') + (eq.area ? ' \u2014 ' + eq.area : '') + '</div>';
   if (eq.accessoriesOnFile) h += '<div class="onfile-accessory-warn">\u26a0 On file: ' + esc2(eq.accessoriesOnFile) + '</div>';
   h += '</div>';
@@ -1440,8 +1458,22 @@ function loadJsPDF(cb) {
   document.head.appendChild(s);
 }
 
+// Per-button busy locks — just guard against a rapid double-tap on the same
+// button while its own PDF is being built/uploaded. The real duplicate-record
+// risk (this button AND the Visit Report button both writing a pm_records row
+// for the same visit) is closed at the source in ntdAutoSubmitPMVisit()below.
+var _pmEquipBusy = false;
 function dlEquip() {
   if (!eqs.length) { alert('No equipment units to export.'); return; }
+  if (_pmEquipBusy) return;
+  _pmEquipBusy = true;
+  var _pmEquipBtn = document.getElementById('pm-dl-equip-btn');
+  var _pmEquipBtnText = _pmEquipBtn ? _pmEquipBtn.innerHTML : '';
+  if (_pmEquipBtn) { _pmEquipBtn.innerHTML = '⏳ Saving…'; _pmEquipBtn.disabled = true; }
+  function _pmEquipUnlock() {
+    _pmEquipBusy = false;
+    if (_pmEquipBtn) { _pmEquipBtn.innerHTML = _pmEquipBtnText; _pmEquipBtn.disabled = false; }
+  }
   loadJsPDF(function() {
     var jsPDF = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
     var doc = new jsPDF({orientation:'portrait',unit:'pt',format:'letter'});
@@ -1557,11 +1589,21 @@ function dlEquip() {
     setTimeout(function(){URL.revokeObjectURL(burl);}, 60000);
     ntdAutoSubmitPMVisit().then(function(result){
       ntdUploadPDFWithFeedback(blob,'pm_checklist','PM Equipment Report — '+(gv('sf')||'Site')+' — '+(gv('sv')||gv('sd')||''),{unitCount:eqs.length}, result&&result.facilityId, result&&result.recordId?{table:'pm_records',id:result.recordId}:null);
-    });
+    }).then(_pmEquipUnlock, _pmEquipUnlock);
   });
 }
 
+var _pmSummaryBusy = false;
 function dlSummary() {
+  if (_pmSummaryBusy) return;
+  _pmSummaryBusy = true;
+  var _pmSummaryBtn = document.getElementById('pm-dl-summary-btn');
+  var _pmSummaryBtnText = _pmSummaryBtn ? _pmSummaryBtn.innerHTML : '';
+  if (_pmSummaryBtn) { _pmSummaryBtn.innerHTML = '⏳ Saving…'; _pmSummaryBtn.disabled = true; }
+  function _pmSummaryUnlock() {
+    _pmSummaryBusy = false;
+    if (_pmSummaryBtn) { _pmSummaryBtn.innerHTML = _pmSummaryBtnText; _pmSummaryBtn.disabled = false; }
+  }
   loadJsPDF(function() {
     var jsPDF = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
     var doc = new jsPDF({orientation:'portrait',unit:'pt',format:'letter'});
@@ -1698,7 +1740,7 @@ function dlSummary() {
     setTimeout(function(){URL.revokeObjectURL(burl);}, 60000);
     ntdAutoSubmitPMVisit().then(function(result){
       ntdUploadPDFWithFeedback(blob,'pm_checklist','PM Visit Summary — '+(gv('sf')||'Site')+' — '+(gv('sv')||gv('sd')||''),{unitCount:eqs.length}, result&&result.facilityId, result&&result.recordId?{table:'pm_records',id:result.recordId}:null);
-    });
+    }).then(_pmSummaryUnlock, _pmSummaryUnlock);
   });
 }
 
@@ -1794,9 +1836,18 @@ function ntdUploadPDF(blob, formType, description, extraParams) {
 
 
 // ── AUTO-SUBMIT ON PDF DOWNLOAD ───────────────────────────────────────────
+// Both dlEquip() and dlSummary() call this — a tech normally downloads BOTH
+// PDFs for one visit, and without memoizing this call each button would
+// independently create its own pm_records row (ntdStore.pm_records.upsert
+// with no id always mints a new one) — two rows for a single visit. Cache
+// the in-flight/completed promise so only the FIRST call actually writes;
+// the second reuses that same {facilityId, recordId}. Cleared on a real
+// failure so a retry (e.g. after fixing a network hiccup) isn't blocked.
+var _pmVisitSubmitPromise = null;
 function ntdAutoSubmitPMVisit() {
   if (typeof ntdStore === 'undefined' || !eqs.length) return Promise.resolve(null);
-  return new Promise(function(resolve) {
+  if (_pmVisitSubmitPromise) return _pmVisitSubmitPromise;
+  _pmVisitSubmitPromise = new Promise(function(resolve) {
   ntdResolvePmFacility(function(facilityId) {
     if (!facilityId) { resolve(null); return; }
     var good = eqs.filter(function(e){ return e.ov==='good'; }).length;
@@ -1822,7 +1873,11 @@ function ntdAutoSubmitPMVisit() {
       })
       .catch(function(e){ console.warn('[NTD] PM visit auto-save failed:', e.message); resolve(null); });
   });
+  }).then(function(result) {
+    if (!result) _pmVisitSubmitPromise = null;
+    return result;
   });
+  return _pmVisitSubmitPromise;
 }
 // ── END AUTO-SUBMIT ───────────────────────────────────────────────────────
 
