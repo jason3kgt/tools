@@ -589,6 +589,7 @@ textarea{resize:vertical;min-height:70px}
     <div class="cb" style="overflow-x:auto">
       <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:640px" id="ae-results-table">
         <thead><tr style="border-bottom:2px solid var(--bd)">
+          <th style="text-align:center;padding:6px 4px" title="Riding along on a regular visit, checked once a year — no separate mobilization charge">Annual Only</th>
           <th style="text-align:left;padding:6px 4px">Tag</th>
           <th style="text-align:left;padding:6px 4px">Category</th>
           <th style="text-align:right;padding:6px 4px">Labor Hrs</th>
@@ -603,6 +604,7 @@ textarea{resize:vertical;min-height:70px}
         <tbody id="ae-results-body"></tbody>
       </table>
       <div id="ae-empty-note" style="font-size:12px;color:var(--mu);padding:10px 0">No units on the Equipment Units tab yet — add units there first.</div>
+      <div style="font-size:10.5px;color:var(--mu);padding:6px 0 0">Check <strong>Annual Only</strong> for items like exhaust fans that just need a once-a-year check riding along on a regular visit — priced for 1 visit/yr with no separate mobilization cost, then folded evenly into the Quarterly/Monthly Billing total below.</div>
     </div>
   </div>
   <div class="card">
@@ -1003,7 +1005,7 @@ function renderEqs(){
 }
 
 function addEq(){
-  eqs.push({id:eid++,tag:'',type:'',manuf:'',model:'',tonnage:'',serial:'',age:'',area:'',f1q:'',f1s:'',f2q:'',f2s:'',bq:'',bs:'',notes:'',ov:'',flags:[],photos:[]});
+  eqs.push({id:eid++,tag:'',type:'',manuf:'',model:'',tonnage:'',serial:'',age:'',area:'',f1q:'',f1s:'',f2q:'',f2s:'',bq:'',bs:'',notes:'',ov:'',flags:[],photos:[],pmAnnualOnly:false});
   renderEqs();
   // Scroll to new unit
   setTimeout(function(){var el=document.getElementById('eql');if(el)el.lastElementChild.scrollIntoView({behavior:'smooth'});},100);
@@ -2103,6 +2105,7 @@ function aeGetAssumptions() {
 function aeComputeMobilizationPool(allUnits, A) {
   var totalLaborHrsPerVisit = 0;
   allUnits.forEach(function(eq){
+    if (eq.pmAnnualOnly) return; // rides along on a regular visit — doesn't share in the truck-roll pool
     var lib = AE_EQUIPMENT_LIBRARY[aeMapUnitType(eq.type, eq.tonnage)];
     if (lib) totalLaborHrsPerVisit += lib.laborHrs; // qty always 1 — each eqs row is one physical unit
   });
@@ -2114,20 +2117,27 @@ function aePriceUnit(eq, allUnits, A, pool) {
   var libKey = aeMapUnitType(eq.type, eq.tonnage);
   var lib = AE_EQUIPMENT_LIBRARY[libKey];
   if (!lib) return null;
+  var isAnnualOnly = !!eq.pmAnnualOnly;
+  var unitVisitsPerYear = isAnnualOnly ? 1 : A.visitsPerYear;
   var laborHrsPerVisit = lib.laborHrs;
   var laborCostPerVisit = laborHrsPerVisit * A.burdenedLaborRate;
   var filterQty = (parseFloat(eq.f1q) || 0) + (parseFloat(eq.f2q) || 0);
   var materialsCostPerVisit = filterQty * A.filterSellPrice; // "Materials Included" plan — fixed ON
-  var mobilizationPerVisit = pool.totalLaborHrsPerVisit === 0 ? 0 :
+  // Annual-only units ride along on an existing visit — no separate mobilization charge.
+  var mobilizationPerVisit = (isAnnualOnly || pool.totalLaborHrsPerVisit === 0) ? 0 :
     (laborHrsPerVisit / pool.totalLaborHrsPerVisit) * pool.totalMobilizationPoolAnnual / A.visitsPerYear;
   var costPerVisit = laborCostPerVisit + materialsCostPerVisit + mobilizationPerVisit;
   var sellPerVisit = costPerVisit / (1 - A.targetMargin);
   var beltQty = parseFloat(eq.bq) || 0;
   var beltCostAnnual = beltQty * A.beltSellPrice; // "Materials Included" plan — fixed ON
   var coilCleanCostAnnual = lib.coilEligible ? A.coilCleanSellPrice : 0; // "Coil Cleaning Included" plan — fixed ON
-  var annualTotal = (sellPerVisit * A.visitsPerYear) + beltCostAnnual + coilCleanCostAnnual;
+  // Annual-only items get 1 visit/yr instead of the job's frequency; their cost still lands
+  // in adjustedTotal, which quarterlyBilling/monthlyBilling divide evenly — so it's amortized
+  // into the regular invoice rate rather than billed as a separate once-a-year charge.
+  var annualTotal = (sellPerVisit * unitVisitsPerYear) + beltCostAnnual + coilCleanCostAnnual;
   return {
-    libraryCategory: libKey, laborHrsPerVisit: laborHrsPerVisit, laborCostPerVisit: laborCostPerVisit,
+    libraryCategory: libKey, isAnnualOnly: isAnnualOnly, visitsPerYear: unitVisitsPerYear,
+    laborHrsPerVisit: laborHrsPerVisit, laborCostPerVisit: laborCostPerVisit,
     materialsCostPerVisit: materialsCostPerVisit, mobilizationPerVisit: mobilizationPerVisit,
     sellPerVisit: sellPerVisit, beltCostAnnual: beltCostAnnual, coilCleanCostAnnual: coilCleanCostAnnual,
     annualTotal: annualTotal
@@ -2142,20 +2152,26 @@ function aePriceJob(allUnits, A) {
   var supplyFee = totalBeforeFee * A.consumableFeePct;
   var adjustedTotal = totalBeforeFee + supplyFee;
   // Cost-side rollup (for the Total Cost / Gross Margin metrics): labor+materials+mobilization
-  // go through the margin formula, so their cost basis is costPerVisit*visits; belt/coil are
-  // flat pass-throughs with no margin applied, so their cost equals their sell exactly.
+  // go through the margin formula, so their cost basis is costPerVisit*visits (each unit's own
+  // visits/yr — 1 for Annual Only, the job frequency otherwise); belt/coil are flat pass-throughs
+  // with no margin applied, so their cost equals their sell exactly.
   var totalCost = priced.reduce(function(sum,p){
     if (!p.price) return sum;
     var pr = p.price;
     var costPerVisit = pr.laborCostPerVisit + pr.materialsCostPerVisit + pr.mobilizationPerVisit;
-    return sum + (costPerVisit * A.visitsPerYear) + pr.beltCostAnnual + pr.coilCleanCostAnnual;
+    return sum + (costPerVisit * pr.visitsPerYear) + pr.beltCostAnnual + pr.coilCleanCostAnnual;
   }, 0) + supplyFee; // the supplies fee itself is a cost pass-through, not profit
   var marginDollars = adjustedTotal - totalCost;
   var marginRealizedPct = adjustedTotal ? (marginDollars / adjustedTotal) * 100 : 0;
+  // True total annual labor hours across all units at their own actual visit cadence —
+  // not pool.totalLaborHrsPerVisit*A.visitsPerYear, since that pool now excludes Annual Only units.
+  var totalAnnualLaborHrs = priced.reduce(function(sum,p){
+    return sum + (p.price ? p.price.laborHrsPerVisit * p.price.visitsPerYear : 0);
+  }, 0);
   return {
     priced: priced, unmapped: unmapped, totalBeforeFee: totalBeforeFee, supplyFee: supplyFee,
     adjustedTotal: adjustedTotal, quarterlyBilling: adjustedTotal/4, monthlyBilling: adjustedTotal/12,
-    totalAnnualLaborHrs: pool.totalLaborHrsPerVisit * A.visitsPerYear,
+    totalAnnualLaborHrs: totalAnnualLaborHrs,
     totalCost: totalCost, marginDollars: marginDollars, marginRealizedPct: marginRealizedPct
   };
 }
@@ -2269,6 +2285,16 @@ function aeMarginDialChange(el) {
   aeSync();
 }
 
+// Flips a unit between "follows the job's Quarterly/Monthly frequency" and
+// "Annual Only" — for items like exhaust fans that just need a once-a-year
+// check riding along on a regular PM visit (see aePriceUnit/aeComputeMobilizationPool).
+function aeToggleAnnualOnly(id) {
+  var eq = eqs.filter(function(e){ return e.id === id; })[0];
+  if (!eq) return;
+  eq.pmAnnualOnly = !eq.pmAnnualOnly;
+  aeSync();
+}
+
 function aeSync() {
   document.getElementById('ae-cust-echo').textContent = gv('sf') || '(no customer name yet)';
   var A = aeGetAssumptions();
@@ -2294,13 +2320,15 @@ function aeSync() {
 
   tbody.innerHTML = result.priced.map(function(p){
     if (!p.price) {
-      return '<tr style="background:#FEF2F2"><td style="padding:5px 4px;font-weight:600">'+esc2(p.eq.tag||'Unit')+'</td>'+
+      return '<tr style="background:#FEF2F2"><td></td><td style="padding:5px 4px;font-weight:600">'+esc2(p.eq.tag||'Unit')+'</td>'+
         '<td colspan="9" style="padding:5px 4px;color:var(--rd)">\u26A0 Type "'+esc2(p.eq.type||'')+'" not recognized \u2014 not priced</td></tr>';
     }
     var pr = p.price;
+    var annualTag = pr.isAnnualOnly ? ' <span class="rp" style="background:var(--gn);color:#fff;margin-left:4px">ANNUAL</span>' : '';
     return '<tr style="border-bottom:1px solid var(--bd)">'+
+      '<td style="padding:5px 4px;text-align:center"><input type="checkbox" onchange="aeToggleAnnualOnly('+p.eq.id+')" '+(pr.isAnnualOnly?'checked':'')+' style="width:16px;height:16px"></td>'+
       '<td style="padding:5px 4px;font-weight:600">'+esc2(p.eq.tag||'Unit')+'</td>'+
-      '<td style="padding:5px 4px;color:var(--mu)">'+esc2(pr.libraryCategory)+'</td>'+
+      '<td style="padding:5px 4px;color:var(--mu)">'+esc2(pr.libraryCategory)+annualTag+'</td>'+
       '<td style="padding:5px 4px;text-align:right">'+pr.laborHrsPerVisit.toFixed(2)+'</td>'+
       '<td style="padding:5px 4px;text-align:right">'+fcc(pr.laborCostPerVisit)+'</td>'+
       '<td style="padding:5px 4px;text-align:right">'+fcc(pr.materialsCostPerVisit)+'</td>'+
@@ -2388,9 +2416,10 @@ function aeGeneratePDF(){
   y += 4; doc.setDrawColor(150,150,150); doc.line(M,y,M+colW.reduce(function(a,b){return a+b;},0),y); y += 10;
 
   doc.setFont('helvetica','normal');
+  var hasAnnualOnly = priced.some(function(p){ return p.price.isAnnualOnly; });
   priced.forEach(function(p){
     var pr = p.price; x = M;
-    var vals = [p.eq.tag||'Unit', pr.libraryCategory, pr.laborHrsPerVisit.toFixed(2), fcc(pr.laborCostPerVisit),
+    var vals = [p.eq.tag||'Unit', pr.libraryCategory + (pr.isAnnualOnly?' (Annual)':''), pr.laborHrsPerVisit.toFixed(2), fcc(pr.laborCostPerVisit),
       fcc(pr.materialsCostPerVisit), fcc(pr.mobilizationPerVisit), fcc(pr.sellPerVisit),
       fcc(pr.beltCostAnnual), fcc(pr.coilCleanCostAnnual), fcc(pr.annualTotal)];
     vals.forEach(function(v,i){ doc.text(String(v), x, y, {maxWidth:colW[i]-4}); x += colW[i]; });
@@ -2406,6 +2435,10 @@ function aeGeneratePDF(){
   doc.text('Total Annual PM Price: ' + fcc(_aeLastResult.adjustedTotal), M, y); y += 16;
   doc.setFont('helvetica','normal'); doc.setFontSize(9);
   doc.text('Quarterly Billing: ' + fcc(_aeLastResult.quarterlyBilling) + '    Monthly Billing: ' + fcc(_aeLastResult.monthlyBilling), M, y);
+  if (hasAnnualOnly) {
+    y += 14; doc.setFontSize(7.5); doc.setTextColor(120,120,120);
+    doc.text('(Annual) items are checked once per year during a regular visit and are amortized into the billing rate above, not billed separately.', M, y);
+  }
 
   var blob = doc.output('blob'); var url = URL.createObjectURL(blob);
   window.open(url,'_blank'); setTimeout(function(){URL.revokeObjectURL(url);},60000);
@@ -2428,7 +2461,7 @@ function ntdAutoSubmitAdvancedEstimate() {
       unit_count: unitCount,
       building_count: parseFloat(gv('ae-buildings')) || 1,
       items: _aeLastResult.priced.filter(function(p){return p.price;}).map(function(p){
-        return { tag: p.eq.tag, category: p.price.libraryCategory, annual_total: p.price.annualTotal };
+        return { tag: p.eq.tag, category: p.price.libraryCategory, annual_total: p.price.annualTotal, annual_only: !!p.price.isAnnualOnly };
       }),
       base_total: fcc(_aeLastResult.totalBeforeFee),
       margin_pct: parseFloat(gv('ae-margin'))||25,
@@ -2455,7 +2488,7 @@ function ntdSubmitAdvancedEstimate() {
       unit_count: unitCount,
       building_count: parseFloat(gv('ae-buildings')) || 1,
       items: _aeLastResult.priced.filter(function(p){return p.price;}).map(function(p){
-        return { tag: p.eq.tag, category: p.price.libraryCategory, annual_total: p.price.annualTotal };
+        return { tag: p.eq.tag, category: p.price.libraryCategory, annual_total: p.price.annualTotal, annual_only: !!p.price.isAnnualOnly };
       }),
       base_total: fcc(_aeLastResult.totalBeforeFee),
       margin_pct: parseFloat(gv('ae-margin'))||25,
@@ -3595,7 +3628,10 @@ function ntdWritePMFrequency(facilityId) {
       facility_id: facilityId,
       tag: p.eq.tag || '',
       type: p.eq.type || '',
-      pm_frequency: freqLabel,
+      // Annual Only units (e.g. exhaust fans riding along on a regular visit) get their own
+      // 'Annual' pm_frequency regardless of the job's overall Quarterly/Monthly cadence — this
+      // is what lets PM Checklist's existing annual-visit scheduling logic actually see them.
+      pm_frequency: p.price.isAnnualOnly ? 'Annual' : freqLabel,
       pm_covered: true
     });
   });
