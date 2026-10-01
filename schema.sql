@@ -33,11 +33,9 @@
 --     model_library have no foreign key — they are left behind, not deleted.)
 --   * No database functions, triggers, or views. ntdStore.js sets id, ts,
 --     created_at and updated_at itself on every write.
---   * KNOWN ISSUE: service_tickets.project_id is type uuid, but project ids
---     are text (e.g. "jobs_lq2x8abcd"), so saving a ticket linked to a
---     project is rejected by the database. Fix on live (safe, one line):
---       alter table public.service_tickets alter column project_id type text;
---     then change "project_id uuid" to "project_id text" in this file.
+--   * 2026-10-01: service_tickets.project_id changed from uuid to text on
+--     live (project ids are text, e.g. "jobs_lq2x8abcd"; the uuid type was
+--     rejecting tickets linked to a project).
 --
 -- KEEPING IT CURRENT
 --   Whenever a table/column/policy is added in Supabase, add the same SQL here
@@ -434,7 +432,7 @@ create table public.service_tickets (
   source_followup_source text,
   lead_tech text,
   linked_calendar_id text,
-  project_id uuid  -- KNOWN ISSUE: project ids are text (e.g. jobs_xxxx), so this should be text. See header.
+  project_id text
 );
 alter table public.service_tickets add constraint service_tickets_pkey PRIMARY KEY (id);
 alter table public.service_tickets enable row level security;
